@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Models\Client;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class ClientDirectory extends Component
+{
+    use WithPagination;
+
+    public string $search = '';
+    public bool $showCreateModal = false;
+
+    // Form fields
+    public string $name = '';
+    public string $company_name = '';
+    public string $email = '';
+    public string $phone = '';
+    public string $tax_id = '';
+    public string $address = '';
+    public string $city = '';
+    public string $country_code = 'US';
+    public string $preferred_currency = 'USD';
+    public string $preferred_language = 'en';
+    public string $default_payment_terms = 'net_14';
+    public bool $is_tax_exempt = false;
+
+    protected $rules = [
+        'name' => 'required|string|max:255',
+        'company_name' => 'nullable|string|max:255',
+        'email' => 'required|email|max:255',
+        'phone' => 'nullable|string|max:50',
+        'tax_id' => 'nullable|string|max:100',
+        'address' => 'nullable|string',
+        'city' => 'nullable|string|max:100',
+        'country_code' => 'required|string|size:2',
+        'preferred_currency' => 'required|string|size:3',
+        'is_tax_exempt' => 'boolean',
+    ];
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function openCreateModal()
+    {
+        $this->reset(['name', 'company_name', 'email', 'phone', 'tax_id', 'address', 'city']);
+        $this->is_tax_exempt = false;
+        $this->country_code = 'US';
+        $this->preferred_currency = 'USD';
+        $this->showCreateModal = true;
+    }
+
+    public function saveClient()
+    {
+        $this->validate();
+
+        Client::create([
+            'name' => $this->name,
+            'company_name' => $this->company_name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'tax_id' => $this->tax_id,
+            'address' => $this->address,
+            'city' => $this->city,
+            'country_code' => $this->country_code,
+            'preferred_currency' => $this->preferred_currency,
+            'preferred_language' => $this->preferred_language,
+            'default_payment_terms' => $this->default_payment_terms,
+            'is_tax_exempt' => $this->is_tax_exempt,
+        ]);
+
+        $this->showCreateModal = false;
+        session()->flash('success', "Client {$this->name} added successfully.");
+    }
+
+    public function deleteClient(string $id)
+    {
+        $client = Client::findOrFail($id);
+        $client->delete();
+        session()->flash('success', 'Client archived.');
+    }
+
+    public function render()
+    {
+        $clients = Client::query()
+            ->when($this->search, function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('name', 'like', "%{$this->search}%")
+                        ->orWhere('company_name', 'like', "%{$this->search}%")
+                        ->orWhere('email', 'like', "%{$this->search}%")
+                        ->orWhere('tax_id', 'like', "%{$this->search}%");
+                });
+            })
+            ->withCount('invoices')
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+
+        return view('livewire.client-directory', [
+            'clients' => $clients,
+        ]);
+    }
+}
