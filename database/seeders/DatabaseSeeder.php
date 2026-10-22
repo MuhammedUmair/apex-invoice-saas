@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
                 'website' => 'https://redmaplestudio.com',
                 'bank_details' => [
                     'bank_name' => 'Silicon Valley Commercial Bank',
-                    'account_number' => '••••••••9842',
+                    'account_number' => '********9842',
                     'routing_number' => '121000358',
                     'swift' => 'SVCBUS33',
                 ],
