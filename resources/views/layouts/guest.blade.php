@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Apex Invoice Studio' }}</title>
+    <title>{{ $title ?? 'RedMaple Invoice Generator' }}</title>
+    <!-- Favicon with Red Maple Leaf -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -20,7 +22,13 @@
     </div>
 
     <footer class="py-6 text-center text-xs text-slate-400">
-        <p>&copy; {{ date('Y') }} Apex Invoice Studio &bull; Enterprise Multi-Tenant Billing Platform</p>
+        <div class="flex items-center justify-center gap-1.5 mb-1 text-slate-500">
+            <svg class="w-3.5 h-3.5 text-red-600 inline-block" viewBox="0 0 900 900" fill="currentColor">
+                <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+            </svg>
+            <span class="font-bold text-slate-700">RedMaple Invoice Generator</span>
+        </div>
+        <p>&copy; {{ date('Y') }} RedMaple &bull; Commercial Multi-Tenant Invoicing Platform</p>
     </footer>
 
     @livewireScripts

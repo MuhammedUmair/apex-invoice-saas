@@ -24,20 +24,25 @@
                 <i class="ph ph-file-pdf text-base"></i> View / Print PDF
             </a>
             <a href="{{ route('invoices.portal', $invoice->public_secure_token) }}" target="_blank"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+               class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
                 <i class="ph ph-arrow-square-out text-base"></i> Customer Pay Portal
             </a>
         </div>
     </div>
 
     <!-- Customer Link Share Banner -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="text-xs text-blue-900">
-            <span class="font-bold">Public Secure Customer URL:</span>
-            <span class="font-mono text-blue-700 block truncate max-w-lg">{{ route('invoices.portal', $invoice->public_secure_token) }}</span>
+    <div class="bg-red-50/70 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-xs text-red-900">
+            <span class="font-bold flex items-center gap-1.5 mb-0.5">
+                <svg class="w-3.5 h-3.5 text-red-600" viewBox="0 0 900 900" fill="currentColor">
+                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                </svg>
+                Public Secure Customer URL:
+            </span>
+            <span class="font-mono text-red-700 block truncate max-w-lg">{{ route('invoices.portal', $invoice->public_secure_token) }}</span>
         </div>
         <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied to clipboard!');"
-                class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm whitespace-nowrap">
+                class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-sm whitespace-nowrap">
             Copy Link
         </button>
     </div>
@@ -120,7 +125,7 @@
                 </div>
                 <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-slate-900">
                     <span>Total Amount:</span>
-                    <span class="text-blue-600">{{ $invoice->formatted_total }}</span>
+                    <span class="text-red-600">{{ $invoice->formatted_total }}</span>
                 </div>
                 <div class="flex justify-between text-xs font-bold text-slate-500 pt-1">
                     <span>Amount Paid:</span>

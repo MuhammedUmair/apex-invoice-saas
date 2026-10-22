@@ -13,6 +13,21 @@
         </div>
     @endif
 
+    <!-- Brand Header -->
+    <div class="flex items-center justify-between px-2">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center p-1 shadow-sm">
+                <svg class="w-full h-full text-red-600" viewBox="0 0 900 900" fill="currentColor">
+                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                </svg>
+            </div>
+            <span class="font-black text-slate-800 text-sm tracking-tight">Red<span class="text-red-600">Maple</span> <span class="font-bold text-slate-500 text-xs">Invoice Portal</span></span>
+        </div>
+        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+            <i class="ph ph-shield-check text-xs"></i> 256-Bit SSL Encrypted
+        </span>
+    </div>
+
     <!-- Portal Header & Action Card -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>

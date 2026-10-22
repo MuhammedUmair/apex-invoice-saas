@@ -11,9 +11,9 @@
             @php $isSelected = ($selectedPlanId === $plan->id); @endphp
             <div wire:click="selectPlan('{{ $plan->id }}')"
                  class="relative cursor-pointer rounded-2xl border-2 p-6 transition flex flex-col justify-between bg-white shadow-sm hover:shadow-md
-                 {{ $isSelected ? 'border-blue-600 ring-2 ring-blue-600/20 shadow-blue-100' : 'border-slate-200' }}">
+                 {{ $isSelected ? 'border-red-600 ring-2 ring-red-600/20 shadow-red-100' : 'border-slate-200' }}">
                 @if($plan->code === 'pro')
-                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] uppercase font-black px-3 py-0.5 rounded-full shadow-sm">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] uppercase font-black px-3 py-0.5 rounded-full shadow-sm">
                         Most Popular
                     </span>
                 @endif
@@ -21,7 +21,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <h3 class="font-bold text-slate-900 text-lg">{{ $plan->name }}</h3>
-                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center {{ $isSelected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300' }}">
+                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center {{ $isSelected ? 'border-red-600 bg-red-600 text-white' : 'border-slate-300' }}">
                             @if($isSelected)<i class="ph ph-check text-xs"></i>@endif
                         </div>
                     </div>
@@ -44,7 +44,7 @@
                     </ul>
                 </div>
 
-                <button type="button" class="w-full py-2.5 rounded-xl font-bold text-xs transition {{ $isSelected ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+                <button type="button" class="w-full py-2.5 rounded-xl font-bold text-xs transition {{ $isSelected ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
                     {{ $isSelected ? 'Selected Package' : 'Select Plan' }}
                 </button>
             </div>
@@ -61,7 +61,7 @@
                 </div>
                 <div class="text-right">
                     <span class="text-xs text-slate-400 line-through block font-medium">${{ number_format($selectedPlan->price_cents / 100, 2) }}</span>
-                    <span class="text-xl font-black text-blue-600">{{ $finalPriceFormatted }}</span>
+                    <span class="text-xl font-black text-red-600">{{ $finalPriceFormatted }}</span>
                 </div>
             </div>
 
@@ -70,7 +70,7 @@
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Have a Promotional Coupon?</label>
                 <div class="flex gap-2">
                     <input type="text" wire:model.live="couponCode" placeholder="e.g. LAUNCH2026 or HOSTINGER50"
-                           class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 uppercase font-mono">
+                           class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 uppercase font-mono">
                     <button type="button" wire:click="validateCoupon" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl transition">
                         Apply Coupon
                     </button>
@@ -87,18 +87,18 @@
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Select Payment Method</label>
                 <div class="grid grid-cols-2 gap-4">
                     <!-- Stripe -->
-                    <label class="flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition {{ $gateway === 'stripe' ? 'border-blue-600 bg-blue-50/40 text-blue-900' : 'border-slate-200 text-slate-700' }}">
+                    <label class="flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition {{ $gateway === 'stripe' ? 'border-red-600 bg-red-50/40 text-red-900' : 'border-slate-200 text-slate-700' }}">
                         <div class="flex items-center gap-2.5">
-                            <input type="radio" wire:model.live="gateway" value="stripe" class="text-blue-600 focus:ring-blue-500">
+                            <input type="radio" wire:model.live="gateway" value="stripe" class="text-red-600 focus:ring-red-500">
                             <span class="text-xs font-bold">Credit Card (Stripe)</span>
                         </div>
                         <i class="ph ph-credit-card text-lg text-slate-600"></i>
                     </label>
 
                     <!-- PayPal -->
-                    <label class="flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition {{ $gateway === 'paypal' ? 'border-blue-600 bg-blue-50/40 text-blue-900' : 'border-slate-200 text-slate-700' }}">
+                    <label class="flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition {{ $gateway === 'paypal' ? 'border-red-600 bg-red-50/40 text-red-900' : 'border-slate-200 text-slate-700' }}">
                         <div class="flex items-center gap-2.5">
-                            <input type="radio" wire:model.live="gateway" value="paypal" class="text-blue-600 focus:ring-blue-500">
+                            <input type="radio" wire:model.live="gateway" value="paypal" class="text-red-600 focus:ring-red-500">
                             <span class="text-xs font-bold">PayPal Subscription</span>
                         </div>
                         <i class="ph ph-wallet text-lg text-slate-600"></i>
@@ -107,7 +107,7 @@
             </div>
 
             <!-- Submit Button -->
-            <button type="button" wire:click="processCheckout" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+            <button type="button" wire:click="processCheckout" class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
                 <i class="ph ph-lock-key text-base"></i>
                 Upgrade to {{ $selectedPlan->name }} ({{ $finalPriceFormatted }}/mo)
             </button>

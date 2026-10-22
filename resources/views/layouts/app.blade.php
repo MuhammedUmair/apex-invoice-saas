@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Apex Invoice Studio' }} - Commercial SaaS Invoicing</title>
+    <title>{{ $title ?? 'RedMaple Invoice Generator' }} - Commercial SaaS Invoicing</title>
+    <!-- Favicon with Red Maple Leaf -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
     <!-- Tailwind CSS CDN for zero-build Hostinger deployment -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -13,12 +15,14 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a',
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
                         }
                     }
                 }
@@ -37,37 +41,44 @@
         <!-- Sidebar Navigation -->
         <aside class="w-64 bg-slate-900 text-slate-200 flex flex-col shrink-0">
             <!-- Brand Header -->
-            <div class="h-16 flex items-center px-6 border-b border-slate-800 gap-3">
-                <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white text-lg">A</div>
+            <div class="h-16 flex items-center px-5 border-b border-slate-800 gap-3">
+                <div class="w-9 h-9 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm">
+                    <!-- Red Maple Leaf Vector -->
+                    <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
+                        <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                    </svg>
+                </div>
                 <div>
-                    <h1 class="font-bold text-white text-sm tracking-wide">Apex Studio</h1>
-                    <p class="text-xs text-slate-400 truncate max-w-[140px]">{{ auth()->user()->workspace->name ?? 'Invoice SaaS' }}</p>
+                    <h1 class="font-black text-white text-sm tracking-tight flex items-center gap-1">
+                        Red<span class="text-red-500">Maple</span>
+                    </h1>
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Invoice Generator</p>
                 </div>
             </div>
 
             <!-- Nav Links -->
             <nav class="flex-1 px-4 py-6 space-y-1">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-squares-four text-lg"></i>
                     Dashboard
                 </a>
 
-                <a href="{{ route('invoices.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('invoices.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('invoices.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('invoices.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-receipt text-lg"></i>
                     Invoices
                 </a>
 
-                <a href="{{ route('clients.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('clients.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-users text-lg"></i>
                     Client CRM
                 </a>
 
-                <a href="{{ route('services.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('services.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('services.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('services.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-package text-lg"></i>
                     Catalog & Presets
                 </a>
 
-                <a href="{{ route('membership.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('membership.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('membership.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('membership.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-crown text-lg text-amber-400"></i>
                     Plan & Billing
                 </a>
@@ -103,7 +114,7 @@
                     <h2 class="text-lg font-bold text-slate-800">{{ $header ?? 'Overview' }}</h2>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
                         <i class="ph ph-plus-circle text-base"></i>
                         Create Invoice
                     </a>

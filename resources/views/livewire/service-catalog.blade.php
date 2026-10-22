@@ -9,7 +9,7 @@
             <button wire:click="openPresetModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition border border-indigo-200">
                 <i class="ph ph-magic-wand text-base"></i> Import Industry Presets
             </button>
-            <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+            <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
                 <i class="ph ph-plus-circle text-base"></i> Add Custom Service
             </button>
         </div>
@@ -95,7 +95,7 @@
                                 <span class="text-[11px] text-slate-400">{{ $p->items_count }} ready services</span>
                             </div>
                             <div class="pt-4 mt-2 border-t border-slate-100">
-                                <button type="button" wire:click="importPreset({{ $p->id }})" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition">
+                                <button type="button" wire:click="importPreset({{ $p->id }})" class="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg transition">
                                     1-Click Import Catalog
                                 </button>
                             </div>
@@ -157,7 +157,7 @@
 
                     <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                         <button type="button" wire:click="$set('showCreateModal', false)" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                        <button type="submit" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm">Save Service</button>
+                        <button type="submit" class="px-5 py-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm">Save Service</button>
                     </div>
                 </form>
             </div>

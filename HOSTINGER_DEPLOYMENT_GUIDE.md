@@ -1,7 +1,7 @@
 # Hostinger Premium Web Hosting Deployment Guide
-## Apex Invoice Studio — Commercial Multi-Tenant SaaS Platform
+## RedMaple Invoice Generator — Commercial Multi-Tenant SaaS Platform
 
-This production deployment guide contains exact, step-by-step instructions for installing and running **Apex Invoice Studio** on **Hostinger Premium Web Hosting** (or Hostinger Cloud/Business Hosting).
+This production deployment guide contains exact, step-by-step instructions for installing and running **RedMaple Invoice Generator** on **Hostinger Premium Web Hosting** (or Hostinger Cloud/Business Hosting).
 
 ---
 
@@ -60,7 +60,7 @@ If deploying directly into `public_html/`:
    ```
 3. Edit `.env` with your Hostinger database and application credentials:
    ```dotenv
-   APP_NAME="Apex Invoice Studio"
+   APP_NAME="RedMaple Invoice Generator"
    APP_ENV=production
    APP_KEY=base64:... # Generate via 'php artisan key:generate'
    APP_DEBUG=false
@@ -108,9 +108,9 @@ php artisan view:cache
 
 #### Pre-seeded Default Accounts & Data:
 - **Default Admin Account**:
-  - **Email**: `admin@apexstudios.com`
+  - **Email**: `admin@redmaplestudio.com` (or `admin@apexstudios.com`)
   - **Password**: `Password123!`
-  - **Workspace**: Apex Digital Studios (Pro Plan active)
+  - **Workspace**: RedMaple Digital Studio (Pro Plan active)
 - **Pre-loaded Industry Presets**:
   - Web Development & Hosting (5 services)
   - Digital Marketing & SMM (4 services)

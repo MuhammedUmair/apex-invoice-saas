@@ -7,7 +7,7 @@
                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 bg-white outline-none shadow-sm">
         </div>
         <div>
-            <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
+            <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
                 <i class="ph ph-user-plus text-base"></i> Add New Client
             </button>
         </div>
@@ -83,7 +83,7 @@
                             <!-- Actions -->
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    <a href="{{ route('invoices.create') }}?client_id={{ $c->id }}" class="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition" title="New Invoice">
+                                    <a href="{{ route('invoices.create') }}?client_id={{ $c->id }}" class="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition" title="New Invoice">
                                         <i class="ph ph-receipt text-base"></i>
                                     </a>
                                     <button wire:click="deleteClient('{{ $c->id }}')" onclick="confirm('Archive this client?') || event.stopImmediatePropagation()" class="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition" title="Delete">
@@ -194,7 +194,7 @@
 
                     <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                         <button type="button" wire:click="$set('showCreateModal', false)" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                        <button type="submit" class="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm">Save Client</button>
+                        <button type="submit" class="px-5 py-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm">Save Client</button>
                     </div>
                 </form>
             </div>

@@ -1,7 +1,7 @@
 {
-    "name": "apex/invoice-studio-saas",
+    "name": "redmaple/invoice-generator",
     "type": "project",
-    "description": "Multi-Tenant Invoicing & Billing SaaS Platform for Hostinger",
+    "description": "RedMaple Invoice Generator — Multi-Tenant Invoicing & Billing SaaS Platform for Hostinger",
     "keywords": ["laravel", "invoicing", "saas", "livewire", "stripe", "paypal"],
     "license": "proprietary",
     "require": {

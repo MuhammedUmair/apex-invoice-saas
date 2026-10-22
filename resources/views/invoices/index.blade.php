@@ -9,7 +9,7 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage billing documents, view payment statuses, and track receivables</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+            <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
                 <i class="ph ph-plus-circle text-base"></i> New Invoice
             </a>
         </div>
@@ -17,11 +17,11 @@
 
     <!-- Status Filter Tabs -->
     <div class="flex items-center gap-2 border-b border-slate-200 pb-3 text-xs font-semibold overflow-x-auto">
-        <a href="{{ route('invoices.index') }}" class="px-3 py-1.5 rounded-lg transition {{ empty($currentStatus) ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">All</a>
-        <a href="{{ route('invoices.index', ['status' => 'issued']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'issued' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Issued</a>
-        <a href="{{ route('invoices.index', ['status' => 'paid']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'paid' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Paid</a>
-        <a href="{{ route('invoices.index', ['status' => 'partially_paid']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'partially_paid' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Partially Paid</a>
-        <a href="{{ route('invoices.index', ['status' => 'draft']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'draft' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Drafts</a>
+        <a href="{{ route('invoices.index') }}" class="px-3 py-1.5 rounded-lg transition {{ empty($currentStatus) ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">All</a>
+        <a href="{{ route('invoices.index', ['status' => 'issued']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'issued' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Issued</a>
+        <a href="{{ route('invoices.index', ['status' => 'paid']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'paid' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Paid</a>
+        <a href="{{ route('invoices.index', ['status' => 'partially_paid']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'partially_paid' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Partially Paid</a>
+        <a href="{{ route('invoices.index', ['status' => 'draft']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'draft' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Drafts</a>
     </div>
 
     <!-- Invoice Table -->
@@ -51,7 +51,7 @@
                     @foreach($invoices as $inv)
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="px-6 py-4">
-                                <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-blue-600 hover:underline">
+                                <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-red-600 hover:underline">
                                     {{ $inv->invoice_number }}
                                 </a>
                             </td>

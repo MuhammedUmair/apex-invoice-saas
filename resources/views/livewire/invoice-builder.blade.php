@@ -1,9 +1,16 @@
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 max-w-5xl mx-auto">
     <!-- Builder Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
-        <div>
-            <h1 class="text-xl font-bold text-slate-900">Invoice Creator Studio</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Real-time VAT calculation & immutable financial ledger</p>
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center p-2 shadow-sm shrink-0">
+                <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
+                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight">Red<span class="text-red-600">Maple</span> <span class="font-bold text-slate-700">Invoice Builder</span></h1>
+                <p class="text-xs text-slate-500 mt-0.5">Real-time VAT calculation & immutable financial ledger</p>
+            </div>
         </div>
         <div class="flex items-center gap-2">
             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
@@ -226,7 +233,7 @@
 
                     <div class="pt-3 border-t border-slate-200 flex items-center justify-between">
                         <span class="text-base font-black text-slate-900">Total Due:</span>
-                        <span class="text-2xl font-black text-blue-600">{{ number_format($totalAmount, 2) }} {{ $currency }}</span>
+                        <span class="text-2xl font-black text-red-600">{{ number_format($totalAmount, 2) }} {{ $currency }}</span>
                     </div>
                 </div>
 
@@ -235,7 +242,7 @@
                     <button type="button" wire:click="saveInvoice('draft')" class="flex-1 py-2.5 px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs rounded-xl transition">
                         Save as Draft
                     </button>
-                    <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                    <button type="submit" class="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2">
                         <i class="ph ph-check-circle text-base"></i>
                         Issue Invoice
                     </button>

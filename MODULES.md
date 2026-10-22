@@ -1,6 +1,6 @@
-# Apex Invoice Studio — Modular Architecture & Repository Guide
+# RedMaple Invoice Generator — Modular Architecture & Repository Guide
 
-Apex Invoice Studio is engineered using a modular, decoupled domain architecture designed for high maintainability, strict multi-tenancy, and seamless deployment on **Hostinger Premium Web Hosting**.
+RedMaple Invoice Generator is engineered using a modular, decoupled domain architecture designed for high maintainability, strict multi-tenancy, and seamless deployment on **Hostinger Premium Web Hosting**.
 
 ---
 

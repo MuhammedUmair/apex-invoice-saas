@@ -91,7 +91,7 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('success', 'Welcome to Apex Invoice Studio! Your 14-day trial has begun.');
+        return redirect()->route('dashboard')->with('success', 'Welcome to RedMaple Invoice Generator! Your 14-day trial has begun.');
     }
 
     public function logout(Request $request)

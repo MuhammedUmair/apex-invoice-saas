@@ -24,10 +24,10 @@ class DatabaseSeeder extends Seeder
 
         // Create Default Demo Workspace
         $workspace = Workspace::firstOrCreate(
-            ['slug' => 'apex-studios'],
+            ['slug' => 'redmaple-studios'],
             [
-                'name' => 'Apex Digital Studios',
-                'brand_color' => '#2563eb',
+                'name' => 'RedMaple Digital Studio',
+                'brand_color' => '#dc2626',
                 'secondary_color' => '#1e293b',
                 'currency' => 'USD',
                 'language' => 'en',
@@ -35,8 +35,8 @@ class DatabaseSeeder extends Seeder
                 'tax_id' => 'US-987654321',
                 'address' => '742 Evergreen Terrace, Suite 100, Springfield, OR',
                 'phone' => '+1 (555) 019-2834',
-                'email' => 'billing@apexstudios.com',
-                'website' => 'https://apexstudios.com',
+                'email' => 'billing@redmaplestudio.com',
+                'website' => 'https://redmaplestudio.com',
                 'bank_details' => [
                     'bank_name' => 'Silicon Valley Commercial Bank',
                     'account_number' => '••••••••9842',
@@ -49,7 +49,7 @@ class DatabaseSeeder extends Seeder
 
         // Create Demo Admin User
         $user = User::firstOrCreate(
-            ['email' => 'admin@apexstudios.com'],
+            ['email' => 'admin@redmaplestudio.com'],
             [
                 'workspace_id' => $workspace->id,
                 'name' => 'Alex Rivera',
