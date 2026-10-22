@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocsController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +26,25 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 
 /*
 |--------------------------------------------------------------------------
+| Locale Switcher Route
+|--------------------------------------------------------------------------
+*/
+Route::get('/locale/{lang}', function ($lang) {
+    if (in_array($lang, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de', 'zh'])) {
+        session(['locale' => $lang]);
+    }
+    return back();
+})->name('locale.switch');
+
+/*
+|--------------------------------------------------------------------------
+| Multilingual Documentation Hub (Public & Authenticated)
+|--------------------------------------------------------------------------
+*/
+Route::get('/docs', [DocsController::class, 'index'])->name('docs.index');
+
+/*
+|--------------------------------------------------------------------------
 | Protected Tenant / Agency Workspace Routes
 |--------------------------------------------------------------------------
 */
@@ -34,6 +56,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+
+    // Credit Notes & Ledger Adjustments
+    Route::get('/credit-notes', [CreditNoteController::class, 'index'])->name('credit-notes.index');
+    Route::post('/credit-notes', [CreditNoteController::class, 'store'])->name('credit-notes.store');
 
     // Client CRM
     Route::get('/clients', function () {
@@ -49,6 +75,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/membership', function () {
         return view('membership.index');
     })->name('membership.index');
+
+    // Workspace Settings & Branding Customizer
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
 });
 
 /*

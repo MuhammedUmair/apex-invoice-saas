@@ -1,5 +1,19 @@
+@php
+    $currentLocale = session('locale', 'en');
+    $isRtl = in_array($currentLocale, ['ur', 'ar']);
+    $localesList = [
+        'en' => ['name' => 'English', 'native' => 'English', 'flag' => '🇺🇸'],
+        'ur' => ['name' => 'Urdu', 'native' => 'اردو', 'flag' => '🇵🇰'],
+        'hi' => ['name' => 'Hindi', 'native' => 'हिन्दी', 'flag' => '🇮🇳'],
+        'tr' => ['name' => 'Turkish', 'native' => 'Türkçe', 'flag' => '🇹🇷'],
+        'ar' => ['name' => 'Arabic', 'native' => 'العربية', 'flag' => '🇦🇪'],
+        'es' => ['name' => 'Spanish', 'native' => 'Español', 'flag' => '🇪🇸'],
+        'fr' => ['name' => 'French', 'native' => 'Français', 'flag' => '🇫🇷'],
+        'de' => ['name' => 'German', 'native' => 'Deutsch', 'flag' => '🇩🇪'],
+    ];
+@endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $currentLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,6 +48,9 @@
     <!-- Phosphor Icons CDN -->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css"/>
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"/>
+    <style>
+        [dir="rtl"] { text-align: right; }
+    </style>
     @livewireStyles
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
@@ -57,38 +74,57 @@
             </div>
 
             <!-- Nav Links -->
-            <nav class="flex-1 px-4 py-6 space-y-1">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <nav class="flex-1 px-4 py-5 space-y-1 overflow-y-auto">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-squares-four text-lg"></i>
                     Dashboard
                 </a>
 
-                <a href="{{ route('invoices.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('invoices.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('invoices.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('invoices.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-receipt text-lg"></i>
                     Invoices
                 </a>
 
-                <a href="{{ route('clients.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('credit-notes.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('credit-notes.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="ph ph-arrow-u-up-left text-lg text-rose-400"></i>
+                    Credit Notes
+                </a>
+
+                <a href="{{ route('clients.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-users text-lg"></i>
                     Client CRM
                 </a>
 
-                <a href="{{ route('services.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('services.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('services.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('services.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-package text-lg"></i>
                     Catalog & Presets
                 </a>
 
-                <a href="{{ route('membership.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition {{ request()->routeIs('membership.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                <a href="{{ route('membership.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('membership.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-crown text-lg text-amber-400"></i>
                     Plan & Billing
+                </a>
+
+                <div class="pt-3 pb-1 border-t border-slate-800/80 my-2">
+                    <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">System</span>
+                </div>
+
+                <a href="{{ route('docs.index') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="ph ph-book-open text-lg text-sky-400"></i>
+                    Documentation
+                </a>
+
+                <a href="{{ route('settings.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('settings.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="ph ph-gear text-lg text-slate-400"></i>
+                    Agency Settings
                 </a>
             </nav>
 
             <!-- Bottom User Profile & Sign Out -->
             <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white">
+                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white shadow-sm">
                             {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
                         </div>
                         <div class="text-xs">
@@ -114,7 +150,35 @@
                     <h2 class="text-lg font-bold text-slate-800">{{ $header ?? 'Overview' }}</h2>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition">
+                    <!-- Topbar Language Switcher Dropdown -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 transition">
+                            <span>{{ $localesList[$currentLocale]['flag'] ?? '🌐' }}</span>
+                            <span class="hidden sm:inline font-semibold">{{ $localesList[$currentLocale]['name'] ?? 'Language' }}</span>
+                            <i class="ph ph-caret-down text-slate-400"></i>
+                        </button>
+                        <div x-show="open" @click.outside="open = false" x-cloak class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
+                            <div class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Switch App Language</div>
+                            @foreach($localesList as $code => $data)
+                                <a href="{{ route('locale.switch', $code) }}" class="flex items-center justify-between px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 transition {{ $currentLocale === $code ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-700' }}">
+                                    <span class="flex items-center gap-2">
+                                        <span>{{ $data['flag'] }}</span>
+                                        <span>{{ $data['name'] }}</span>
+                                    </span>
+                                    <span class="text-slate-400 text-[10px]">{{ $data['native'] }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Documentation Quick Link -->
+                    <a href="{{ route('docs.index') }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition" title="Multilingual Documentation">
+                        <i class="ph ph-book-open text-sky-600 text-sm"></i>
+                        <span class="hidden md:inline">Docs & Guide</span>
+                    </a>
+
+                    <!-- Create Invoice Action -->
+                    <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
                         <i class="ph ph-plus-circle text-base"></i>
                         Create Invoice
                     </a>

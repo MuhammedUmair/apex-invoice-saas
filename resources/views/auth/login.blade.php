@@ -1,7 +1,7 @@
 @extends('layouts.guest')
 
 @section('content')
-<div class="min-h-[85vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8">
+<div class="min-h-[85vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10">
     <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
         <div class="text-center mb-8">
             <div class="w-16 h-16 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm p-3">
@@ -55,9 +55,17 @@
             </button>
         </form>
 
-        <div class="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-500">
-            Don't have an agency account yet? 
-            <a href="{{ route('register') }}" class="text-red-600 font-bold hover:underline">Start 14-day free trial</a>
+        <div class="mt-6 pt-6 border-t border-slate-100 flex flex-col gap-2 text-center text-xs text-slate-500">
+            <div>
+                Don't have an agency account yet? 
+                <a href="{{ route('register') }}" class="text-red-600 font-bold hover:underline">Start free trial</a>
+            </div>
+            <div class="pt-2">
+                <a href="{{ route('docs.index') }}" class="inline-flex items-center gap-1.5 text-slate-600 hover:text-red-600 font-medium">
+                    <i class="ph ph-book-open text-sky-600"></i>
+                    <span>Multilingual User Manual & Guide (اردو, हिन्दी, Türkçe, English)</span>
+                </a>
+            </div>
         </div>
     </div>
 </div>

@@ -27,6 +27,26 @@ class ClientDirectory extends Component
     public string $default_payment_terms = 'net_14';
     public bool $is_tax_exempt = false;
 
+    public static array $supportedLanguages = [
+        'en' => ['name' => 'English', 'native' => 'English', 'flag' => '🇺🇸'],
+        'ur' => ['name' => 'Urdu', 'native' => 'اردو', 'flag' => '🇵🇰'],
+        'hi' => ['name' => 'Hindi', 'native' => 'हिन्दी', 'flag' => '🇮🇳'],
+        'tr' => ['name' => 'Turkish', 'native' => 'Türkçe', 'flag' => '🇹🇷'],
+        'ar' => ['name' => 'Arabic', 'native' => 'العربية', 'flag' => '🇦🇪'],
+        'es' => ['name' => 'Spanish', 'native' => 'Español', 'flag' => '🇪🇸'],
+        'fr' => ['name' => 'French', 'native' => 'Français', 'flag' => '🇫🇷'],
+        'de' => ['name' => 'German', 'native' => 'Deutsch', 'flag' => '🇩🇪'],
+        'zh' => ['name' => 'Chinese', 'native' => '中文', 'flag' => '🇨🇳'],
+    ];
+
+    public static array $paymentTermsOptions = [
+        'due_on_receipt' => 'Due on Receipt',
+        'net_7' => 'Net 7 Days',
+        'net_14' => 'Net 14 Days',
+        'net_30' => 'Net 30 Days',
+        'net_60' => 'Net 60 Days',
+    ];
+
     protected $rules = [
         'name' => 'required|string|max:255',
         'company_name' => 'nullable|string|max:255',
@@ -37,6 +57,8 @@ class ClientDirectory extends Component
         'city' => 'nullable|string|max:100',
         'country_code' => 'required|string|size:2',
         'preferred_currency' => 'required|string|size:3',
+        'preferred_language' => 'required|string|max:10',
+        'default_payment_terms' => 'required|string|max:30',
         'is_tax_exempt' => 'boolean',
     ];
 
@@ -51,6 +73,8 @@ class ClientDirectory extends Component
         $this->is_tax_exempt = false;
         $this->country_code = 'US';
         $this->preferred_currency = 'USD';
+        $this->preferred_language = 'en';
+        $this->default_payment_terms = 'net_14';
         $this->showCreateModal = true;
     }
 
@@ -92,7 +116,8 @@ class ClientDirectory extends Component
                     $sub->where('name', 'like', "%{$this->search}%")
                         ->orWhere('company_name', 'like', "%{$this->search}%")
                         ->orWhere('email', 'like', "%{$this->search}%")
-                        ->orWhere('tax_id', 'like', "%{$this->search}%");
+                        ->orWhere('tax_id', 'like', "%{$this->search}%")
+                        ->orWhere('preferred_language', 'like', "%{$this->search}%");
                 });
             })
             ->withCount('invoices')
@@ -101,6 +126,8 @@ class ClientDirectory extends Component
 
         return view('livewire.client-directory', [
             'clients' => $clients,
+            'languages' => self::$supportedLanguages,
+            'termsOptions' => self::$paymentTermsOptions,
         ]);
     }
 }
