@@ -12,85 +12,84 @@
 
 ## 🌐 Production Environment
 
-| Parameter | Production Value |
-| :--- | :--- |
-| **Live Domain** | [https://redmapleagency.com](https://redmapleagency.com) |
-| **Login Portal** | [https://redmapleagency.com/login](https://redmapleagency.com/login) |
-| **Registration** | [https://redmapleagency.com/register](https://redmapleagency.com/register) |
-| **Hosting Platform** | Hostinger Premium Cloud / Web Hosting |
-| **Web Server** | LiteSpeed Enterprise Web Server with HTTP/3 & SSL |
-| **Database** | MySQL 8.0 (`u858731124_rmacom_Inv_DB`) |
-| **Core Path (Private)** | `/home/u858731124/domains/redmapleagency.com/redmaple_core` |
-| **Web Root (Public)** | `/home/u858731124/domains/redmapleagency.com/public_html` |
+| Portal / Module | Live URL | Status | Description |
+| :--- | :--- | :--- | :--- |
+| **Main Website** | [https://redmapleagency.com](https://redmapleagency.com) | `200 OK` | Public domain with automatic authentication redirect |
+| **Agency Sign In** | [https://redmapleagency.com/login](https://redmapleagency.com/login) | `200 OK` | Secured Bcrypt login portal |
+| **Documentation Hub** | [https://redmapleagency.com/docs](https://redmapleagency.com/docs) | `200 OK` | Multilingual user manual (English, Urdu, Arabic, Hindi, Turkish) |
+| **Agency Dashboard** | [https://redmapleagency.com/dashboard](https://redmapleagency.com/dashboard) | `200 OK` | Revenue, pending balances, recent invoices & payments |
+| **Invoice Management** | [https://redmapleagency.com/invoices](https://redmapleagency.com/invoices) | `200 OK` | Invoices list with status filtering & PDF download |
+| **Invoice Builder** | [https://redmapleagency.com/invoices/create](https://redmapleagency.com/invoices/create) | `200 OK` | Reactive invoice creator with sequential locking (`INV-2026-0001`) |
+| **Credit Notes Ledger** | [https://redmapleagency.com/credit-notes](https://redmapleagency.com/credit-notes) | `200 OK` | Audit-compliant credit notes & refund issuance |
+| **Client Directory CRM** | [https://redmapleagency.com/clients](https://redmapleagency.com/clients) | `200 OK` | Client management with Urdu, Hindi, Turkish, Arabic & multi-currency |
+| **Catalog & Presets** | [https://redmapleagency.com/services](https://redmapleagency.com/services) | `200 OK` | Custom services + 5 industry pre-loaded catalogs |
+| **Plan & Billing** | [https://redmapleagency.com/membership](https://redmapleagency.com/membership) | `200 OK` | SaaS subscriptions & atomic coupon checkout |
+| **Agency Settings** | [https://redmapleagency.com/settings](https://redmapleagency.com/settings) | `200 OK` | Profile, wire transfer bank instructions, brand colors, Stripe/PayPal keys |
 
 ---
 
 ## 🔑 Demo Access Credentials
 
-The database has been seeded with initial agency data and subscription plans:
+The database has been seeded with initial agency data, demo clients, and subscription plans:
 
 - **Email**: `admin@redmaplestudio.com`
 - **Password**: `Password123!`
-- **Role**: Agency Owner (`RedMaple Digital Studio`)
-- **Active Subscription**: Pro Plan
+- **Agency Workspace**: RedMaple Digital Studio
+- **Subscription Plan**: Pro Business Plan (Active)
 
 ---
 
-## 🚀 Key Modules & Capabilities
+## 🚀 Deployed Modules & Capabilities
 
-1. **Multi-Tenant Agency Workspace Isolation**:
-   - Automatic workspace scoping via Eloquent global scope (`WorkspaceScope`).
-   - Every invoice, client, service preset, and subscription belongs to an isolated agency tenant.
+1. **Client CRM with Urdu, Hindi, Turkish, and Arabic Language Preferences**:
+   - Add clients with specific invoice language preferences:
+     - 🇺🇸 English (`en`)
+     - 🇵🇰 Urdu - اردو (`ur`) - Right-to-Left (RTL)
+     - 🇮🇳 Hindi - हिन्दी (`hi`)
+     - 🇹🇷 Turkish - Türkçe (`tr`)
+     - 🇦🇪 Arabic - العربية (`ar`) - Right-to-Left (RTL)
+     - 🇪🇸 Spanish, 🇫🇷 French, 🇩🇪 German, 🇨🇳 Chinese
+   - Configurable default payment terms (`due_on_receipt`, `net_7`, `net_14`, `net_30`, `net_60`).
 
-2. **Client Directory CRM**:
-   - Comprehensive client management with multi-currency (`USD`, `EUR`, `GBP`, `AED`, `CAD`, `AUD`, `PKR`, `INR`).
-   - Multi-language defaults including English, Arabic (العربية), Urdu (اردو), Hindi (हिन्दी), Turkish (Türkçe), German, French, Spanish, and Chinese.
+2. **Multilingual Documentation Hub (`/docs`)**:
+   - Comprehensive interactive software guide available in **English**, **Urdu (اردو)**, **Arabic (العربية)**, **Hindi (हिन्दी)**, and **Turkish (Türkçe)**.
+   - Live topics covering Multi-Tenancy, Client CRM, Invoice Numbering Locks, Tax Snapshots, PDF Passwords, Credit Notes, Stripe/PayPal Webhooks, and Coupons.
 
-3. **Dynamic Invoice Builder**:
-   - Real-time line item calculations with tax rates, discounts, and payment terms.
-   - Sequential, atomic invoice number generation per workspace (`INV-2026-0001`).
+3. **Agency Workspace Settings & Branding Management (`/settings`)**:
+   - Edit agency company name, tax ID, phone, email, website, and business address.
+   - Configure bank wire remittance instructions (Bank Name, Account/IBAN, Routing Code, SWIFT).
+   - Custom brand primary and secondary color customization with live hex preview.
+   - Whitelabel toggle and dedicated inputs for Stripe & PayPal live credentials.
 
-4. **Secure Multilingual PDF Generation**:
-   - Powered by `mpdf/mpdf` with UTF-8 character shaping and RTL (Right-to-Left) bidirectional support for Arabic and Urdu.
-   - Optional PIN / password challenge on public customer invoice links.
+4. **Credit Notes & Refunds Management (`/credit-notes`)**:
+   - Issue partial or full credit notes (`CN-YYYY-XXXX`) directly against any invoice.
+   - Full ledger audit trail preventing arbitrary deletion of issued accounting records.
+   - Automatic invoice balance adjustment and status updates.
 
-5. **SaaS Membership & Coupon Engine**:
-   - Pre-configured plans: **Free Trial**, **Starter Agency ($19/mo)**, **Pro Business ($49/mo)**, **Enterprise Scale ($99/mo)**.
-   - Seeded promotional discount coupons:
+5. **Platform UI Language Switcher (with RTL Layout)**:
+   - Dynamic topbar language switcher supporting 8 languages.
+   - Automatically switches document direction to `dir="rtl"` when Urdu or Arabic is selected.
+
+6. **Invoicing & PDF Password PIN Security**:
+   - Concurrency-safe sequential numbering per workspace.
+   - Pre-tax discount calculation adhering to GAAP and IFRS standards.
+   - Encrypted PDF download challenge with PIN protection.
+
+7. **SaaS Membership & Atomic Coupons**:
+   - Seeded promotional discount codes:
      - `LAUNCH2026`: 20% off
      - `HOSTINGER50`: 50% off
      - `SAVE10FIXED`: $10.00 flat discount
-
-6. **Payment Gateways & Webhooks**:
-   - Native integration endpoints for Stripe and PayPal recurring subscriptions and one-off customer invoice payments.
-   - CSRF bypass for automated webhook handlers (`/webhooks/stripe`, `/webhooks/paypal`).
+   - Concurrency-safe atomic redemption counter preventing race condition abuse during checkout spikes.
 
 ---
 
-## 🔒 Security & Architecture Highlights
+## 🔒 Production Architecture & Security Setup
 
-- **Separation of Core & Public Web Root**:
-  The application source code, vendor packages, `.env`, and storage files are placed **above** the public root in `/redmaple_core`, preventing direct HTTP access to configuration files or source code.
-- **LiteSpeed Cache Exemption**:
-  Dynamic application routes (`/dashboard`, `/invoices`, `/login`, etc.) are exempted from LiteSpeed caching in `.htaccess` to ensure instant data synchronization and CSRF token integrity.
-- **Symlinked Public Storage**:
-  `public_html/storage` points to `redmaple_core/storage/app/public` via a direct filesystem symlink.
+- **Core Code Isolation**: Application code lives outside the public root in `/home/u858731124/domains/redmapleagency.com/redmaple_core`.
+- **Public Web Root**: Only `index.php`, `.htaccess`, and public assets exist in `/public_html`. Direct access to `.env` returns `403 Forbidden`.
+- **LiteSpeed Cache Rules**: Dynamic authenticated routes and CSRF tokens are exempted from server caching.
 
 ---
-
-## 🛠️ Maintenance & CLI Commands
-
-Commands can be run via SSH or maintenance bridge scripts:
-
-```bash
-# Clear & Cache Configurations
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-# Re-run Migrations & Seeders
-php artisan migrate --force
-php artisan db:seed --force
-```
 
 © 2026 RedMaple. All rights reserved.
