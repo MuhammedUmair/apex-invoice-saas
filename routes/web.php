@@ -22,14 +22,15 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+// Logout accepts both GET and POST to prevent 405 Method Not Allowed
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
 /*
 |--------------------------------------------------------------------------
-| Locale Switcher Route
+| Locale Switcher Route (accepts GET and POST)
 |--------------------------------------------------------------------------
 */
-Route::get('/locale/{lang}', function ($lang) {
+Route::match(['get', 'post'], '/locale/{lang}', function ($lang) {
     if (in_array($lang, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de', 'zh'])) {
         session(['locale' => $lang]);
     }
@@ -89,7 +90,7 @@ Route::middleware('auth')->group(function () {
 Route::prefix('invoices/p')->group(function () {
     // Interactive customer viewing & payment portal
     Route::get('/{token}', [InvoiceController::class, 'customerPortal'])->name('invoices.portal');
-    Route::post('/{token}/pay', [PaymentController::class, 'processPortalPayment'])->name('invoices.pay');
+    Route::match(['get', 'post'], '/{token}/pay', [PaymentController::class, 'processPortalPayment'])->name('invoices.pay');
 
     // PDF security & download
     Route::get('/{token}/pdf-unlock', [InvoiceController::class, 'pdfChallenge'])->name('invoices.pdf.challenge');

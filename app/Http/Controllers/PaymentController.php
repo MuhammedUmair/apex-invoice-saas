@@ -21,6 +21,10 @@ class PaymentController extends Controller
      */
     public function processPortalPayment(Request $request, string $token)
     {
+        if ($request->isMethod('get')) {
+            return redirect()->route('invoices.portal', $token);
+        }
+
         $invoice = Invoice::withoutGlobalScopes()
             ->where('public_secure_token', $token)
             ->firstOrFail();

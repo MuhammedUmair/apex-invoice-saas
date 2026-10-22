@@ -132,11 +132,12 @@
                             <p class="text-slate-400 capitalize">{{ auth()->user()->role }}</p>
                         </div>
                     </div>
-                    <form method="POST" action="{{ route('logout') }}">
+                    <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                       class="text-slate-400 hover:text-rose-400 p-1.5 transition cursor-pointer" title="Sign Out">
+                        <i class="ph ph-sign-out text-lg"></i>
+                    </a>
+                    <form id="logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
                         @csrf
-                        <button type="submit" class="text-slate-400 hover:text-rose-400 p-1.5 transition" title="Logout">
-                            <i class="ph ph-sign-out text-lg"></i>
-                        </button>
                     </form>
                 </div>
             </div>
