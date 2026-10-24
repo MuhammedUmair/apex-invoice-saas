@@ -19,17 +19,31 @@
             <p class="text-xs text-slate-500 mt-1">Issued {{ $invoice->issue_date->format('F d, Y') }} &bull; Due {{ $invoice->due_date->format('F d, Y') }}</p>
         </div>
 
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('invoices.edit', $invoice->id) }}"
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition">
+                <i class="ph ph-pencil-simple text-base"></i> Revise / Edit
+            </a>
+
+            @if($invoice->client && !empty($invoice->client->email))
+                <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                        <i class="ph ph-paper-plane-tilt text-base"></i> Send to Client Email
+                    </button>
+                </form>
+            @endif
+
             <button @click="showCreditModal = true" type="button"
-                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 shadow-sm transition">
+                    class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 shadow-sm transition">
                 <i class="ph ph-arrow-u-up-left text-base"></i> Issue Credit Note
             </button>
             <a href="{{ route('invoices.pdf.download', $invoice->public_secure_token) }}" target="_blank"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                <i class="ph ph-file-pdf text-base"></i> View / Print PDF
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                <i class="ph ph-file-pdf text-base"></i> View / PDF
             </a>
             <a href="{{ route('invoices.portal', $invoice->public_secure_token) }}" target="_blank"
-               class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+               class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
                 <i class="ph ph-arrow-square-out text-base"></i> Customer Pay Portal
             </a>
         </div>
@@ -50,6 +64,48 @@
                 class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-sm whitespace-nowrap">
             Copy Link
         </button>
+    </div>
+
+    <!-- Automated Milestone Reminders Timeline Card -->
+    @php
+        $daysRemaining = (int) \Carbon\Carbon::today()->diffInDays(\Carbon\Carbon::parse($invoice->due_date)->startOfDay(), false);
+        $sentMilestones = $invoice->reminders->pluck('days_before')->toArray();
+    @endphp
+    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+                <i class="ph ph-bell-ringing text-red-600 text-lg"></i>
+                <h4 class="font-bold text-sm text-slate-900">Payment Reminder Automation</h4>
+                <span class="text-xs text-slate-500">(Milestones: 45, 30, 15, 7, 3, 2 days before due)</span>
+            </div>
+            @if($invoice->due_cents > 0)
+                <form action="{{ route('invoices.reminder', $invoice->id) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 text-xs px-3 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-lg border border-red-200 transition">
+                        <i class="ph ph-paper-plane-tilt"></i> Send Manual Reminder Now
+                    </button>
+                </form>
+            @endif
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap text-xs pt-1">
+            <span class="text-slate-500 font-medium">Schedule Progress:</span>
+            @foreach([45, 30, 15, 7, 3, 2] as $m)
+                @php
+                    $isSent = in_array($m, $sentMilestones, true);
+                    $isPast = $daysRemaining < $m;
+                @endphp
+                <span class="px-2.5 py-1 rounded-lg font-bold border {{ $isSent ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : ($isPast ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-blue-50 text-blue-700 border-blue-200') }}">
+                    {{ $m }} Days Before {{ $isSent ? '✓ Sent' : ($isPast ? '(Passed)' : '') }}
+                </span>
+            @endforeach
+        </div>
+
+        @if($invoice->reminders->isNotEmpty())
+            <div class="text-xs text-slate-500 pt-1">
+                Latest dispatch: {{ $invoice->reminders->first()->created_at->format('M d, Y H:i') }} to {{ $invoice->reminders->first()->recipient_customer_email }}
+            </div>
+        @endif
     </div>
 
     <!-- Invoice Content Paper -->

@@ -1,7 +1,21 @@
 @extends('layouts.guest')
 
 @section('content')
-<div class="min-h-[90vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10">
+<div class="min-h-[90vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10" x-data="{
+    password: '',
+    get lengthOk() { return this.password.length >= 8; },
+    get upperOk() { return /[A-Z]/.test(this.password) && /[a-z]/.test(this.password); },
+    get numberOk() { return /[0-9]/.test(this.password); },
+    get symbolOk() { return /[^A-Za-z0-9]/.test(this.password); },
+    get strength() {
+        let score = 0;
+        if (this.lengthOk) score++;
+        if (this.upperOk) score++;
+        if (this.numberOk) score++;
+        if (this.symbolOk) score++;
+        return score;
+    }
+}">
     <div class="w-full max-w-lg bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-200">
         <div class="text-center mb-8">
             <div class="w-16 h-16 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm p-3">
@@ -11,7 +25,7 @@
                 </svg>
             </div>
             <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-1">
-                Red<span class="text-red-600">Maple</span> <span class="font-bold text-slate-800 text-xl">Invoice Generator</span>
+                Invoicy <span class="text-sm font-normal text-slate-400">by</span> <span class="text-red-600">RedMaple</span>
             </h2>
             <p class="text-xs text-slate-500 mt-1">Start your 14-day free trial. No credit card required.</p>
         </div>
@@ -84,20 +98,52 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
-                    <input id="password" type="password" name="password" required placeholder="Min 8 characters"
+                    <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Strong Password *</label>
+                    <input id="password" type="password" name="password" x-model="password" required placeholder="Min 8 chars, Aa, 0-9, @"
                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
                 </div>
                 <div>
-                    <label for="password_confirmation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password</label>
+                    <label for="password_confirmation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password *</label>
                     <input id="password_confirmation" type="password" name="password_confirmation" required placeholder="Repeat password"
                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
                 </div>
             </div>
 
+            <!-- Real-time Password Strength Meter -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2" x-show="password.length > 0">
+                <div class="flex items-center justify-between font-semibold text-slate-700">
+                    <span>Password Security Strength:</span>
+                    <span :class="{
+                        'text-rose-600': strength <= 2,
+                        'text-amber-600': strength === 3,
+                        'text-emerald-600': strength === 4
+                    }" x-text="strength <= 2 ? 'Weak' : (strength === 3 ? 'Medium' : 'Strong')"></span>
+                </div>
+                <div class="grid grid-cols-4 gap-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full transition-all" :class="strength >= 1 ? (strength <= 2 ? 'bg-rose-500' : (strength === 3 ? 'bg-amber-500' : 'bg-emerald-500')) : ''"></div>
+                    <div class="h-full transition-all" :class="strength >= 2 ? (strength <= 2 ? 'bg-rose-500' : (strength === 3 ? 'bg-amber-500' : 'bg-emerald-500')) : ''"></div>
+                    <div class="h-full transition-all" :class="strength >= 3 ? (strength === 3 ? 'bg-amber-500' : 'bg-emerald-500') : ''"></div>
+                    <div class="h-full transition-all" :class="strength >= 4 ? 'bg-emerald-500' : ''"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-500 pt-1">
+                    <div class="flex items-center gap-1" :class="lengthOk ? 'text-emerald-700 font-bold' : ''">
+                        <i :class="lengthOk ? 'ph-bold ph-check text-emerald-600' : 'ph ph-circle text-slate-400'"></i> Min 8 characters
+                    </div>
+                    <div class="flex items-center gap-1" :class="upperOk ? 'text-emerald-700 font-bold' : ''">
+                        <i :class="upperOk ? 'ph-bold ph-check text-emerald-600' : 'ph ph-circle text-slate-400'"></i> Uppercase & lowercase
+                    </div>
+                    <div class="flex items-center gap-1" :class="numberOk ? 'text-emerald-700 font-bold' : ''">
+                        <i :class="numberOk ? 'ph-bold ph-check text-emerald-600' : 'ph ph-circle text-slate-400'"></i> Number (0-9)
+                    </div>
+                    <div class="flex items-center gap-1" :class="symbolOk ? 'text-emerald-700 font-bold' : ''">
+                        <i :class="symbolOk ? 'ph-bold ph-check text-emerald-600' : 'ph ph-circle text-slate-400'"></i> Special symbol (!@#$)
+                    </div>
+                </div>
+            </div>
+
             <button type="submit" class="w-full mt-2 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
                 <i class="ph ph-rocket-launch text-base"></i>
-                Launch Free Trial Workspace
+                Create Invoicy Workspace
             </button>
         </form>
 

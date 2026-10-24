@@ -83,6 +83,7 @@
                                     @if($inv->status === 'paid') bg-emerald-100 text-emerald-800
                                     @elseif($inv->status === 'partially_paid') bg-amber-100 text-amber-800
                                     @elseif($inv->status === 'issued') bg-blue-100 text-blue-800
+                                    @elseif($inv->status === 'credited') bg-purple-100 text-purple-800
                                     @elseif($inv->status === 'overdue') bg-rose-100 text-rose-800
                                     @else bg-slate-100 text-slate-800 @endif">
                                     {{ $inv->status }}
@@ -90,6 +91,9 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
+                                    <a href="{{ route('invoices.edit', $inv->id) }}" class="p-1.5 rounded-lg hover:bg-amber-50 text-amber-700" title="Revise / Edit Invoice">
+                                        <i class="ph ph-pencil-simple text-base"></i>
+                                    </a>
                                     <a href="{{ route('invoices.show', $inv->id) }}" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600" title="View Details">
                                         <i class="ph ph-eye text-base"></i>
                                     </a>

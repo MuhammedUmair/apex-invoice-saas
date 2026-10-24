@@ -6,9 +6,35 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocsController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\WebhookController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Root Domain Landing Page & Subdomain Routing
+|--------------------------------------------------------------------------
+| - On subdomain 'invoicy.redmapleagency.com': forwards to SaaS Login/Dashboard.
+| - On root domain 'redmapleagency.com': showcases Invoicy & future SaaS Suite.
+*/
+Route::get('/', function () {
+    $host = request()->getHost();
+
+    if (str_starts_with($host, 'invoicy.')) {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+        return redirect()->route('login');
+    }
+
+    return view('landing');
+})->name('home');
+
+Route::get('/app', function () {
+    return redirect()->route('dashboard');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -50,13 +76,19 @@ Route::get('/docs', [DocsController::class, 'index'])->name('docs.index');
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Invoice Management
+    // Invoice Management, Revision & Client Email Dispatch
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
+    Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('invoices.send');
+    Route::post('/invoices/{invoice}/reminder', [InvoiceController::class, 'sendReminder'])->name('invoices.reminder');
+
+    // Automated Reminders & Future Scheduler Hub
+    Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
+    Route::post('/reminders/run', [ReminderController::class, 'runCycle'])->name('reminders.run');
 
     // Credit Notes & Ledger Adjustments
     Route::get('/credit-notes', [CreditNoteController::class, 'index'])->name('credit-notes.index');

@@ -35,6 +35,9 @@ class SettingsController extends Controller
             'address' => 'nullable|string',
             'brand_color' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/',
             'secondary_color' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
+            'logo_url' => 'nullable|url|max:500',
+            'remove_logo' => 'nullable|boolean',
             'bank_name' => 'nullable|string|max:255',
             'account_number' => 'nullable|string|max:100',
             'routing_number' => 'nullable|string|max:100',
@@ -60,6 +63,22 @@ class SettingsController extends Controller
         $workspace->brand_color = $validated['brand_color'];
         $workspace->secondary_color = $validated['secondary_color'];
         $workspace->is_whitelabel_enabled = (bool)($request->has('is_whitelabel_enabled'));
+
+        // Handle Custom Logo Upload or Removal
+        if ($request->has('remove_logo') && $request->remove_logo) {
+            $workspace->logo_url = null;
+        } elseif ($request->hasFile('logo')) {
+            $file = $request->file('logo');
+            $filename = 'logo_' . $workspace->slug . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $destinationPath = public_path('images/uploads');
+            if (!file_exists($destinationPath)) {
+                @mkdir($destinationPath, 0775, true);
+            }
+            $file->move($destinationPath, $filename);
+            $workspace->logo_url = asset('images/uploads/' . $filename);
+        } elseif (!empty($validated['logo_url'])) {
+            $workspace->logo_url = $validated['logo_url'];
+        }
 
         // Save bank details array
         $workspace->bank_details = [
@@ -88,6 +107,6 @@ class SettingsController extends Controller
 
         $workspace->save();
 
-        return redirect()->route('settings.index')->with('success', 'Workspace settings and billing configuration updated successfully.');
+        return redirect()->route('settings.index')->with('success', 'Workspace settings and logo updated successfully.');
     }
 }

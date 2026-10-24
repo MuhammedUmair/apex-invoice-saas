@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentation & Multi-Language Guide - RedMaple Invoice Generator</title>
+    <title>Documentation & Multi-Language Guide - Invoicy by RedMaple</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -403,7 +403,7 @@
     <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-800">RedMaple Invoice Generator</span>
+                <span class="font-bold text-slate-800">Invoicy <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">RedMaple</span></span>
                 <span>&bull;</span>
                 <span>Multilingual SaaS Documentation</span>
             </div>

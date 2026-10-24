@@ -11,7 +11,7 @@
                 </svg>
             </div>
             <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-1">
-                Red<span class="text-red-600">Maple</span> <span class="font-bold text-slate-800 text-xl">Invoice Generator</span>
+                Invoicy <span class="text-sm font-normal text-slate-400">by</span> <span class="text-red-600">RedMaple</span>
             </h2>
             <p class="text-xs text-slate-500 mt-1">Sign in to your commercial invoicing studio</p>
         </div>

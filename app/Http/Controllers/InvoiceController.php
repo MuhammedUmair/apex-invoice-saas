@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMailable;
 use App\Models\Invoice;
+use App\Services\InvoiceReminderService;
 use App\Services\PdfSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceController extends Controller
 {
@@ -36,9 +39,48 @@ class InvoiceController extends Controller
         return view('invoices.create');
     }
 
+    public function edit(Invoice $invoice)
+    {
+        return view('invoices.edit', compact('invoice'));
+    }
+
+    public function sendEmail(Invoice $invoice)
+    {
+        $invoice->load(['client', 'workspace']);
+
+        if (!$invoice->client || empty($invoice->client->email)) {
+            return back()->with('error', 'This client does not have a registered email address in CRM.');
+        }
+
+        try {
+            Mail::to($invoice->client->email)->send(new InvoiceMailable($invoice));
+            
+            $invoice->update([
+                'status' => in_array($invoice->status, ['draft', 'issued']) ? 'sent' : $invoice->status,
+                'sent_at' => now(),
+            ]);
+
+            return back()->with('message', "Invoice #{$invoice->invoice_number} successfully dispatched to {$invoice->client->email}!");
+        } catch (\Exception $e) {
+            \Log::error("Failed to email invoice: " . $e->getMessage());
+            return back()->with('error', "Could not send email: " . $e->getMessage());
+        }
+    }
+
+    public function sendReminder(Invoice $invoice, InvoiceReminderService $reminderService)
+    {
+        $success = $reminderService->sendManualReminder($invoice);
+
+        if ($success) {
+            return back()->with('message', "Payment reminder successfully dispatched to {$invoice->client->email} and alert sent to vendor!");
+        }
+
+        return back()->with('error', "Could not send reminder. Please ensure client has a valid email address.");
+    }
+
     public function show(Invoice $invoice)
     {
-        $invoice->load(['client', 'items', 'payments', 'creditNotes']);
+        $invoice->load(['client', 'items', 'payments', 'creditNotes', 'reminders']);
         return view('invoices.show', compact('invoice'));
     }
 

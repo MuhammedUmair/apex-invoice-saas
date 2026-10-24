@@ -43,11 +43,19 @@ class Invoice extends Model
         'created_by_user_id',
         'sent_at',
         'paid_at',
+        'scheduled_publish_date',
+        'is_scheduled',
+        'scheduled_send_email',
+        'scheduled_alert_vendor',
     ];
 
     protected $casts = [
         'issue_date' => 'date',
         'due_date' => 'date',
+        'scheduled_publish_date' => 'date',
+        'is_scheduled' => 'boolean',
+        'scheduled_send_email' => 'boolean',
+        'scheduled_alert_vendor' => 'boolean',
         'is_pdf_password_protected' => 'boolean',
         'client_snapshot' => 'array',
         'workspace_snapshot' => 'array',
@@ -91,6 +99,11 @@ class Invoice extends Model
     public function creditNotes(): HasMany
     {
         return $this->hasMany(CreditNote::class);
+    }
+
+    public function reminders(): HasMany
+    {
+        return $this->hasMany(InvoiceReminder::class)->orderBy('created_at', 'desc');
     }
 
     public function creator(): BelongsTo

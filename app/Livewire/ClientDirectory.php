@@ -12,6 +12,8 @@ class ClientDirectory extends Component
 
     public string $search = '';
     public bool $showCreateModal = false;
+    public bool $showEditModal = false;
+    public ?string $editingClientId = null;
 
     // Form fields
     public string $name = '';
@@ -69,13 +71,60 @@ class ClientDirectory extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['name', 'company_name', 'email', 'phone', 'tax_id', 'address', 'city']);
+        $this->reset(['name', 'company_name', 'email', 'phone', 'tax_id', 'address', 'city', 'editingClientId']);
         $this->is_tax_exempt = false;
         $this->country_code = 'US';
         $this->preferred_currency = 'USD';
         $this->preferred_language = 'en';
         $this->default_payment_terms = 'net_14';
+        $this->showEditModal = false;
         $this->showCreateModal = true;
+    }
+
+    public function editClient(string $id)
+    {
+        $client = Client::findOrFail($id);
+        $this->editingClientId = $client->id;
+        $this->name = $client->name;
+        $this->company_name = $client->company_name ?? '';
+        $this->email = $client->email;
+        $this->phone = $client->phone ?? '';
+        $this->tax_id = $client->tax_id ?? '';
+        $this->address = $client->address ?? '';
+        $this->city = $client->city ?? '';
+        $this->country_code = $client->country_code ?? 'US';
+        $this->preferred_currency = $client->preferred_currency ?? 'USD';
+        $this->preferred_language = $client->preferred_language ?? 'en';
+        $this->default_payment_terms = $client->default_payment_terms ?? 'net_14';
+        $this->is_tax_exempt = (bool) $client->is_tax_exempt;
+
+        $this->showCreateModal = false;
+        $this->showEditModal = true;
+    }
+
+    public function updateClient()
+    {
+        $this->validate();
+
+        $client = Client::findOrFail($this->editingClientId);
+        $client->update([
+            'name' => $this->name,
+            'company_name' => $this->company_name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'tax_id' => $this->tax_id,
+            'address' => $this->address,
+            'city' => $this->city,
+            'country_code' => $this->country_code,
+            'preferred_currency' => $this->preferred_currency,
+            'preferred_language' => $this->preferred_language,
+            'default_payment_terms' => $this->default_payment_terms,
+            'is_tax_exempt' => $this->is_tax_exempt,
+        ]);
+
+        $this->showEditModal = false;
+        $this->editingClientId = null;
+        session()->flash('success', "Client {$this->name} updated successfully.");
     }
 
     public function saveClient()

@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Agency Settings - RedMaple', 'header' => 'Agency Workspace Settings'])
+@extends('layouts.app', ['title' => 'Agency Settings - Invoicy', 'header' => __('Agency Settings')])
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-8">
@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('settings.update') }}" class="space-y-8">
+    <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data" class="space-y-8">
         @csrf
 
         <!-- Card 1: Agency Business Profile -->
@@ -174,15 +174,55 @@
             </div>
         </div>
 
-        <!-- Card 4: Brand Identity & Colors -->
+        <!-- Card 4: Brand Identity, Custom Logo & Colors -->
         <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-palette"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Brand Customization & PDF Styling</h3>
-                    <p class="text-xs text-slate-500">Customize the accent colors on your invoices and customer-facing portal</p>
+                    <h3 class="font-bold text-slate-900 text-base">Brand Customization, Logo & Colors</h3>
+                    <p class="text-xs text-slate-500">Update agency logo and accent colors across your invoices and client portal</p>
+                </div>
+            </div>
+
+            <!-- Logo Upload & Customization -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Agency Brand Logo</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Displays in app header, customer payment portal, and PDF invoices</p>
+                    </div>
+                    @if($workspace->logo_url)
+                        <label class="flex items-center gap-1.5 text-xs text-rose-600 font-semibold cursor-pointer">
+                            <input type="checkbox" name="remove_logo" value="1" class="rounded text-rose-600 focus:ring-rose-500">
+                            Reset to Default RedMaple Logo
+                        </label>
+                    @endif
+                </div>
+
+                <div class="flex items-center gap-5">
+                    <div class="w-16 h-16 rounded-xl border border-slate-300 bg-white p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                        @if($workspace->logo_url)
+                            <img src="{{ $workspace->logo_url }}" alt="Agency Logo" class="w-full h-full object-contain">
+                        @else
+                            <svg class="w-full h-full text-red-600" viewBox="0 0 900 900" fill="currentColor">
+                                <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                            </svg>
+                        @endif
+                    </div>
+                    <div class="flex-1 space-y-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Upload New Logo (PNG, JPG, SVG, WebP up to 2MB)</label>
+                            <input type="file" name="logo" accept="image/*"
+                                   class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Or Logo Image URL</label>
+                            <input type="url" name="logo_url" value="{{ old('logo_url', $workspace->logo_url) }}" placeholder="https://youragency.com/logo.png"
+                                   class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">
+                        </div>
+                    </div>
                 </div>
             </div>
 

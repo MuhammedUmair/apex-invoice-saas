@@ -60,10 +60,10 @@ class CreditNoteController extends Controller
                 'created_by_user_id' => Auth::id(),
             ]);
 
-            // If the credit note covers the entire invoice, mark as refunded / cancelled
+            // If the credit note covers the entire invoice, mark as credited
             $totalCredited = $invoice->creditNotes()->sum('amount_cents') + $amountCents;
             if ($totalCredited >= $invoice->total_cents) {
-                $invoice->status = 'cancelled';
+                $invoice->status = 'credited';
                 $invoice->save();
             }
         });

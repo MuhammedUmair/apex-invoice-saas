@@ -54,7 +54,16 @@ class AuthController extends Controller
             'company_name' => 'required|string|max:255',
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                \Illuminate\Validation\Rules\Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
             'country_code' => 'required|string|size:2',
             'currency' => 'required|string|size:3',
         ]);
