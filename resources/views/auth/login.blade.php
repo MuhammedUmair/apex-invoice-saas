@@ -30,15 +30,18 @@
             @csrf
             <div>
                 <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-                <input id="email" type="email" name="email" value="{{ old('email', 'admin@redmaplestudio.com') }}" required autofocus
+                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="name@company.com"
                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
             </div>
 
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Password</label>
+                    <a href="{{ route('password.request') }}" class="text-xs text-red-600 hover:underline font-semibold">
+                        Forgot Password?
+                    </a>
                 </div>
-                <input id="password" type="password" name="password" required value="Password123!"
+                <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"
                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
             </div>
 

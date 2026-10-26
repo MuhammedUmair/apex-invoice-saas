@@ -48,8 +48,15 @@ class InvoiceBuilder extends Component
     // Future Invoice Planning / Scheduling
     public bool $isScheduled = false;
     public string $scheduledPublishDate = '';
+    public string $scheduledPublishTime = '09:00';
     public bool $scheduledSendEmail = true;
     public bool $scheduledAlertVendor = true;
+
+    // Late Payment Surcharge Option
+    public bool $hasLateSurcharge = false;
+    public string $lateSurchargeType = 'percent';
+    public float $lateSurchargeValue = 5.00;
+    public int $lateSurchargeDays = 7;
 
     public array $items = [];
 
@@ -101,6 +108,12 @@ class InvoiceBuilder extends Component
             $this->scheduledPublishDate = $invoice->scheduled_publish_date ? $invoice->scheduled_publish_date->format('Y-m-d') : '';
             $this->scheduledSendEmail = (bool) $invoice->scheduled_send_email;
             $this->scheduledAlertVendor = (bool) $invoice->scheduled_alert_vendor;
+
+            // Late Surcharge
+            $this->hasLateSurcharge = (bool) $invoice->has_late_surcharge;
+            $this->lateSurchargeType = $invoice->late_surcharge_type ?: 'percent';
+            $this->lateSurchargeValue = (float) ($invoice->late_surcharge_value ?: 5.00);
+            $this->lateSurchargeDays = (int) ($invoice->late_surcharge_days ?: 7);
 
             $client = $invoice->client;
             if ($client) {
@@ -166,9 +179,36 @@ class InvoiceBuilder extends Component
                     $this->applyCountryTaxPreset($client->country_code);
                 }
             }
+        } elseif ($propertyName === 'issueDate') {
+            $this->updatedIssueDate($this->issueDate);
+        } elseif ($propertyName === 'dueDate') {
+            $this->updatedDueDate($this->dueDate);
         }
 
         $this->recalculate();
+    }
+
+    public function updatedIssueDate($val)
+    {
+        // Item 16: Automatically mark as planned future invoice if issue date > today
+        if ($val && strtotime($val) > strtotime(date('Y-m-d'))) {
+            $this->isScheduled = true;
+            $this->scheduledPublishDate = $val;
+        }
+
+        // Item 17: Payment due date cannot be older than issue date
+        if ($val && $this->dueDate && strtotime($this->dueDate) < strtotime($val)) {
+            $this->dueDate = date('Y-m-d', strtotime($val . ' +14 days'));
+        }
+    }
+
+    public function updatedDueDate($val)
+    {
+        // Item 17: Payment due date cannot be older than issue date
+        if ($val && $this->issueDate && strtotime($val) < strtotime($this->issueDate)) {
+            $this->dueDate = $this->issueDate;
+            $this->addError('dueDate', 'Due date cannot be earlier than invoice issue date.');
+        }
     }
 
     public function enableWalkin()
@@ -195,7 +235,7 @@ class InvoiceBuilder extends Component
             'service_id' => '',
             'description' => '',
             'category' => 'General',
-            'quantity' => 1.0,
+            'quantity' => 1,
             'unit' => 'unit',
             'rate' => 0.00,
             'tax_rate' => $this->taxRate,
@@ -220,16 +260,24 @@ class InvoiceBuilder extends Component
 
         if (isset($presets[$type])) {
             $p = $presets[$type];
-            $this->items[] = [
+            $newItem = [
                 'service_id' => '',
                 'description' => $p['name'],
                 'category' => $p['category'],
-                'quantity' => 1.0,
+                'quantity' => 1,
                 'unit' => $p['unit'],
                 'rate' => (float) $p['rate'],
                 'tax_rate' => $this->taxRate,
                 'amount' => (float) $p['rate'],
             ];
+
+            // Item 5: Overwrite first empty service row if empty or unselected
+            if (count($this->items) === 1 && empty(trim($this->items[0]['description'] ?? '')) && empty($this->items[0]['rate'])) {
+                $this->items[0] = $newItem;
+            } else {
+                $this->items[] = $newItem;
+            }
+
             $this->recalculate();
         }
     }
@@ -263,7 +311,8 @@ class InvoiceBuilder extends Component
         $subtotalCents = 0;
 
         foreach ($this->items as $i => $item) {
-            $qty = (float) ($item['quantity'] ?? 0);
+            $qty = max(1, (int) round((float) ($item['quantity'] ?? 1)));
+            $this->items[$i]['quantity'] = $qty;
             $rate = (float) ($item['rate'] ?? 0);
             $itemTotal = round($qty * $rate, 2);
             $this->items[$i]['amount'] = $itemTotal;
@@ -294,7 +343,7 @@ class InvoiceBuilder extends Component
             'dueDate' => 'required|date|after_or_equal:issueDate',
             'currency' => 'required|string|size:3',
             'items.*.description' => 'required|string',
-            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.rate' => 'required|numeric|min:0',
         ];
 
@@ -388,6 +437,10 @@ class InvoiceBuilder extends Component
                 'scheduled_publish_date' => $this->isScheduled ? $this->scheduledPublishDate : null,
                 'scheduled_send_email' => $this->scheduledSendEmail,
                 'scheduled_alert_vendor' => $this->scheduledAlertVendor,
+                'has_late_surcharge' => $this->hasLateSurcharge,
+                'late_surcharge_type' => $this->lateSurchargeType,
+                'late_surcharge_value' => $this->lateSurchargeValue,
+                'late_surcharge_days' => $this->lateSurchargeDays,
             ]);
 
             // Replace line items
@@ -420,6 +473,10 @@ class InvoiceBuilder extends Component
                 'scheduled_publish_date' => $this->isScheduled ? $this->scheduledPublishDate : null,
                 'scheduled_send_email' => $this->scheduledSendEmail,
                 'scheduled_alert_vendor' => $this->scheduledAlertVendor,
+                'has_late_surcharge' => $this->hasLateSurcharge,
+                'late_surcharge_type' => $this->lateSurchargeType,
+                'late_surcharge_value' => $this->lateSurchargeValue,
+                'late_surcharge_days' => $this->lateSurchargeDays,
             ]);
         }
 

@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\AdminSubscriptionController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocsController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RecurringInvoiceController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\WebhookController;
@@ -46,6 +49,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
+    // Password Reset
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 // Logout accepts both GET and POST to prevent 405 Method Not Allowed
@@ -112,6 +121,27 @@ Route::middleware('auth')->group(function () {
     // Workspace Settings & Branding Customizer
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+
+    // Monthly Recurring Invoicing & Retainers (Item 18)
+    Route::get('/recurring-invoices', [RecurringInvoiceController::class, 'index'])->name('recurring.index');
+    Route::post('/recurring-invoices', [RecurringInvoiceController::class, 'store'])->name('recurring.store');
+    Route::post('/recurring-invoices/{recurring}/approve', [RecurringInvoiceController::class, 'approveAndSend'])->name('recurring.approve');
+    Route::post('/recurring-invoices/{recurring}/toggle', [RecurringInvoiceController::class, 'toggleStatus'])->name('recurring.toggle');
+
+    // Website & Docs CMS with Auto-Translate (Items 12 & 13)
+    Route::get('/admin/cms', [CmsController::class, 'index'])->name('cms.index');
+    Route::post('/admin/cms', [CmsController::class, 'update'])->name('cms.update');
+    Route::post('/admin/cms/docs', [CmsController::class, 'storeDocArticle'])->name('cms.docs.store');
+    Route::post('/admin/cms/docs/{article}', [CmsController::class, 'updateDocArticle'])->name('cms.docs.update');
+    Route::post('/admin/cms/docs/{article}/translate', [CmsController::class, 'autoTranslateDoc'])->name('cms.docs.translate');
+
+    // Super Admin Subscriptions & Plans Manager (Item 14)
+    Route::get('/admin/subscriptions', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions.index');
+    Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
+    Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
+    Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
 });
 
 /*

@@ -123,7 +123,8 @@
             <!-- Due Date -->
             <div>
                 <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Payment Due Date</label>
-                <input type="date" wire:model.live="dueDate" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
+                <input type="date" wire:model.live="dueDate" min="{{ $issueDate }}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
+                @error('dueDate') <span class="text-rose-600 text-xs mt-1 block">{{ $message }}</span> @enderror
             </div>
 
             <!-- Custom Tax Rate / Override -->
@@ -165,9 +166,6 @@
         <div>
             <div class="flex items-center justify-between mb-3">
                 <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Line Items & Services</h3>
-                <button type="button" wire:click="addItem" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold rounded-lg transition border border-red-200">
-                    <i class="ph ph-plus-circle text-base"></i> Add Custom Row
-                </button>
             </div>
 
             <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -197,9 +195,9 @@
                                            class="w-full px-3 py-1.5 rounded border border-slate-200 text-sm focus:ring-1 focus:ring-red-500">
                                 </td>
 
-                                <!-- Quantity -->
+                                <!-- Quantity (Non-decimal whole number) -->
                                 <td class="px-3 py-3 align-top pt-4">
-                                    <input type="number" step="0.01" wire:model.live.debounce.250ms="items.{{ $idx }}.quantity"
+                                    <input type="number" step="1" min="1" wire:model.live.debounce.250ms="items.{{ $idx }}.quantity"
                                            class="w-full px-2 py-1.5 rounded border border-slate-200 text-sm text-center focus:ring-1 focus:ring-red-500">
                                 </td>
 
@@ -289,10 +287,17 @@
 
                 @if($isScheduled)
                     <div class="space-y-3 pt-2 border-t border-amber-200/80">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Scheduled Dispatch Date</label>
-                            <input type="date" wire:model.live="scheduledPublishDate" 
-                                   class="w-full px-3 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Dispatch Date</label>
+                                <input type="date" wire:model.live="scheduledPublishDate" min="{{ date('Y-m-d') }}"
+                                       class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Dispatch Time</label>
+                                <input type="time" wire:model.live="scheduledPublishTime"
+                                       class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500">
+                            </div>
                         </div>
                         <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-700 font-medium">
                             <input type="checkbox" wire:model.live="scheduledSendEmail" class="w-3.5 h-3.5 text-amber-600 rounded">
@@ -305,6 +310,44 @@
                     </div>
                 @endif
             </div>
+        </div>
+
+        <!-- Late Payment Surcharge Policy (Item 19) -->
+        <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/40 space-y-3">
+            <label class="flex items-start gap-2.5 cursor-pointer">
+                <input type="checkbox" wire:model.live="hasLateSurcharge" class="w-4 h-4 text-rose-600 rounded border-slate-300 focus:ring-rose-500 mt-0.5">
+                <div>
+                    <span class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <i class="ph ph-warning-octagon text-rose-600 text-base"></i>
+                        Late Payment Surcharge Policy (Overdue Protection)
+                    </span>
+                    <p class="text-xs text-slate-600 mt-0.5">
+                        Automatically calculate and enforce penalty surcharge if customer exceeds the payment grace period.
+                    </p>
+                </div>
+            </label>
+
+            @if($hasLateSurcharge)
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-rose-200/80">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Surcharge Type</label>
+                        <select wire:model.live="lateSurchargeType" class="w-full px-2.5 py-1.5 rounded-lg border border-rose-300 text-xs bg-white focus:ring-2 focus:ring-rose-500">
+                            <option value="percent">Percentage (%)</option>
+                            <option value="fixed">Fixed Flat Fee ({{ $currency }})</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Fee Amount / %</label>
+                        <input type="number" step="0.01" min="0" wire:model.live="lateSurchargeValue"
+                               class="w-full px-2.5 py-1.5 rounded-lg border border-rose-300 text-xs bg-white focus:ring-2 focus:ring-rose-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Grace Period (Days Overdue)</label>
+                        <input type="number" step="1" min="1" wire:model.live="lateSurchargeDays" placeholder="7"
+                               class="w-full px-2.5 py-1.5 rounded-lg border border-rose-300 text-xs bg-white focus:ring-2 focus:ring-rose-500">
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Notes, Terms & Financial Totals Section -->

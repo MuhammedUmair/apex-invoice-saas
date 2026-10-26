@@ -396,6 +396,26 @@
                 </div>
             </section>
 
+            <!-- Dynamic Articles Published via CMS -->
+            @if(isset($dynamicArticles) && $dynamicArticles->isNotEmpty())
+                @foreach($dynamicArticles as $art)
+                    <section id="doc-{{ $art->slug }}" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                            <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="ph ph-book-open"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider text-red-600 bg-red-50 px-2 py-0.5 rounded">{{ $art->category }}</span>
+                                <h3 class="text-lg font-bold text-slate-900 mt-1">{{ $art->getLocalizedTitle($currentLang) }}</h3>
+                            </div>
+                        </div>
+                        <div class="text-sm leading-relaxed text-slate-700 whitespace-pre-line" dir="{{ in_array($currentLang, ['ur', 'ar']) ? 'rtl' : 'ltr' }}">
+                            {{ $art->getLocalizedContent($currentLang) }}
+                        </div>
+                    </section>
+                @endforeach
+            @endif
+
         </main>
     </div>
 

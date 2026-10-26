@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DocArticle;
 use Illuminate\Http\Request;
 
 class DocsController extends Controller
 {
     public function index(Request $request)
     {
-        $lang = $request->get('lang', session('docs_lang', 'en'));
+        $lang = $request->get('lang', session('docs_lang', app()->getLocale() ?: 'en'));
         if (!in_array($lang, ['en', 'ur', 'ar', 'hi', 'tr'])) {
             $lang = 'en';
         }
@@ -16,9 +17,14 @@ class DocsController extends Controller
 
         $section = $request->get('section', 'getting-started');
 
+        $dynamicArticles = DocArticle::where('is_published', true)
+            ->orderBy('sort_order', 'asc')
+            ->get();
+
         return view('docs.index', [
             'currentLang' => $lang,
             'currentSection' => $section,
+            'dynamicArticles' => $dynamicArticles,
             'languages' => [
                 'en' => ['name' => 'English', 'native' => 'English', 'flag' => '🇺🇸', 'dir' => 'ltr'],
                 'ur' => ['name' => 'Urdu', 'native' => 'اردو', 'flag' => '🇵🇰', 'dir' => 'rtl'],

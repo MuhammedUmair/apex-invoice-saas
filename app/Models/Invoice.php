@@ -47,6 +47,10 @@ class Invoice extends Model
         'is_scheduled',
         'scheduled_send_email',
         'scheduled_alert_vendor',
+        'has_late_surcharge',
+        'late_surcharge_type',
+        'late_surcharge_value',
+        'late_surcharge_days',
     ];
 
     protected $casts = [
@@ -56,6 +60,9 @@ class Invoice extends Model
         'is_scheduled' => 'boolean',
         'scheduled_send_email' => 'boolean',
         'scheduled_alert_vendor' => 'boolean',
+        'has_late_surcharge' => 'boolean',
+        'late_surcharge_value' => 'decimal:2',
+        'late_surcharge_days' => 'integer',
         'is_pdf_password_protected' => 'boolean',
         'client_snapshot' => 'array',
         'workspace_snapshot' => 'array',
@@ -148,5 +155,39 @@ class Invoice extends Model
     public function isOverdue(): bool
     {
         return $this->status !== 'paid' && $this->due_date && $this->due_date->isPast();
+    }
+
+    public function getLateSurchargeCents(): int
+    {
+        if (!$this->has_late_surcharge || !$this->isOverdue()) {
+            return 0;
+        }
+
+        $daysOverdue = (int) $this->due_date->diffInDays(now()->startOfDay());
+        if ($daysOverdue < ($this->late_surcharge_days ?: 0)) {
+            return 0;
+        }
+
+        if ($this->late_surcharge_type === 'fixed') {
+            return (int) round(((float)$this->late_surcharge_value) * 100);
+        }
+
+        // Percentage
+        return (int) round(($this->due_cents * ((float)$this->late_surcharge_value)) / 100);
+    }
+
+    public function getFormattedLateSurchargeAttribute(): string
+    {
+        return number_format($this->getLateSurchargeCents() / 100, 2) . ' ' . $this->currency;
+    }
+
+    public function getTotalWithSurchargeCentsAttribute(): int
+    {
+        return $this->due_cents + $this->getLateSurchargeCents();
+    }
+
+    public function getFormattedTotalWithSurchargeAttribute(): string
+    {
+        return number_format($this->total_with_surcharge_cents / 100, 2) . ' ' . $this->currency;
     }
 }

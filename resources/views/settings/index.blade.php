@@ -6,7 +6,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-xl font-bold text-slate-900">Workspace & Invoicing Configuration</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Manage your agency profile, wire transfer details, brand styling, and payment gateway keys</p>
+            <p class="text-xs text-slate-500 mt-0.5">Manage your agency profile, wire transfer details, brand styling, SMTP email, and security</p>
         </div>
         <div class="flex items-center gap-2">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
@@ -15,6 +15,31 @@
             </span>
         </div>
     </div>
+
+    @if (session('success'))
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-check-circle text-base text-emerald-600"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+    @if (session('password_success'))
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-shield-check text-base text-emerald-600"></i>
+            {{ session('password_success') }}
+        </div>
+    @endif
+    @if (session('smtp_success'))
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-envelope-simple text-base text-emerald-600"></i>
+            {{ session('smtp_success') }}
+        </div>
+    @endif
+    @if (session('smtp_error'))
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-warning-circle text-base text-rose-600"></i>
+            {{ session('smtp_error') }}
+        </div>
+    @endif
 
     <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data" class="space-y-8">
         @csrf
@@ -305,13 +330,140 @@
             </div>
         </div>
 
+        <!-- Card 5: SMTP Outgoing Email Delivery Configuration -->
+        @php
+            $smtp = $workspace->smtp_settings_encrypted ?? [];
+        @endphp
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                    <i class="ph ph-envelope-simple"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">Outgoing SMTP Mail Server (Hostinger / Custom)</h3>
+                    <p class="text-xs text-slate-500">Configure email delivery credentials for customer invoices and milestone reminders</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Host</label>
+                    <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? 'smtp.hostinger.com') }}" placeholder="smtp.hostinger.com"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Port</label>
+                    <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 465) }}" placeholder="465 / 587"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Encryption</label>
+                    <select name="smtp_encryption" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
+                        <option value="ssl" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'ssl' ? 'selected' : '' }}>SSL (Port 465)</option>
+                        <option value="tls" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'tls' ? 'selected' : '' }}>TLS (Port 587)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Username / Mailbox Email</label>
+                    <input type="email" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? 'billing@redmapleagency.com') }}" placeholder="billing@redmapleagency.com"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Mailbox Password</label>
+                    <input type="password" name="smtp_password" value="{{ old('smtp_password', $smtp['password'] ?? '') }}" placeholder="Enter mailbox password..."
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">From Address</label>
+                    <input type="email" name="smtp_from_address" value="{{ old('smtp_from_address', $smtp['from_address'] ?? 'billing@redmapleagency.com') }}"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">From Display Name</label>
+                    <input type="text" name="smtp_from_name" value="{{ old('smtp_from_name', $smtp['from_name'] ?? 'Invoicy by RedMaple') }}"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+            </div>
+        </div>
+
         <!-- Submit Button -->
-        <div class="flex items-center justify-end gap-4 pb-12">
+        <div class="flex items-center justify-end gap-4">
             <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition text-sm">
-                <i class="ph ph-floppy-disk text-base"></i> Save Workspace Settings
+                <i class="ph ph-floppy-disk text-base"></i> Save Workspace & SMTP Settings
             </button>
         </div>
     </form>
+
+    <!-- Test SMTP Form -->
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 sm:p-8">
+        <h4 class="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
+            <i class="ph ph-paper-plane-tilt text-red-600"></i> Test Live SMTP Email Delivery
+        </h4>
+        <p class="text-xs text-slate-500 mb-4">Send an immediate test message to verify your SMTP server authentication</p>
+        
+        <form method="POST" action="{{ route('settings.smtp.test') }}" class="flex flex-col sm:flex-row items-center gap-3">
+            @csrf
+            <input type="email" name="test_email" value="{{ auth()->user()->email }}" required placeholder="recipient@example.com"
+                   class="w-full sm:max-w-md px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500 bg-white">
+            <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow transition whitespace-nowrap">
+                Send Live Test Email
+            </button>
+        </form>
+    </div>
+
+    <!-- Card 6: Account Security & Change Password -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 pb-12">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+                <i class="ph ph-shield-check"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Account Security & Change Password</h3>
+                <p class="text-xs text-slate-500">Update your account login password with enterprise cipher encryption</p>
+            </div>
+        </div>
+
+        @if($errors->has('current_password') || $errors->has('new_password'))
+            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                @error('current_password') <p class="mb-1">{{ $message }}</p> @enderror
+                @error('new_password') <p>{{ $message }}</p> @enderror
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('settings.password') }}" class="space-y-4 max-w-xl">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Current Password *</label>
+                <input type="password" name="current_password" required placeholder="Enter your current password"
+                       class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">New Password *</label>
+                    <input type="password" name="new_password" required placeholder="Min 8 chars, mixed case, symbols"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Confirm New Password *</label>
+                    <input type="password" name="new_password_confirmation" required placeholder="Confirm new password"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow transition">
+                    <i class="ph ph-lock-key text-base"></i> Update Account Password
+                </button>
+            </div>
+        </form>
+    </div>
 
 </div>
 @endsection

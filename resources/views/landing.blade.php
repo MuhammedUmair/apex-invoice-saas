@@ -86,26 +86,26 @@
             <!-- Badge -->
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold mb-8">
                 <i class="ph ph-lightning text-sm text-red-600"></i>
-                SaaS Invoicing Engineered for Global Agility
+                {{ \App\Models\CmsContent::getVal('hero_badge', 'SaaS Invoicing Engineered for Global Agility') }}
             </div>
 
             <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-slate-900 tracking-tight max-w-5xl mx-auto leading-tight">
-                Get Paid Faster. Automate Reminders. <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-500">Invoice Worldwide.</span>
+                {{ \App\Models\CmsContent::getVal('hero_title', 'Get Paid Faster. Automate Reminders. Invoice Worldwide.') }}
             </h1>
 
             <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                Invoicy by RedMaple gives modern agencies, freelancers, and businesses real-time VAT calculations, automated milestone payment reminders (45, 30, 15, 7, 3, 2 days before due), password-protected client PDFs, and seamless one-click billing.
+                {{ \App\Models\CmsContent::getVal('hero_subtitle', 'Invoicy by RedMaple gives modern agencies, freelancers, and businesses real-time VAT calculations, automated milestone payment reminders (45, 30, 15, 7, 3, 2 days before due), password-protected client PDFs, and seamless one-click billing.') }}
             </p>
 
             <!-- CTA Buttons -->
             <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a href="{{ route('register') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-base shadow-lg shadow-red-600/30 transition transform hover:-translate-y-0.5">
                     <i class="ph ph-rocket-launch text-xl"></i>
-                    Start Free with Invoicy
+                    {{ \App\Models\CmsContent::getVal('hero_cta_primary', 'Start Free with Invoicy') }}
                 </a>
                 <a href="{{ route('login') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow transition">
                     <i class="ph ph-arrow-square-out text-xl"></i>
-                    Launch App / Login
+                    {{ \App\Models\CmsContent::getVal('hero_cta_secondary', 'Launch App / Login') }}
                 </a>
             </div>
 

@@ -105,8 +105,68 @@ class SettingsController extends Controller
             ];
         }
 
+        // Save Custom SMTP settings if provided
+        if ($request->has('smtp_host')) {
+            $workspace->smtp_settings_encrypted = [
+                'host' => $request->input('smtp_host', 'smtp.hostinger.com'),
+                'port' => (int) $request->input('smtp_port', 465),
+                'username' => $request->input('smtp_username', 'billing@redmapleagency.com'),
+                'password' => $request->input('smtp_password', ''),
+                'encryption' => $request->input('smtp_encryption', 'ssl'),
+                'from_address' => $request->input('smtp_from_address', 'billing@redmapleagency.com'),
+                'from_name' => $request->input('smtp_from_name', 'Invoicy by RedMaple'),
+            ];
+        }
+
         $workspace->save();
 
         return redirect()->route('settings.index')->with('success', 'Workspace settings and logo updated successfully.');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => [
+                'required',
+                'string',
+                'confirmed',
+                \Illuminate\Validation\Rules\Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+        ]);
+
+        $user = Auth::user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'The provided current password does not match our records.']);
+        }
+
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->new_password);
+        $user->save();
+
+        return back()->with('password_success', 'Your password has been securely updated!');
+    }
+
+    public function testSmtp(Request $request)
+    {
+        $request->validate([
+            'test_email' => 'required|email',
+        ]);
+
+        $targetEmail = $request->input('test_email');
+
+        try {
+            \Illuminate\Support\Facades\Mail::raw("This is a live test email from your Invoicy by RedMaple system confirming your SMTP connection is operating with 100% success!", function ($message) use ($targetEmail) {
+                $message->to($targetEmail)->subject('Invoicy by RedMaple - Live SMTP Test Successful');
+            });
+
+            return back()->with('smtp_success', "Test email successfully delivered to {$targetEmail}!");
+        } catch (\Throwable $e) {
+            return back()->with('smtp_error', "SMTP Delivery Failed: " . $e->getMessage());
+        }
     }
 }

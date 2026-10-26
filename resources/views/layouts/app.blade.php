@@ -92,6 +92,11 @@
                     {{ __('Invoices') }}
                 </a>
 
+                <a href="{{ route('recurring.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('recurring.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="ph ph-arrows-clockwise text-lg text-cyan-400"></i>
+                    {{ __('Recurring Retainers') }}
+                </a>
+
                 <a href="{{ route('credit-notes.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('credit-notes.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <i class="ph ph-arrow-u-up-left text-lg text-rose-400"></i>
                     {{ __('Credit Notes') }}
@@ -118,8 +123,20 @@
                 </a>
 
                 <div class="pt-3 pb-1 border-t border-slate-800/80 my-2">
-                    <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">System</span>
+                    <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">System & Admin</span>
                 </div>
+
+                @if(auth()->user()->isOwner() || auth()->user()->isAdmin())
+                <a href="{{ route('cms.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('cms.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="ph ph-note-pencil text-lg text-emerald-400"></i>
+                    {{ __('Website & Docs CMS') }}
+                </a>
+
+                <a href="{{ route('admin.subscriptions.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.subscriptions.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="ph ph-shield-check text-lg text-amber-400"></i>
+                    {{ __('SaaS Subscriptions') }}
+                </a>
+                @endif
 
                 <a href="{{ route('docs.index') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">
                     <i class="ph ph-book-open text-lg text-sky-400"></i>

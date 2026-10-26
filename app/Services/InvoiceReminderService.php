@@ -150,36 +150,81 @@ class InvoiceReminderService
     }
 
     /**
+     * Apply dynamic tenant SMTP settings if configured.
+     */
+    public function applyTenantSmtp(?\App\Models\Workspace $workspace): void
+    {
+        if ($workspace && !empty($workspace->smtp_settings_encrypted)) {
+            $smtp = $workspace->smtp_settings_encrypted;
+            if (!empty($smtp['host']) && !empty($smtp['username'])) {
+                config([
+                    'mail.mailers.smtp.host' => $smtp['host'],
+                    'mail.mailers.smtp.port' => $smtp['port'] ?? 465,
+                    'mail.mailers.smtp.encryption' => $smtp['encryption'] ?? 'ssl',
+                    'mail.mailers.smtp.username' => $smtp['username'],
+                    'mail.mailers.smtp.password' => $smtp['password'] ?? '',
+                    'mail.from.address' => $smtp['from_address'] ?? $smtp['username'],
+                    'mail.from.name' => $smtp['from_name'] ?? ($workspace->name ?: 'Invoicy by RedMaple'),
+                ]);
+            }
+        }
+    }
+
+    /**
      * Send immediate manual reminder on-demand.
      */
-    public function sendManualReminder(Invoice $invoice): bool
+    public function sendManualReminder(Invoice $invoice): array
     {
         $invoice->load(['client', 'workspace']);
         if (!$invoice->client || empty($invoice->client->email)) {
-            return false;
+            return ['success' => false, 'error' => 'Client has no registered email address in CRM.'];
         }
+
+        $this->applyTenantSmtp($invoice->workspace);
 
         $today = Carbon::today();
         $dueDate = Carbon::parse($invoice->due_date)->startOfDay();
         $daysRemaining = (int) $today->diffInDays($dueDate, false);
-
-        Mail::to($invoice->client->email)->send(new InvoiceReminderMailable($invoice, $daysRemaining));
-
         $vendorEmail = $invoice->workspace->email ?? null;
-        if ($vendorEmail) {
-            Mail::to($vendorEmail)->send(new VendorReminderAlertMailable($invoice, $daysRemaining));
+
+        try {
+            Mail::to($invoice->client->email)->send(new InvoiceReminderMailable($invoice, $daysRemaining));
+
+            if ($vendorEmail) {
+                try {
+                    Mail::to($vendorEmail)->send(new VendorReminderAlertMailable($invoice, $daysRemaining));
+                } catch (\Throwable $ve) {
+                    Log::warning("Vendor alert delivery failed: " . $ve->getMessage());
+                }
+            }
+
+            InvoiceReminder::create([
+                'invoice_id' => $invoice->id,
+                'days_before' => $daysRemaining,
+                'recipient_customer_email' => $invoice->client->email,
+                'recipient_vendor_email' => $vendorEmail,
+                'customer_notified_at' => now(),
+                'vendor_notified_at' => $vendorEmail ? now() : null,
+                'status' => 'manual',
+            ]);
+
+            return ['success' => true];
+        } catch (\Throwable $e) {
+            Log::error("Failed to send manual reminder for invoice {$invoice->id}: " . $e->getMessage());
+
+            InvoiceReminder::create([
+                'invoice_id' => $invoice->id,
+                'days_before' => $daysRemaining,
+                'recipient_customer_email' => $invoice->client->email,
+                'recipient_vendor_email' => $vendorEmail,
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => "SMTP delivery failed: " . $e->getMessage() . ". Please configure valid SMTP Mailbox credentials in Agency Settings."
+            ];
         }
-
-        InvoiceReminder::create([
-            'invoice_id' => $invoice->id,
-            'days_before' => $daysRemaining,
-            'recipient_customer_email' => $invoice->client->email,
-            'recipient_vendor_email' => $vendorEmail,
-            'customer_notified_at' => now(),
-            'vendor_notified_at' => $vendorEmail ? now() : null,
-            'status' => 'manual',
-        ]);
-
-        return true;
     }
 }

@@ -53,6 +53,21 @@ class InvoiceController extends Controller
         }
 
         try {
+            if ($invoice->workspace && !empty($invoice->workspace->smtp_settings_encrypted)) {
+                $smtp = $invoice->workspace->smtp_settings_encrypted;
+                if (!empty($smtp['host']) && !empty($smtp['username'])) {
+                    config([
+                        'mail.mailers.smtp.host' => $smtp['host'],
+                        'mail.mailers.smtp.port' => $smtp['port'] ?? 465,
+                        'mail.mailers.smtp.encryption' => $smtp['encryption'] ?? 'ssl',
+                        'mail.mailers.smtp.username' => $smtp['username'],
+                        'mail.mailers.smtp.password' => $smtp['password'] ?? '',
+                        'mail.from.address' => $smtp['from_address'] ?? $smtp['username'],
+                        'mail.from.name' => $smtp['from_name'] ?? ($invoice->workspace->name ?: 'Invoicy by RedMaple'),
+                    ]);
+                }
+            }
+
             Mail::to($invoice->client->email)->send(new InvoiceMailable($invoice));
             
             $invoice->update([
@@ -61,7 +76,7 @@ class InvoiceController extends Controller
             ]);
 
             return back()->with('message', "Invoice #{$invoice->invoice_number} successfully dispatched to {$invoice->client->email}!");
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error("Failed to email invoice: " . $e->getMessage());
             return back()->with('error', "Could not send email: " . $e->getMessage());
         }
@@ -69,13 +84,18 @@ class InvoiceController extends Controller
 
     public function sendReminder(Invoice $invoice, InvoiceReminderService $reminderService)
     {
-        $success = $reminderService->sendManualReminder($invoice);
+        try {
+            $res = $reminderService->sendManualReminder($invoice);
 
-        if ($success) {
-            return back()->with('message', "Payment reminder successfully dispatched to {$invoice->client->email} and alert sent to vendor!");
+            if (!empty($res['success'])) {
+                return back()->with('message', "Payment reminder successfully dispatched to {$invoice->client->email} and alert sent to vendor!");
+            }
+
+            return back()->with('error', $res['error'] ?? "Could not send reminder.");
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send reminder for invoice {$invoice->id}: " . $e->getMessage());
+            return back()->with('error', "Could not send reminder: " . $e->getMessage());
         }
-
-        return back()->with('error', "Could not send reminder. Please ensure client has a valid email address.");
     }
 
     public function show(Invoice $invoice)

@@ -8,7 +8,9 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -110,5 +112,100 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        $email = $request->input('email');
+
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return back()->withErrors(['email' => 'We could not find an account with that email address.']);
+        }
+
+        $token = Str::random(60);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
+
+        $resetUrl = route('password.reset', ['token' => $token, 'email' => $email]);
+
+        try {
+            Mail::send('emails.invoice-sent', [
+                'invoice' => (object)[
+                    'invoice_number' => 'PASSWORD-RESET',
+                    'workspace' => (object)['name' => 'Invoicy Security Desk', 'email' => 'support@redmapleagency.com'],
+                    'client' => (object)['name' => $user->name],
+                    'issue_date' => now(),
+                    'due_date' => null,
+                    'due_cents' => 0,
+                    'currency' => '',
+                    'notes' => "You requested a password reset. Click below to securely reset your password. This link is valid for 60 minutes.",
+                ],
+                'portalUrl' => $resetUrl,
+                'pdfUrl' => $resetUrl,
+            ], function ($message) use ($email) {
+                $message->to($email)->subject('Reset Your Invoicy by RedMaple Password');
+            });
+            $status = 'A password reset link has been dispatched to your email address.';
+        } catch (\Throwable $e) {
+            $status = 'Password reset token generated! (Email delivery notice: ' . $e->getMessage() . ')';
+        }
+
+        return back()->with('status', $status)->with('direct_reset_url', $resetUrl);
+    }
+
+    public function showResetPassword(string $token, Request $request)
+    {
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->query('email'),
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                \Illuminate\Validation\Rules\Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+        ]);
+
+        $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
+
+        if (!$record || !Hash::check($request->token, $record->token)) {
+            return back()->withErrors(['email' => 'This password reset token is invalid or has expired.']);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return back()->withErrors(['email' => 'User account not found.']);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return redirect()->route('login')->with('success', 'Your password has been successfully reset. Please log in with your new password.');
     }
 }

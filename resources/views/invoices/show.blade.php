@@ -19,33 +19,67 @@
             <p class="text-xs text-slate-500 mt-1">Issued {{ $invoice->issue_date->format('F d, Y') }} &bull; Due {{ $invoice->due_date->format('F d, Y') }}</p>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap" x-data="{ openActions: false }">
             <a href="{{ route('invoices.edit', $invoice->id) }}"
-               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition">
-                <i class="ph ph-pencil-simple text-base"></i> Revise / Edit
+               class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-xs transition">
+                <i class="ph ph-pencil-simple text-base text-slate-500"></i> Revise
             </a>
 
-            @if($invoice->client && !empty($invoice->client->email))
-                <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                        <i class="ph ph-paper-plane-tilt text-base"></i> Send to Client Email
-                    </button>
-                </form>
-            @endif
-
-            <button @click="showCreditModal = true" type="button"
-                    class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 shadow-sm transition">
-                <i class="ph ph-arrow-u-up-left text-base"></i> Issue Credit Note
-            </button>
             <a href="{{ route('invoices.pdf.download', $invoice->public_secure_token) }}" target="_blank"
-               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                <i class="ph ph-file-pdf text-base"></i> View / PDF
+               class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition">
+                <i class="ph ph-file-pdf text-base text-slate-300"></i> PDF
             </a>
+
             <a href="{{ route('invoices.portal', $invoice->public_secure_token) }}" target="_blank"
                class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                <i class="ph ph-arrow-square-out text-base"></i> Customer Pay Portal
+                <i class="ph ph-arrow-square-out text-base"></i> Pay Portal
             </a>
+
+            <!-- More Actions Dropdown Menu -->
+            <div class="relative">
+                <button @click="openActions = !openActions" @click.outside="openActions = false" type="button"
+                        class="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition">
+                    <span>More</span>
+                    <i class="ph ph-caret-down text-xs"></i>
+                </button>
+
+                <div x-show="openActions" x-cloak 
+                     class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                    
+                    @if($invoice->client && !empty($invoice->client->email))
+                        <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="w-full">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold">
+                                <i class="ph ph-paper-plane-tilt text-emerald-600 text-sm"></i>
+                                Send to Client Email
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($invoice->due_cents > 0)
+                        <form action="{{ route('invoices.reminder', $invoice->id) }}" method="POST" class="w-full">
+                            @csrf
+                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold">
+                                <i class="ph ph-bell-ringing text-amber-600 text-sm"></i>
+                                Send Payment Reminder
+                            </button>
+                        </form>
+                    @endif
+
+                    <button @click="showCreditModal = true; openActions = false" type="button"
+                            class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-rose-700 font-semibold border-t border-slate-100">
+                        <i class="ph ph-arrow-u-up-left text-rose-600 text-sm"></i>
+                        Issue Credit Note
+                    </button>
+
+                    <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied!');"
+                            @click="openActions = false" type="button"
+                            class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-600 font-medium">
+                        <i class="ph ph-copy text-slate-500 text-sm"></i>
+                        Copy Portal Link
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -159,7 +193,7 @@
                                 @endif
                             </td>
                             <td class="py-4 text-center font-medium text-slate-600">
-                                {{ $item->quantity }} {{ $item->unit }}
+                                {{ (float)$item->quantity == (int)$item->quantity ? (int)$item->quantity : $item->quantity }} {{ $item->unit }}
                             </td>
                             <td class="py-4 text-right font-medium text-slate-600">
                                 ${{ number_format($item->rate_cents / 100, 2) }}
@@ -202,6 +236,16 @@
                     <span>Balance Due:</span>
                     <span>{{ $invoice->formatted_due }}</span>
                 </div>
+                @if($invoice->getLateSurchargeCents() > 0)
+                    <div class="flex justify-between text-xs font-bold text-rose-700 bg-rose-50 px-2 py-1 rounded">
+                        <span>Late Surcharge (Overdue):</span>
+                        <span>+{{ $invoice->formatted_late_surcharge }}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-rose-200 pt-1 text-sm font-black text-rose-700">
+                        <span>Adjusted Total Due:</span>
+                        <span>{{ $invoice->formatted_total_with_surcharge }}</span>
+                    </div>
+                @endif
             </div>
         </div>
 
