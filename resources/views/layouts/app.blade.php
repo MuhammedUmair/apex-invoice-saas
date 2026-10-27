@@ -201,6 +201,11 @@
                         </div>
                     </div>
 
+                    <!-- Concurrency-Safe Ledger Lock Badge (Mockup) -->
+                    <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <i class="ph ph-shield-check text-emerald-600 text-sm"></i> Concurrency-Safe Ledger Lock
+                    </span>
+
                     <!-- Documentation Quick Link -->
                     <a href="{{ route('docs.index') }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition" title="{{ __('Documentation') }}">
                         <i class="ph ph-book-open text-sky-600 text-sm"></i>

@@ -58,6 +58,14 @@ class InvoiceBuilder extends Component
     public float $lateSurchargeValue = 5.00;
     public int $lateSurchargeDays = 7;
 
+    // Recurring Billing Options (Mockup Feature)
+    public bool $isRecurring = true;
+    public int $recurringInterval = 1;
+    public string $recurringFrequency = 'month';
+    public string $recurringNextDate = '';
+    public bool $recurringAutoEmail = true;
+    public bool $recurringVendorAlert = true;
+
     public array $items = [];
 
     // Summary calculations (formatted)
@@ -152,6 +160,7 @@ class InvoiceBuilder extends Component
         $this->issueDate = date('Y-m-d');
         $this->dueDate = date('Y-m-d', strtotime('+14 days'));
         $this->scheduledPublishDate = date('Y-m-d', strtotime('+7 days'));
+        $this->recurringNextDate = date('Y-m-d', strtotime('+1 month'));
         $this->currency = $workspace->currency ?? 'USD';
         $this->countryTaxCode = $workspace->country_code ?? 'US';
 
@@ -220,6 +229,14 @@ class InvoiceBuilder extends Component
     public function disableWalkin()
     {
         $this->isWalkin = false;
+    }
+
+    public function toggleRecurring()
+    {
+        $this->isRecurring = !$this->isRecurring;
+        if ($this->isRecurring && empty($this->recurringNextDate)) {
+            $this->recurringNextDate = date('Y-m-d', strtotime('+1 month'));
+        }
     }
 
     public function applyCountryTaxPreset(string $countryCode)
@@ -518,10 +535,38 @@ class InvoiceBuilder extends Component
             }
         }
 
+        // Create recurring retainer if enabled
+        if ($this->isRecurring && $client) {
+            try {
+                \App\Models\RecurringInvoice::create([
+                    'workspace_id' => $workspace->id,
+                    'client_id' => $client->id,
+                    'title' => 'Recurring Retainer for ' . ($client->company_name ?: $client->name),
+                    'currency' => $this->currency,
+                    'amount_cents' => $totalCents,
+                    'frequency' => $this->recurringFrequency === 'month' ? 'monthly' : ($this->recurringFrequency === 'year' ? 'yearly' : 'monthly'),
+                    'day_of_month' => (int) date('j', strtotime($this->issueDate ?: 'now')),
+                    'require_vendor_approval' => $this->recurringVendorAlert,
+                    'auto_send_email' => $this->recurringAutoEmail,
+                    'items' => $this->items,
+                    'notes' => $this->notes,
+                    'next_run_date' => $this->recurringNextDate ?: date('Y-m-d', strtotime('+1 month')),
+                    'status' => 'active',
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning("Could not auto-create recurring invoice: " . $e->getMessage());
+            }
+        }
+
         $actionText = $this->isEditing ? 'revised & updated' : ($this->isScheduled ? 'scheduled for future publishing' : 'successfully created');
         session()->flash('message', "Invoice {$invoice->invoice_number} {$actionText}!");
 
         return redirect()->route('invoices.show', $invoice->id);
+    }
+
+    public function getSelectedClientProperty(): ?Client
+    {
+        return $this->clientId ? Client::find($this->clientId) : null;
     }
 
     public function render()
