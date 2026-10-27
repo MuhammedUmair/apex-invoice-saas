@@ -77,6 +77,34 @@ class InvoiceBuilder extends Component
     protected InvoiceNumberService $numberService;
     protected PdfSecurityService $pdfService;
 
+    protected array $currencyToTaxMap = [
+        'PKR' => 'PK',
+        'USD' => 'US',
+        'AED' => 'AE',
+        'SAR' => 'SA',
+        'GBP' => 'GB',
+        'EUR' => 'DE',
+        'CAD' => 'CA',
+        'AUD' => 'AU',
+        'INR' => 'IN',
+        'TRY' => 'TR',
+    ];
+
+    protected array $taxToCurrencyMap = [
+        'PK' => 'PKR',
+        'AE' => 'AED',
+        'SA' => 'SAR',
+        'GB' => 'GBP',
+        'US' => 'USD',
+        'DE' => 'EUR',
+        'FR' => 'EUR',
+        'ES' => 'EUR',
+        'CA' => 'CAD',
+        'AU' => 'AUD',
+        'IN' => 'INR',
+        'TR' => 'TRY',
+    ];
+
     public function boot(
         TaxCalculationService $taxService,
         InvoiceNumberService $numberService,
@@ -85,6 +113,9 @@ class InvoiceBuilder extends Component
         $this->taxService = $taxService;
         $this->numberService = $numberService;
         $this->pdfService = $pdfService;
+
+        // Apply active session language
+        app()->setLocale(session('locale', config('app.locale', 'en')));
     }
 
     public function mount(?string $invoiceId = null)
@@ -175,17 +206,39 @@ class InvoiceBuilder extends Component
      */
     public function updated($propertyName = null)
     {
-        if ($propertyName === 'countryTaxCode') {
+        if ($propertyName === 'currency') {
+            if (isset($this->currencyToTaxMap[$this->currency])) {
+                $this->countryTaxCode = $this->currencyToTaxMap[$this->currency];
+                $this->applyCountryTaxPreset($this->countryTaxCode);
+            }
+        } elseif ($propertyName === 'countryTaxCode') {
             $this->applyCountryTaxPreset($this->countryTaxCode);
-        } elseif ($propertyName === 'clientId' && !empty($this->clientId)) {
-            $client = Client::find($this->clientId);
-            if ($client) {
-                if ($client->preferred_currency) {
-                    $this->currency = $client->preferred_currency;
-                }
-                if ($client->country_code) {
-                    $this->countryTaxCode = $client->country_code;
-                    $this->applyCountryTaxPreset($client->country_code);
+            if (isset($this->taxToCurrencyMap[$this->countryTaxCode])) {
+                $this->currency = $this->taxToCurrencyMap[$this->countryTaxCode];
+            }
+        } elseif ($propertyName === 'clientId') {
+            if ($this->clientId === 'walkin') {
+                $this->isWalkin = true;
+            } else {
+                $this->isWalkin = false;
+                if (!empty($this->clientId)) {
+                    $client = Client::find($this->clientId);
+                    if ($client) {
+                        if ($client->preferred_currency) {
+                            $this->currency = $client->preferred_currency;
+                            if (isset($this->currencyToTaxMap[$this->currency])) {
+                                $this->countryTaxCode = $this->currencyToTaxMap[$this->currency];
+                                $this->applyCountryTaxPreset($this->countryTaxCode);
+                            }
+                        }
+                        if ($client->country_code) {
+                            $this->countryTaxCode = $client->country_code;
+                            $this->applyCountryTaxPreset($client->country_code);
+                            if (isset($this->taxToCurrencyMap[$this->countryTaxCode])) {
+                                $this->currency = $this->taxToCurrencyMap[$this->countryTaxCode];
+                            }
+                        }
+                    }
                 }
             }
         } elseif ($propertyName === 'issueDate') {
@@ -277,22 +330,40 @@ class InvoiceBuilder extends Component
 
         if (isset($presets[$type])) {
             $p = $presets[$type];
-            $newItem = [
-                'service_id' => '',
-                'description' => $p['name'],
-                'category' => $p['category'],
-                'quantity' => 1,
-                'unit' => $p['unit'],
-                'rate' => (float) $p['rate'],
-                'tax_rate' => $this->taxRate,
-                'amount' => (float) $p['rate'],
-            ];
 
-            // Item 5: Overwrite first empty service row if empty or unselected
-            if (count($this->items) === 1 && empty(trim($this->items[0]['description'] ?? '')) && empty($this->items[0]['rate'])) {
-                $this->items[0] = $newItem;
+            // Check if this item is already present in the list
+            $existingIndex = null;
+            foreach ($this->items as $i => $item) {
+                if (trim($item['description'] ?? '') === $p['name']) {
+                    $existingIndex = $i;
+                    break;
+                }
+            }
+
+            if ($existingIndex !== null) {
+                // Click multiple times -> increment quantity!
+                $currentQty = max(1, (int) ($this->items[$existingIndex]['quantity'] ?? 1));
+                $newQty = $currentQty + 1;
+                $this->items[$existingIndex]['quantity'] = $newQty;
+                $this->items[$existingIndex]['amount'] = round($newQty * (float) $this->items[$existingIndex]['rate'], 2);
             } else {
-                $this->items[] = $newItem;
+                $newItem = [
+                    'service_id' => '',
+                    'description' => $p['name'],
+                    'category' => $p['category'],
+                    'quantity' => 1,
+                    'unit' => $p['unit'],
+                    'rate' => (float) $p['rate'],
+                    'tax_rate' => $this->taxRate,
+                    'amount' => (float) $p['rate'],
+                ];
+
+                // Overwrite first empty service row if empty or unselected
+                if (count($this->items) === 1 && empty(trim($this->items[0]['description'] ?? '')) && empty($this->items[0]['rate'])) {
+                    $this->items[0] = $newItem;
+                } else {
+                    $this->items[] = $newItem;
+                }
             }
 
             $this->recalculate();
