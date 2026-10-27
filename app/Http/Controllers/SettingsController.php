@@ -69,7 +69,36 @@ class SettingsController extends Controller
             $workspace->logo_url = null;
         } elseif ($request->hasFile('logo')) {
             $file = $request->file('logo');
-            $filename = 'logo_' . $workspace->slug . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $ext = strtolower($file->getClientOriginalExtension());
+            $realMime = $file->getMimeType();
+
+            // Validate against allowed mime types
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/svg'];
+            if (!in_array($realMime, $allowedMimes)) {
+                return back()->withErrors(['logo' => 'Invalid image format. Allowed formats: PNG, JPG, WEBP, SVG.']);
+            }
+
+            // High Security SVG Sanitization
+            if ($ext === 'svg' || str_contains($realMime, 'svg')) {
+                $svgContent = file_get_contents($file->getRealPath());
+                $dangerousPatterns = [
+                    '/<script\b[^>]*>(.*?)<\/script>/is',
+                    '/\bon\w+\s*=\s*["\'][^"\']*["\']/i',
+                    '/\bon\w+\s*=\s*[^>\s]+/i',
+                    '/href\s*=\s*["\']\s*javascript:[^"\']*["\']/i',
+                    '/<foreignObject\b[^>]*>(.*?)<\/foreignObject>/is',
+                    '/<animate\b[^>]*>/is',
+                    '/<set\b[^>]*>/is',
+                ];
+                $cleanedSvg = preg_replace($dangerousPatterns, '', $svgContent);
+                if (preg_match('/<script|javascript:|data:text\/html/i', $cleanedSvg)) {
+                    return back()->withErrors(['logo' => 'Malicious executable code detected in uploaded SVG file. Upload rejected.']);
+                }
+                file_put_contents($file->getRealPath(), $cleanedSvg);
+            }
+
+            $safeSlug = preg_replace('/[^a-zA-Z0-9_\-]/', '', $workspace->slug);
+            $filename = 'logo_' . $safeSlug . '_' . time() . '.' . $ext;
             $destinationPath = public_path('images/uploads');
             if (!file_exists($destinationPath)) {
                 @mkdir($destinationPath, 0775, true);

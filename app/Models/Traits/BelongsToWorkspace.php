@@ -21,6 +21,24 @@ trait BelongsToWorkspace
                 $model->workspace_id = Auth::user()->workspace_id;
             }
         });
+
+        // Anti-IDOR Guard: Block cross-tenant update attempts
+        static::updating(function ($model) {
+            if (Auth::hasUser() && Auth::user()->workspace_id) {
+                if (!empty($model->workspace_id) && $model->workspace_id !== Auth::user()->workspace_id) {
+                    abort(403, 'Security Violation: Cross-tenant data tampering is strictly prohibited.');
+                }
+            }
+        });
+
+        // Anti-IDOR Guard: Block cross-tenant deletion attempts
+        static::deleting(function ($model) {
+            if (Auth::hasUser() && Auth::user()->workspace_id) {
+                if (!empty($model->workspace_id) && $model->workspace_id !== Auth::user()->workspace_id) {
+                    abort(403, 'Security Violation: Cross-tenant record deletion is strictly prohibited.');
+                }
+            }
+        });
     }
 
     /**

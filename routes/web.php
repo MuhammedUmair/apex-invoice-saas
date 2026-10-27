@@ -46,15 +46,15 @@ Route::get('/app', function () {
 */
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
 
-    // Password Reset
+    // Password Reset with brute-force / email-bomb throttling
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:3,1')->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.update');
 });
 
 // Logout accepts both GET and POST to prevent 405 Method Not Allowed
@@ -122,7 +122,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
-    Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->name('settings.smtp.test');
+    Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->middleware('throttle:6,1')->name('settings.smtp.test');
 
     // Monthly Recurring Invoicing & Retainers (Item 18)
     Route::get('/recurring-invoices', [RecurringInvoiceController::class, 'index'])->name('recurring.index');
@@ -149,7 +149,7 @@ Route::middleware('auth')->group(function () {
 | Public Customer Portal & Secure Document Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('invoices/p')->group(function () {
+Route::prefix('invoices/p')->middleware('throttle:60,1')->group(function () {
     // Interactive customer viewing & payment portal
     Route::get('/{token}', [InvoiceController::class, 'customerPortal'])->name('invoices.portal');
     Route::match(['get', 'post'], '/{token}/pay', [PaymentController::class, 'processPortalPayment'])->name('invoices.pay');

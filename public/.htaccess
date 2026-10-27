@@ -10,6 +10,15 @@
         RewriteRule ^(invoices|dashboard|clients|services|membership|login|register) - [E=Cache-Control:no-cache]
     </IfModule>
 
+    # Disable HTTP TRACE and TRACK methods
+    RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)
+    RewriteRule .* - [F]
+
+    # Block access to hidden files and directories (dotfiles)
+    RewriteCond %{SCRIPT_FILENAME} -d [OR]
+    RewriteCond %{SCRIPT_FILENAME} -f
+    RewriteRule "(^|/)\." - [F]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -23,4 +32,16 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# Block access to sensitive file extensions
+<FilesMatch "\.(env|log|sql|sqlite|yml|yaml|ini|conf|sh|bak|git|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Strip Server Fingerprinting Headers
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+    Header always unset X-Powered-By
 </IfModule>
