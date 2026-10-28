@@ -64,7 +64,7 @@
         <form method="POST" action="{{ route('builder.branding') }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Website Main Logo Card -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -73,51 +73,51 @@
                                 <i class="ph ph-browsers"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-slate-900 text-base">Website Main Logo</h3>
-                                <p class="text-xs text-slate-500">Appears on the main website navigation bar & footer</p>
+                                <h3 class="font-bold text-slate-900 text-sm">Website Main Logo</h3>
+                                <p class="text-[11px] text-slate-500">Navigation bar, footer & app</p>
                             </div>
                         </div>
                         @if(!empty($cms['website_logo_url']))
                             <button type="submit" name="remove_website_logo" value="1" 
                                     class="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1"
                                     onclick="return confirm('Remove custom website logo and reset to default?')">
-                                <i class="ph ph-trash"></i> Reset to Default
+                                <i class="ph ph-trash"></i> Reset
                             </button>
                         @endif
                     </div>
 
                     <!-- Current Preview Box -->
-                    <div class="p-5 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
+                    <div class="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Logo Preview</span>
-                        <div class="h-16 flex items-center justify-center px-4 py-2 bg-white rounded-lg shadow-2xs border border-slate-100 max-w-full">
+                        <div class="h-14 flex items-center justify-center px-4 py-2 bg-white rounded-lg shadow-2xs border border-slate-100 max-w-full">
                             @if(!empty($cms['website_logo_url']))
-                                <img src="{{ $cms['website_logo_url'] }}" alt="Website Logo" class="max-h-12 max-w-[200px] object-contain">
+                                <img src="{{ $cms['website_logo_url'] }}" alt="Website Logo" class="max-h-10 max-w-[180px] object-contain">
                             @else
                                 <div class="flex items-center gap-2">
-                                    <div class="w-9 h-9 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center p-1.5">
+                                    <div class="w-8 h-8 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center p-1.5">
                                         <svg class="w-full h-full text-red-600" viewBox="0 0 900 900" fill="currentColor">
                                             <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                                         </svg>
                                     </div>
-                                    <span class="font-black text-slate-900 text-sm">Invoicy <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600 font-bold">RedMaple</span></span>
+                                    <span class="font-black text-slate-900 text-xs">Invoicy <span class="text-[10px] font-normal text-slate-400">by</span> <span class="text-red-600 font-bold">RedMaple</span></span>
                                 </div>
                             @endif
                         </div>
                     </div>
 
                     <!-- Upload Controls -->
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Upload Logo Image File</label>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Upload Logo File</label>
                             <input type="file" name="website_logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                   class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer">
-                            <p class="text-[10px] text-slate-400 mt-1">Allowed formats: PNG, JPG, WEBP, SVG (Max 2MB). Transparent background recommended.</p>
+                                   class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer">
+                            <p class="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WEBP, SVG (Max 2MB)</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Or Direct Logo Image URL</label>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Or Logo Image URL</label>
                             <input type="url" name="website_logo_url" value="{{ $cms['website_logo_url'] ?? '' }}" placeholder="https://domain.com/logo.png"
-                                   class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">
+                                   class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">
                         </div>
                     </div>
                 </div>
@@ -130,32 +130,32 @@
                                 <i class="ph ph-lock-key"></i>
                             </div>
                             <div>
-                                <h3 class="font-bold text-slate-900 text-base">Website Login Screen Logo</h3>
-                                <p class="text-xs text-slate-500">Appears on /login, /register, and password reset screens</p>
+                                <h3 class="font-bold text-slate-900 text-sm">Login Screen Logo</h3>
+                                <p class="text-[11px] text-slate-500">Appears on /login & /register</p>
                             </div>
                         </div>
                         @if(!empty($cms['login_logo_url']))
                             <button type="submit" name="remove_login_logo" value="1" 
                                     class="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1"
                                     onclick="return confirm('Remove custom login logo and reset to default?')">
-                                <i class="ph ph-trash"></i> Reset to Default
+                                <i class="ph ph-trash"></i> Reset
                             </button>
                         @endif
                     </div>
 
                     <!-- Current Preview Box -->
-                    <div class="p-5 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
+                    <div class="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
                         <div class="flex items-center justify-between w-full mb-2">
                             <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live Login Box Preview</span>
-                            <a href="{{ route('login') }}" target="_blank" class="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1">
-                                Open Login Page <i class="ph ph-arrow-up-right"></i>
+                            <a href="{{ route('login') }}" target="_blank" class="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-0.5">
+                                Preview <i class="ph ph-arrow-up-right"></i>
                             </a>
                         </div>
-                        <div class="h-16 flex items-center justify-center px-4 py-2 bg-white rounded-lg shadow-2xs border border-slate-100 max-w-full">
+                        <div class="h-14 flex items-center justify-center px-4 py-2 bg-white rounded-lg shadow-2xs border border-slate-100 max-w-full">
                             @if(!empty($cms['login_logo_url']))
-                                <img src="{{ $cms['login_logo_url'] }}" alt="Login Logo" class="max-h-12 max-w-[200px] object-contain">
+                                <img src="{{ $cms['login_logo_url'] }}" alt="Login Logo" class="max-h-10 max-w-[180px] object-contain">
                             @else
-                                <div class="w-12 h-12 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center p-2">
+                                <div class="w-10 h-10 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center p-2">
                                     <svg class="w-full h-full text-red-600" viewBox="0 0 900 900" fill="currentColor">
                                         <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                                     </svg>
@@ -165,18 +165,72 @@
                     </div>
 
                     <!-- Upload Controls -->
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Upload Login Logo File</label>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Upload Login Logo File</label>
                             <input type="file" name="login_logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                   class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
-                            <p class="text-[10px] text-slate-400 mt-1">Allowed formats: PNG, JPG, WEBP, SVG (Max 2MB). Ideal for high-contrast login cards.</p>
+                                   class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+                            <p class="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WEBP, SVG (Max 2MB)</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Or Direct Login Logo Image URL</label>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Or Login Logo URL</label>
                             <input type="url" name="login_logo_url" value="{{ $cms['login_logo_url'] ?? '' }}" placeholder="https://domain.com/login-logo.png"
-                                   class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500">
+                                   class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Website Favicon Card -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="ph ph-sparkle"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-sm">Website Favicon</h3>
+                                <p class="text-[11px] text-slate-500">Browser tab icon (.ico, .png, .svg)</p>
+                            </div>
+                        </div>
+                        @if(!empty($cms['favicon_url']))
+                            <button type="submit" name="remove_favicon" value="1" 
+                                    class="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1"
+                                    onclick="return confirm('Remove custom favicon and reset to default?')">
+                                <i class="ph ph-trash"></i> Reset
+                            </button>
+                        @endif
+                    </div>
+
+                    <!-- Current Preview Box -->
+                    <div class="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-center">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Browser Tab Simulation</span>
+                        <div class="flex items-center gap-2 px-3 py-2 bg-white rounded-t-lg shadow-2xs border border-slate-200 w-full max-w-[220px]">
+                            @if(!empty($cms['favicon_url']))
+                                <img src="{{ $cms['favicon_url'] }}" alt="Favicon" class="w-4 h-4 object-contain shrink-0">
+                            @else
+                                <svg class="w-4 h-4 text-red-600 shrink-0" viewBox="0 0 900 900" fill="currentColor">
+                                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                                </svg>
+                            @endif
+                            <span class="text-[11px] font-semibold text-slate-700 truncate">Invoicy Studio</span>
+                            <i class="ph ph-x text-[10px] text-slate-400 ml-auto"></i>
+                        </div>
+                    </div>
+
+                    <!-- Upload Controls -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Upload Favicon File</label>
+                            <input type="file" name="favicon_file" accept=".ico,image/png,image/x-icon,image/svg+xml,image/webp"
+                                   class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer">
+                            <p class="text-[10px] text-slate-400 mt-0.5">.ICO, .PNG, .SVG, .WEBP (16x16, 32x32, or 64x64)</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Or Direct Favicon URL</label>
+                            <input type="url" name="favicon_url" value="{{ $cms['favicon_url'] ?? '' }}" placeholder="https://domain.com/favicon.ico"
+                                   class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500">
                         </div>
                     </div>
                 </div>

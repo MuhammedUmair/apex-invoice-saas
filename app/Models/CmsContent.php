@@ -52,6 +52,15 @@ class CmsContent extends Model
     }
 
     /**
+     * Get Website Favicon URL (if set, otherwise null)
+     */
+    public static function getFaviconUrl(): ?string
+    {
+        $val = static::getVal('favicon_url');
+        return !empty($val) ? $val : null;
+    }
+
+    /**
      * Get Navigation Items for Header Menu
      */
     public static function getNavItems(): array

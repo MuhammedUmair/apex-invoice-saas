@@ -12,7 +12,11 @@
         'de' => ['name' => 'German', 'native' => 'Deutsch', 'flag' => '🇩🇪'],
     ];
     $workspace = auth()->check() ? auth()->user()->workspace : null;
-    $customLogo = $workspace->logo_url ?? null;
+    $websiteLogo = \App\Models\CmsContent::getWebsiteLogo();
+    $customLogo = $websiteLogo ?: ($workspace->logo_url ?? null);
+    $faviconUrl = \App\Models\CmsContent::getFaviconUrl();
+    $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+    $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $currentLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
@@ -20,9 +24,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Invoicy by RedMaple' }} - Commercial SaaS Invoicing</title>
-    <!-- Favicon with Red Maple Leaf -->
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
+    <title>{{ $title ?? "$brandName by $brandSub" }} - Commercial SaaS Invoicing</title>
+    <!-- Dynamic Favicon -->
+    @if($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
+    @endif
     <!-- Tailwind CSS CDN for zero-build Hostinger deployment -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -61,19 +69,21 @@
             <!-- Brand Header -->
             <div class="h-16 flex items-center px-4 border-b border-slate-800 justify-between gap-2 overflow-hidden">
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-9 h-9 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm overflow-hidden">
-                        @if($customLogo)
-                            <img src="{{ $customLogo }}" alt="Logo" class="w-full h-full object-contain">
-                        @else
+                    @if($customLogo)
+                        <div class="h-9 flex items-center shrink-0">
+                            <img src="{{ $customLogo }}" alt="{{ $brandName }}" class="max-h-9 max-w-[130px] object-contain rounded-lg">
+                        </div>
+                    @else
+                        <div class="w-9 h-9 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm overflow-hidden">
                             <!-- Red Maple Leaf Vector -->
                             <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
                                 <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                             </svg>
-                        @endif
-                    </div>
+                        </div>
+                    @endif
                     <div x-show="!sidebarCollapsed" x-transition.opacity.duration.200ms class="truncate">
                         <h1 class="font-black text-white text-sm tracking-tight flex items-center gap-1">
-                            Invoicy <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-500 font-bold">RedMaple</span>
+                            {{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-500 font-bold">{{ $brandSub }}</span>
                         </h1>
                         <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400">SaaS Suite</p>
                     </div>

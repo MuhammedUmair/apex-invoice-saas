@@ -1,5 +1,6 @@
 @php
     $websiteLogo = \App\Models\CmsContent::getWebsiteLogo();
+    $faviconUrl = \App\Models\CmsContent::getFaviconUrl();
     $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
     $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
     $navItems = \App\Models\CmsContent::getNavItems();
@@ -9,11 +10,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Invoicy by RedMaple — Next-Generation Global Invoicing & Financial Accounting Suite</title>
+    <title>{{ $brandName }} by {{ $brandSub }} — Next-Generation Global Invoicing & Financial Accounting Suite</title>
     
     <!-- Meta tags for SEO & Social Cards -->
-    <meta name="description" content="Invoicy by RedMaple is an enterprise-grade global invoicing, automated payment reminders, multi-currency ledger, and client billing SaaS platform for modern agencies and businesses.">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'><path fill='%23dc2626' d='M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z'/></svg>">
+    <meta name="description" content="{{ $brandName }} by {{ $brandSub }} is an enterprise-grade global invoicing, automated payment reminders, multi-currency ledger, and client billing SaaS platform for modern agencies and businesses.">
+    <!-- Dynamic Favicon -->
+    @if($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'><path fill='%23dc2626' d='M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z'/></svg>">
+    @endif
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>

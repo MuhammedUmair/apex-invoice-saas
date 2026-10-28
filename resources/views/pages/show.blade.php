@@ -1,5 +1,6 @@
 @php
     $websiteLogo = \App\Models\CmsContent::getWebsiteLogo();
+    $faviconUrl = \App\Models\CmsContent::getFaviconUrl();
     $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
     $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
     $navItems = \App\Models\CmsContent::getNavItems();
@@ -13,7 +14,12 @@
     @if($page->meta_description)
         <meta name="description" content="{{ $page->meta_description }}">
     @endif
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'><path fill='%23dc2626' d='M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z'/></svg>">
+    <!-- Dynamic Favicon -->
+    @if($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 900 900'><path fill='%23dc2626' d='M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z'/></svg>">
+    @endif
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>

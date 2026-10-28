@@ -28,6 +28,8 @@ class WebsiteBuilderController extends Controller
             'website_logo_url' => 'nullable|string|max:500',
             'login_logo_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'login_logo_url' => 'nullable|string|max:500',
+            'favicon_file' => 'nullable|file|mimes:ico,png,jpg,jpeg,webp,svg|max:2048',
+            'favicon_url' => 'nullable|string|max:500',
             'website_brand_name' => 'nullable|string|max:100',
             'website_brand_sub' => 'nullable|string|max:100',
             'login_title' => 'nullable|string|max:150',
@@ -68,7 +70,21 @@ class WebsiteBuilderController extends Controller
             CmsContent::setVal('login_logo_url', $request->input('login_logo_url'), 'branding');
         }
 
-        // 3. Brand Texts
+        // 3. Website Favicon
+        if ($request->has('remove_favicon')) {
+            CmsContent::setVal('favicon_url', null, 'branding');
+        } elseif ($request->hasFile('favicon_file')) {
+            $file = $request->file('favicon_file');
+            $ext = strtolower($file->getClientOriginalExtension());
+            $this->sanitizeSvgIfNeeded($file, $ext);
+            $filename = 'favicon_' . time() . '.' . $ext;
+            $file->move($uploadDir, $filename);
+            CmsContent::setVal('favicon_url', asset('images/uploads/branding/' . $filename), 'branding');
+        } elseif ($request->filled('favicon_url')) {
+            CmsContent::setVal('favicon_url', $request->input('favicon_url'), 'branding');
+        }
+
+        // 4. Brand Texts
         if ($request->filled('website_brand_name')) {
             CmsContent::setVal('website_brand_name', $request->input('website_brand_name'), 'branding');
         }

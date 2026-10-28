@@ -1,12 +1,21 @@
+@php
+    $faviconUrl = \App\Models\CmsContent::getFaviconUrl();
+    $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+    $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Invoicy by RedMaple' }}</title>
-    <!-- Favicon with Red Maple Leaf -->
-    <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
+    <title>{{ $title ?? "$brandName by $brandSub" }}</title>
+    <!-- Dynamic Favicon -->
+    @if($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="{{ asset('images/maple-leaf.svg') }}">
+    @endif
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
