@@ -50,13 +50,20 @@
     </div>
 
     <!-- Header -->
+    @php
+        $pdfLogo = \App\Models\CmsContent::getSystemLogo();
+    @endphp
     <table class="header-table">
         <tr>
             <td style="vertical-align: middle;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg width="26" height="26" viewBox="0 0 900 900" fill="#dc2626" style="vertical-align: middle; margin-right: 6px; display: inline-block;">
-                        <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                    </svg>
+                    @if($pdfLogo)
+                        <img src="{{ $pdfLogo }}" alt="Logo" style="max-height: 36px; max-width: 150px; vertical-align: middle; margin-right: 8px;">
+                    @else
+                        <svg width="26" height="26" viewBox="0 0 900 900" fill="#dc2626" style="vertical-align: middle; margin-right: 6px; display: inline-block;">
+                            <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                        </svg>
+                    @endif
                     <span class="logo-text" style="color: #0f172a;">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace->name }}</span>
                 </div>
                 <div style="color: #64748b; font-size: 12px; margin-top: 4px;">{{ $invoice->workspace_snapshot['email'] ?? $invoice->workspace->email }}</div>

@@ -19,11 +19,13 @@ class WebsiteBuilderController extends Controller
     }
 
     /**
-     * Update Website Main Logo and Login Screen Logo
+     * Update Unified System Brand Logo, Favicon, and Branding
      */
     public function updateBranding(Request $request)
     {
         $request->validate([
+            'logo_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
+            'logo_url' => 'nullable|string|max:500',
             'website_logo_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
             'website_logo_url' => 'nullable|string|max:500',
             'login_logo_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,svg|max:2048',
@@ -42,32 +44,38 @@ class WebsiteBuilderController extends Controller
             @mkdir($uploadDir, 0775, true);
         }
 
-        // 1. Website Main Logo
-        if ($request->has('remove_website_logo')) {
+        // 1. Unified Single Brand Logo Upload (Changes Everywhere: Web, App, Login, Portal, PDFs)
+        $uploadedLogoUrl = null;
+        $logoFile = $request->file('logo_file') ?? $request->file('website_logo_file') ?? $request->file('login_logo_file');
+
+        if ($request->has('remove_logo') || $request->has('remove_website_logo') || $request->has('remove_login_logo')) {
+            CmsContent::setVal('system_logo_url', null, 'branding');
             CmsContent::setVal('website_logo_url', null, 'branding');
-        } elseif ($request->hasFile('website_logo_file')) {
-            $file = $request->file('website_logo_file');
-            $ext = strtolower($file->getClientOriginalExtension());
-            $this->sanitizeSvgIfNeeded($file, $ext);
-            $filename = 'website_logo_' . time() . '.' . $ext;
-            $file->move($uploadDir, $filename);
-            CmsContent::setVal('website_logo_url', asset('images/uploads/branding/' . $filename), 'branding');
+            CmsContent::setVal('login_logo_url', null, 'branding');
+            if (auth()->check() && auth()->user()->workspace) {
+                auth()->user()->workspace->update(['logo_url' => null]);
+            }
+        } elseif ($logoFile) {
+            $ext = strtolower($logoFile->getClientOriginalExtension());
+            $this->sanitizeSvgIfNeeded($logoFile, $ext);
+            $filename = 'system_logo_' . time() . '.' . $ext;
+            $logoFile->move($uploadDir, $filename);
+            $uploadedLogoUrl = asset('images/uploads/branding/' . $filename);
+        } elseif ($request->filled('logo_url')) {
+            $uploadedLogoUrl = $request->input('logo_url');
         } elseif ($request->filled('website_logo_url')) {
-            CmsContent::setVal('website_logo_url', $request->input('website_logo_url'), 'branding');
+            $uploadedLogoUrl = $request->input('website_logo_url');
+        } elseif ($request->filled('login_logo_url')) {
+            $uploadedLogoUrl = $request->input('login_logo_url');
         }
 
-        // 2. Login Screen Logo
-        if ($request->has('remove_login_logo')) {
-            CmsContent::setVal('login_logo_url', null, 'branding');
-        } elseif ($request->hasFile('login_logo_file')) {
-            $file = $request->file('login_logo_file');
-            $ext = strtolower($file->getClientOriginalExtension());
-            $this->sanitizeSvgIfNeeded($file, $ext);
-            $filename = 'login_logo_' . time() . '.' . $ext;
-            $file->move($uploadDir, $filename);
-            CmsContent::setVal('login_logo_url', asset('images/uploads/branding/' . $filename), 'branding');
-        } elseif ($request->filled('login_logo_url')) {
-            CmsContent::setVal('login_logo_url', $request->input('login_logo_url'), 'branding');
+        if ($uploadedLogoUrl) {
+            CmsContent::setVal('system_logo_url', $uploadedLogoUrl, 'branding');
+            CmsContent::setVal('website_logo_url', $uploadedLogoUrl, 'branding');
+            CmsContent::setVal('login_logo_url', $uploadedLogoUrl, 'branding');
+            if (auth()->check() && auth()->user()->workspace) {
+                auth()->user()->workspace->update(['logo_url' => $uploadedLogoUrl]);
+            }
         }
 
         // 3. Website Favicon

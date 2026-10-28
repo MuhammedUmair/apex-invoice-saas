@@ -34,21 +34,50 @@ class CmsContent extends Model
     }
 
     /**
-     * Get Website Main Logo URL (if set, otherwise null)
+     * Get Master System Brand Logo URL (used everywhere throughout system and web)
      */
-    public static function getWebsiteLogo(): ?string
+    public static function getSystemLogo(): ?string
     {
-        $val = static::getVal('website_logo_url');
-        return !empty($val) ? $val : null;
+        // 1. Primary: System logo from CMS
+        $logo = static::getVal('system_logo_url');
+        if (!empty($logo)) {
+            return $logo;
+        }
+
+        // 2. Website logo from CMS
+        $webLogo = static::getVal('website_logo_url');
+        if (!empty($webLogo)) {
+            return $webLogo;
+        }
+
+        // 3. Login logo from CMS
+        $loginLogo = static::getVal('login_logo_url');
+        if (!empty($loginLogo)) {
+            return $loginLogo;
+        }
+
+        // 4. Authenticated user's workspace logo
+        if (auth()->check() && auth()->user()->workspace && !empty(auth()->user()->workspace->logo_url)) {
+            return auth()->user()->workspace->logo_url;
+        }
+
+        return null;
     }
 
     /**
-     * Get Website Login Screen Logo URL (if set, otherwise null)
+     * Get Website Main Logo URL
+     */
+    public static function getWebsiteLogo(): ?string
+    {
+        return static::getSystemLogo();
+    }
+
+    /**
+     * Get Website Login Screen Logo URL
      */
     public static function getLoginLogo(): ?string
     {
-        $val = static::getVal('login_logo_url');
-        return !empty($val) ? $val : null;
+        return static::getSystemLogo();
     }
 
     /**

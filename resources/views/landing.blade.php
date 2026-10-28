@@ -488,12 +488,18 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-12 border-b border-slate-900">
                 <div class="md:col-span-1 space-y-3">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5">
-                            <svg class="w-full h-full text-red-500" viewBox="0 0 900 900" fill="currentColor">
-                                <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                            </svg>
-                        </div>
-                        <span class="text-lg font-black text-white">Invoicy <span class="text-xs text-red-500">by RedMaple</span></span>
+                        @if($websiteLogo)
+                            <div class="h-8 flex items-center">
+                                <img src="{{ $websiteLogo }}" alt="{{ $brandName }}" class="max-h-8 max-w-[160px] object-contain">
+                            </div>
+                        @else
+                            <div class="w-8 h-8 rounded-lg bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5">
+                                <svg class="w-full h-full text-red-500" viewBox="0 0 900 900" fill="currentColor">
+                                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                                </svg>
+                            </div>
+                            <span class="text-lg font-black text-white">{{ $brandName }} <span class="text-xs text-red-500">by {{ $brandSub }}</span></span>
+                        @endif
                     </div>
                     <p class="text-xs text-slate-500 leading-relaxed">
                         RedMaple Agency &bull; High-precision financial billing software and SaaS digital products engineering.

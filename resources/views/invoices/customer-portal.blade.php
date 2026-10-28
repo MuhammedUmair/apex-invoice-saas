@@ -13,15 +13,26 @@
         </div>
     @endif
 
+    @php
+        $portalLogo = \App\Models\CmsContent::getSystemLogo();
+        $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+        $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
+    @endphp
     <!-- Brand Header -->
     <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center p-1 shadow-sm">
-                <svg class="w-full h-full text-red-600" viewBox="0 0 900 900" fill="currentColor">
-                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                </svg>
-            </div>
-            <span class="font-black text-slate-800 text-sm tracking-tight">Red<span class="text-red-600">Maple</span> <span class="font-bold text-slate-500 text-xs">Invoice Portal</span></span>
+            @if($portalLogo)
+                <div class="h-8 flex items-center">
+                    <img src="{{ $portalLogo }}" alt="{{ $brandName }}" class="max-h-8 max-w-[150px] object-contain">
+                </div>
+            @else
+                <div class="w-7 h-7 rounded-lg bg-red-50 border border-red-200 flex items-center justify-center p-1 shadow-sm">
+                    <svg class="w-full h-full text-red-600" viewBox="0 0 900 900" fill="currentColor">
+                        <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                    </svg>
+                </div>
+                <span class="font-black text-slate-800 text-sm tracking-tight">{{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">{{ $brandSub }}</span> <span class="font-bold text-slate-500 text-xs">Invoice Portal</span></span>
+            @endif
         </div>
         <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
             <i class="ph ph-shield-check text-xs"></i> 256-Bit SSL Encrypted

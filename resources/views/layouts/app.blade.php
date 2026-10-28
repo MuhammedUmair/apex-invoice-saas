@@ -12,8 +12,7 @@
         'de' => ['name' => 'German', 'native' => 'Deutsch', 'flag' => '🇩🇪'],
     ];
     $workspace = auth()->check() ? auth()->user()->workspace : null;
-    $websiteLogo = \App\Models\CmsContent::getWebsiteLogo();
-    $customLogo = $websiteLogo ?: ($workspace->logo_url ?? null);
+    $customLogo = \App\Models\CmsContent::getSystemLogo();
     $faviconUrl = \App\Models\CmsContent::getFaviconUrl();
     $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
     $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
