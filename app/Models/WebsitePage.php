@@ -13,12 +13,14 @@ class WebsitePage extends Model
         'meta_description',
         'is_published',
         'show_in_nav',
+        'show_in_footer',
         'sort_order',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'show_in_nav' => 'boolean',
+        'show_in_footer' => 'boolean',
         'sort_order' => 'integer',
     ];
 
@@ -36,5 +38,13 @@ class WebsitePage extends Model
     public function scopeInNav($query)
     {
         return $query->where('is_published', true)->where('show_in_nav', true)->orderBy('sort_order', 'asc');
+    }
+
+    /**
+     * Scope for pages to show in footer navigation
+     */
+    public function scopeInFooter($query)
+    {
+        return $query->where('is_published', true)->where('show_in_footer', true)->orderBy('sort_order', 'asc');
     }
 }

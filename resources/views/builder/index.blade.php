@@ -263,107 +263,234 @@
     </div>
 
     <!-- TAB 2: NAVIGATION MENU BUILDER -->
-    <div x-show="currentTab === 'navigation'" class="space-y-6" x-data="{ items: {{ json_encode($navItems) }} }">
-        <form method="POST" action="{{ route('builder.navigation') }}" class="space-y-6">
-            @csrf
+    <div x-show="currentTab === 'navigation'" class="space-y-6" x-data="{ 
+        navTab: 'header', 
+        headerItems: {{ json_encode($navItems) }}, 
+        footerItems: {{ json_encode($footerNavItems) }} 
+    }">
+        <!-- Sub-navigation tabs: Header Nav vs Footer Nav -->
+        <div class="flex items-center gap-3 border-b border-slate-200 pb-3">
+            <button type="button" @click="navTab = 'header'" 
+                    :class="navTab === 'header' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="ph ph-navigation-arrow text-sm"></i> Header Navigation Menu
+            </button>
+            <button type="button" @click="navTab = 'footer'" 
+                    :class="navTab === 'footer' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                    class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="ph ph-layout text-sm"></i> Footer Navigation Menu
+            </button>
+        </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                            <i class="ph ph-list-dashes"></i>
+        <!-- 1. HEADER NAVIGATION FORM -->
+        <div x-show="navTab === 'header'" class="space-y-6">
+            <form method="POST" action="{{ route('builder.navigation') }}" class="space-y-6">
+                @csrf
+                <input type="hidden" name="nav_type" value="header">
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="ph ph-list-dashes"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base">Header Navigation Menu Links</h3>
+                                <p class="text-xs text-slate-500">Configure menu links displayed on the main website header</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 class="font-bold text-slate-900 text-base">Header Navigation Menu Links</h3>
-                            <p class="text-xs text-slate-500">Configure menu links displayed on the main website header</p>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="headerItems.push({ label: 'New Link', url: '#', target: '_self', active: true })"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition">
+                                <i class="ph ph-plus-circle text-sm"></i> Add Menu Link
+                            </button>
+                            <button type="submit" name="action" value="reset" 
+                                    onclick="return confirm('Reset header navigation menu links back to original default layout?')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition">
+                                <i class="ph ph-arrows-clockwise text-sm"></i> Reset to Default
+                            </button>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <button type="button" @click="items.push({ label: 'New Link', url: '#', target: '_self', active: true })"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition">
-                            <i class="ph ph-plus-circle text-sm"></i> Add Menu Link
+                    <!-- Header Navigation Items Table / List -->
+                    <div class="space-y-3">
+                        <template x-for="(item, index) in headerItems" :key="index">
+                            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center gap-3">
+                                <span class="text-slate-400 cursor-grab px-1" title="Drag/Order">
+                                    <i class="ph ph-dots-six-vertical text-lg"></i>
+                                </span>
+
+                                <div class="w-full sm:w-1/3">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Link Text</label>
+                                    <input type="text" :name="'nav_items[' + index + '][label]'" x-model="item.label" required
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                                </div>
+
+                                <div class="w-full sm:w-1/2">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">URL / Anchor</label>
+                                    <input type="text" :name="'nav_items[' + index + '][url]'" x-model="item.url" required
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                                </div>
+
+                                <div class="w-full sm:w-auto flex items-center gap-4 shrink-0 pt-2 sm:pt-4">
+                                    <label class="flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
+                                        <input type="checkbox" :name="'nav_items[' + index + '][target]'" value="_blank" 
+                                               :checked="item.target === '_blank'" 
+                                               @change="item.target = $event.target.checked ? '_blank' : '_self'"
+                                               class="w-4 h-4 text-blue-600 rounded">
+                                        <span>New Tab</span>
+                                    </label>
+
+                                    <label class="flex items-center gap-1 text-xs font-bold text-emerald-700 cursor-pointer">
+                                        <input type="checkbox" :name="'nav_items[' + index + '][active]'" value="1" 
+                                               :checked="item.active !== false"
+                                               @change="item.active = $event.target.checked"
+                                               class="w-4 h-4 text-emerald-600 rounded">
+                                        <span>Visible</span>
+                                    </label>
+
+                                    <button type="button" @click="headerItems.splice(index, 1)" 
+                                            class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Remove Link">
+                                        <i class="ph ph-trash text-base"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Custom Pages Quick-Add Shortcut -->
+                    @if($pages->where('is_published', true)->count() > 0)
+                        <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-2 text-blue-900 font-semibold">
+                                <i class="ph ph-info text-base text-blue-600"></i>
+                                <span>Quick Add Published Custom Pages to Header Menu:</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                @foreach($pages->where('is_published', true) as $p)
+                                    <button type="button" 
+                                            @click="headerItems.push({ label: '{{ addslashes($p->title) }}', url: '{{ url('/p/' . $p->slug) }}', target: '_self', active: true })"
+                                            class="px-2.5 py-1 rounded bg-white hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold transition">
+                                        + {{ $p->title }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex justify-end pt-3">
+                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md transition">
+                            <i class="ph ph-floppy-disk text-base"></i> Save Header Navigation Links
                         </button>
-                        <button type="submit" name="action" value="reset" 
-                                onclick="return confirm('Reset navigation menu links back to original default layout?')"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition">
-                            <i class="ph ph-arrows-clockwise text-sm"></i> Reset to Default
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- 2. FOOTER NAVIGATION FORM -->
+        <div x-show="navTab === 'footer'" class="space-y-6">
+            <form method="POST" action="{{ route('builder.navigation') }}" class="space-y-6">
+                @csrf
+                <input type="hidden" name="nav_type" value="footer">
+
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                                <i class="ph ph-layout"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base">Footer Navigation Menu Links</h3>
+                                <p class="text-xs text-slate-500">Configure links displayed at the bottom of the landing page, custom pages, and public documents</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="footerItems.push({ label: 'New Link', url: '#', target: '_self', active: true })"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition">
+                                <i class="ph ph-plus-circle text-sm"></i> Add Footer Link
+                            </button>
+                            <button type="submit" name="action" value="reset_footer" 
+                                    onclick="return confirm('Reset footer navigation links back to default pages (Privacy, Terms, About)?')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition">
+                                <i class="ph ph-arrows-clockwise text-sm"></i> Reset to Default
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Footer Navigation Items Table / List -->
+                    <div class="space-y-3">
+                        <template x-for="(item, index) in footerItems" :key="index">
+                            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center gap-3">
+                                <span class="text-slate-400 cursor-grab px-1" title="Order">
+                                    <i class="ph ph-dots-six-vertical text-lg"></i>
+                                </span>
+
+                                <div class="w-full sm:w-1/3">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Link Text</label>
+                                    <input type="text" :name="'footer_nav_items[' + index + '][label]'" x-model="item.label" required
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
+                                </div>
+
+                                <div class="w-full sm:w-1/2">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">URL / Route</label>
+                                    <input type="text" :name="'footer_nav_items[' + index + '][url]'" x-model="item.url" required
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                                </div>
+
+                                <div class="w-full sm:w-auto flex items-center gap-4 shrink-0 pt-2 sm:pt-4">
+                                    <label class="flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
+                                        <input type="checkbox" :name="'footer_nav_items[' + index + '][target]'" value="_blank" 
+                                               :checked="item.target === '_blank'" 
+                                               @change="item.target = $event.target.checked ? '_blank' : '_self'"
+                                               class="w-4 h-4 text-indigo-600 rounded">
+                                        <span>New Tab</span>
+                                    </label>
+
+                                    <label class="flex items-center gap-1 text-xs font-bold text-emerald-700 cursor-pointer">
+                                        <input type="checkbox" :name="'footer_nav_items[' + index + '][active]'" value="1" 
+                                               :checked="item.active !== false"
+                                               @change="item.active = $event.target.checked"
+                                               class="w-4 h-4 text-emerald-600 rounded">
+                                        <span>Visible</span>
+                                    </label>
+
+                                    <button type="button" @click="footerItems.splice(index, 1)" 
+                                            class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Remove Link">
+                                        <i class="ph ph-trash text-base"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Custom Pages Quick-Add to Footer -->
+                    @if($pages->where('is_published', true)->count() > 0)
+                        <div class="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-2 text-indigo-900 font-semibold">
+                                <i class="ph ph-info text-base text-indigo-600"></i>
+                                <span>Quick Add Published Custom Pages to Footer Menu:</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                @foreach($pages->where('is_published', true) as $p)
+                                    <button type="button" 
+                                            @click="footerItems.push({ label: '{{ addslashes($p->title) }}', url: '{{ url('/p/' . $p->slug) }}', target: '_self', active: true })"
+                                            class="px-2.5 py-1 rounded bg-white hover:bg-indigo-100 border border-indigo-200 text-indigo-800 font-bold transition">
+                                        + {{ $p->title }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex justify-end pt-3">
+                        <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition">
+                            <i class="ph ph-floppy-disk text-base"></i> Save Footer Navigation Links
                         </button>
                     </div>
                 </div>
-
-                <!-- Navigation Items Table / List -->
-                <div class="space-y-3">
-                    <template x-for="(item, index) in items" :key="index">
-                        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center gap-3">
-                            <span class="text-slate-400 cursor-grab px-1" title="Drag/Order">
-                                <i class="ph ph-dots-six-vertical text-lg"></i>
-                            </span>
-
-                            <div class="w-full sm:w-1/3">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Link Text</label>
-                                <input type="text" :name="'nav_items[' + index + '][label]'" x-model="item.label" required
-                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold bg-white">
-                            </div>
-
-                            <div class="w-full sm:w-1/2">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">URL / Anchor</label>
-                                <input type="text" :name="'nav_items[' + index + '][url]'" x-model="item.url" required
-                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
-                            </div>
-
-                            <div class="w-full sm:w-auto flex items-center gap-4 shrink-0 pt-2 sm:pt-4">
-                                <label class="flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
-                                    <input type="checkbox" :name="'nav_items[' + index + '][target]'" value="_blank" 
-                                           :checked="item.target === '_blank'" 
-                                           @change="item.target = $event.target.checked ? '_blank' : '_self'"
-                                           class="w-4 h-4 text-blue-600 rounded">
-                                    <span>New Tab</span>
-                                </label>
-
-                                <label class="flex items-center gap-1 text-xs font-bold text-emerald-700 cursor-pointer">
-                                    <input type="checkbox" :name="'nav_items[' + index + '][active]'" value="1" 
-                                           :checked="item.active !== false"
-                                           @change="item.active = $event.target.checked"
-                                           class="w-4 h-4 text-emerald-600 rounded">
-                                    <span>Visible</span>
-                                </label>
-
-                                <button type="button" @click="items.splice(index, 1)" 
-                                        class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Remove Link">
-                                    <i class="ph ph-trash text-base"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Custom Pages Quick-Add Shortcut -->
-                @if($pages->where('is_published', true)->count() > 0)
-                    <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                        <div class="flex items-center gap-2 text-blue-900 font-semibold">
-                            <i class="ph ph-info text-base text-blue-600"></i>
-                            <span>Quick Add Published Custom Pages to Menu:</span>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            @foreach($pages->where('is_published', true) as $p)
-                                <button type="button" 
-                                        @click="items.push({ label: '{{ addslashes($p->title) }}', url: '{{ url('/p/' . $p->slug) }}', target: '_self', active: true })"
-                                        class="px-2.5 py-1 rounded bg-white hover:bg-blue-100 border border-blue-200 text-blue-800 font-bold transition">
-                                    + {{ $p->title }}
-                                </button>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                <div class="flex justify-end pt-3">
-                    <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md transition">
-                        <i class="ph ph-floppy-disk text-base"></i> Save Navigation Links
-                    </button>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
     <!-- TAB 3: LANDING SECTIONS BUILDER -->
@@ -502,14 +629,18 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                    <div class="flex items-center gap-5">
+                    <div class="flex flex-wrap items-center gap-4 sm:gap-5">
                         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
                             <input type="checkbox" name="is_published" value="1" checked class="w-4 h-4 text-emerald-600 rounded">
                             <span>Published (Publicly Viewable)</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-blue-700">
                             <input type="checkbox" name="show_in_nav" value="1" class="w-4 h-4 text-blue-600 rounded">
-                            <span>Show in Header Navigation</span>
+                            <span>Show in Header Nav</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-700">
+                            <input type="checkbox" name="show_in_footer" value="1" class="w-4 h-4 text-indigo-600 rounded">
+                            <span>Show in Footer Nav</span>
                         </label>
                     </div>
 
@@ -551,6 +682,9 @@
                                         @endif
                                         @if($page->show_in_nav)
                                             <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">In Header Nav</span>
+                                        @endif
+                                        @if($page->show_in_footer)
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">In Footer Nav</span>
                                         @endif
                                     </div>
                                     <div class="flex items-center gap-2 mt-1">
@@ -606,15 +740,19 @@
                                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Content</label>
                                         <textarea name="content" rows="6" required class="w-full px-3 py-2 rounded-lg border text-xs font-mono bg-white">{{ $page->content }}</textarea>
                                     </div>
-                                    <div class="flex items-center justify-between pt-2">
-                                        <div class="flex items-center gap-4">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                                        <div class="flex flex-wrap items-center gap-4">
                                             <label class="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700">
                                                 <input type="checkbox" name="is_published" value="1" {{ $page->is_published ? 'checked' : '' }} class="w-4 h-4 text-emerald-600 rounded">
                                                 <span>Published</span>
                                             </label>
                                             <label class="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-blue-700">
                                                 <input type="checkbox" name="show_in_nav" value="1" {{ $page->show_in_nav ? 'checked' : '' }} class="w-4 h-4 text-blue-600 rounded">
-                                                <span>Show in Header Nav</span>
+                                                <span>In Header Nav</span>
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-indigo-700">
+                                                <input type="checkbox" name="show_in_footer" value="1" {{ $page->show_in_footer ? 'checked' : '' }} class="w-4 h-4 text-indigo-600 rounded">
+                                                <span>In Footer Nav</span>
                                             </label>
                                         </div>
                                         <div class="flex items-center gap-2">

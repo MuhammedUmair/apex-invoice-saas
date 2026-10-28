@@ -151,4 +151,66 @@ class CmsContent extends Model
             ['label' => 'Docs', 'url' => '/docs', 'target' => '_self', 'active' => true],
         ];
     }
+
+    /**
+     * Get Footer Navigation Items (with fallback to default)
+     */
+    public static function getFooterNavItems(): array
+    {
+        $raw = static::getVal('footer_navigation_items');
+        if (!empty($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                return array_values(array_filter($decoded, fn($item) => !isset($item['active']) || (bool)$item['active']));
+            }
+        }
+
+        $defaultFooter = [
+            ['label' => 'Privacy Policy', 'url' => url('/p/privacy-policy'), 'target' => '_self', 'active' => true],
+            ['label' => 'Terms of Service', 'url' => url('/p/terms-of-service'), 'target' => '_self', 'active' => true],
+            ['label' => 'About Us', 'url' => url('/p/about-us'), 'target' => '_self', 'active' => true],
+            ['label' => 'Documentation', 'url' => route('docs.index'), 'target' => '_self', 'active' => true],
+            ['label' => 'redmapleagency.com', 'url' => 'https://redmapleagency.com', 'target' => '_blank', 'active' => true],
+        ];
+
+        try {
+            $footerPages = WebsitePage::inFooter()->get();
+            $existingUrls = array_column($defaultFooter, 'url');
+            foreach ($footerPages as $fp) {
+                $pUrl = url('/p/' . $fp->slug);
+                if (!in_array($pUrl, $existingUrls)) {
+                    $defaultFooter[] = [
+                        'label' => $fp->title,
+                        'url' => $pUrl,
+                        'target' => '_self',
+                        'active' => true,
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        return $defaultFooter;
+    }
+
+    /**
+     * Get all footer nav items for builder admin
+     */
+    public static function getAllFooterNavItemsForAdmin(): array
+    {
+        $raw = static::getVal('footer_navigation_items');
+        if (!empty($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                return $decoded;
+            }
+        }
+
+        return [
+            ['label' => 'Privacy Policy', 'url' => url('/p/privacy-policy'), 'target' => '_self', 'active' => true],
+            ['label' => 'Terms of Service', 'url' => url('/p/terms-of-service'), 'target' => '_self', 'active' => true],
+            ['label' => 'About Us', 'url' => url('/p/about-us'), 'target' => '_self', 'active' => true],
+            ['label' => 'Documentation', 'url' => route('docs.index'), 'target' => '_self', 'active' => true],
+            ['label' => 'redmapleagency.com', 'url' => 'https://redmapleagency.com', 'target' => '_blank', 'active' => true],
+        ];
+    }
 }

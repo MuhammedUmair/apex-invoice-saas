@@ -101,7 +101,18 @@
     <footer class="bg-white border-t border-slate-200 py-8 text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-2">
+                @if($websiteLogo)
+                    <img src="{{ $websiteLogo }}" alt="{{ $brandName }}" class="h-4 max-w-[120px] object-contain inline-block">
+                @endif
                 <span class="font-bold text-slate-800">{{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">{{ $brandSub }}</span></span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                @foreach(\App\Models\CmsContent::getFooterNavItems() as $fIndex => $fItem)
+                    @if($fIndex > 0)
+                        <span class="text-slate-300">&bull;</span>
+                    @endif
+                    <a href="{{ $fItem['url'] }}" target="{{ $fItem['target'] ?? '_self' }}" class="hover:text-red-600 transition">{{ $fItem['label'] }}</a>
+                @endforeach
             </div>
             <p>{{ \App\Models\CmsContent::getVal('footer_copyright', '© ' . date('Y') . " $brandName by $brandSub. All rights reserved.") }}</p>
         </div>

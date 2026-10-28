@@ -13,9 +13,10 @@ class WebsiteBuilderController extends Controller
     {
         $cms = CmsContent::all()->pluck('content', 'key')->toArray();
         $navItems = CmsContent::getAllNavItemsForAdmin();
+        $footerNavItems = CmsContent::getAllFooterNavItemsForAdmin();
         $pages = WebsitePage::orderBy('sort_order', 'asc')->get();
 
-        return view('builder.index', compact('cms', 'navItems', 'pages'));
+        return view('builder.index', compact('cms', 'navItems', 'footerNavItems', 'pages'));
     }
 
     /**
@@ -113,13 +114,39 @@ class WebsiteBuilderController extends Controller
     }
 
     /**
-     * Update Website Header Navigation Items
+     * Update Website Header or Footer Navigation Items
      */
     public function updateNavigation(Request $request)
     {
+        $navType = $request->input('nav_type', 'header');
+
+        if ($request->input('action') === 'reset_footer' || ($navType === 'footer' && $request->input('action') === 'reset')) {
+            CmsContent::setVal('footer_navigation_items', null, 'navigation');
+            return back()->with('success', 'Footer navigation reset to default links.');
+        }
+
         if ($request->input('action') === 'reset') {
             CmsContent::setVal('navigation_items', null, 'navigation');
-            return back()->with('success', 'Navigation reset to default links.');
+            return back()->with('success', 'Header navigation reset to default links.');
+        }
+
+        if ($navType === 'footer' || $request->has('footer_nav_items')) {
+            $items = $request->input('footer_nav_items', []);
+            $cleanItems = [];
+
+            foreach ($items as $item) {
+                if (!empty($item['label']) && !empty($item['url'])) {
+                    $cleanItems[] = [
+                        'label' => trim($item['label']),
+                        'url' => trim($item['url']),
+                        'target' => $item['target'] ?? '_self',
+                        'active' => isset($item['active']) ? (bool)$item['active'] : true,
+                    ];
+                }
+            }
+
+            CmsContent::setVal('footer_navigation_items', json_encode($cleanItems), 'navigation');
+            return back()->with('success', 'Website footer navigation menu updated successfully!');
         }
 
         $items = $request->input('nav_items', []);
@@ -137,7 +164,7 @@ class WebsiteBuilderController extends Controller
         }
 
         CmsContent::setVal('navigation_items', json_encode($cleanItems), 'navigation');
-        return back()->with('success', 'Website navigation menu updated successfully!');
+        return back()->with('success', 'Website header navigation menu updated successfully!');
     }
 
     /**
@@ -168,6 +195,7 @@ class WebsiteBuilderController extends Controller
             'meta_description' => 'nullable|string|max:255',
             'is_published' => 'nullable|boolean',
             'show_in_nav' => 'nullable|boolean',
+            'show_in_footer' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
         ]);
 
@@ -185,6 +213,7 @@ class WebsiteBuilderController extends Controller
             'meta_description' => $validated['meta_description'] ?? null,
             'is_published' => $request->boolean('is_published', true),
             'show_in_nav' => $request->boolean('show_in_nav', false),
+            'show_in_footer' => $request->boolean('show_in_footer', false),
             'sort_order' => $validated['sort_order'] ?? ((WebsitePage::max('sort_order') ?? 0) + 1),
         ]);
 
@@ -203,12 +232,14 @@ class WebsiteBuilderController extends Controller
             'meta_description' => 'nullable|string|max:255',
             'is_published' => 'nullable|boolean',
             'show_in_nav' => 'nullable|boolean',
+            'show_in_footer' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
         ]);
 
         $validated['slug'] = Str::slug($validated['slug']);
         $validated['is_published'] = $request->boolean('is_published', true);
         $validated['show_in_nav'] = $request->boolean('show_in_nav', false);
+        $validated['show_in_footer'] = $request->boolean('show_in_footer', false);
 
         $page->update($validated);
 

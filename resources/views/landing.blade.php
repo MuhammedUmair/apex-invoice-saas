@@ -538,14 +538,13 @@
 
             <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-4">
                 <p>{{ \App\Models\CmsContent::getVal('footer_copyright', '© ' . date('Y') . " $brandName Software Studio. All rights reserved. $brandName is a proprietary product of $brandSub.") }}</p>
-                <div class="flex items-center gap-4">
-                    <a href="{{ url('/p/privacy-policy') }}" class="hover:text-slate-400">Privacy Policy</a>
-                    <span>&bull;</span>
-                    <a href="{{ url('/p/terms-of-service') }}" class="hover:text-slate-400">Terms of Service</a>
-                    <span>&bull;</span>
-                    <a href="{{ url('/p/about-us') }}" class="hover:text-slate-400">About Us</a>
-                    <span>&bull;</span>
-                    <a href="https://redmapleagency.com" target="_blank" class="hover:text-slate-400">redmapleagency.com</a>
+                <div class="flex flex-wrap items-center gap-3">
+                    @foreach(\App\Models\CmsContent::getFooterNavItems() as $fIndex => $fItem)
+                        @if($fIndex > 0)
+                            <span>&bull;</span>
+                        @endif
+                        <a href="{{ $fItem['url'] }}" target="{{ $fItem['target'] ?? '_self' }}" class="hover:text-slate-400 transition">{{ $fItem['label'] }}</a>
+                    @endforeach
                 </div>
             </div>
         </div>
