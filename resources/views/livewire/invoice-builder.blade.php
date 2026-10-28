@@ -23,6 +23,20 @@
         </div>
     @endif
 
+    @if ($errors->any())
+        <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold space-y-1">
+            <div class="flex items-center gap-2 font-bold text-rose-900">
+                <i class="ph ph-warning-circle text-base text-rose-600"></i>
+                {{ __('Please check and correct the following items:') }}
+            </div>
+            <ul class="list-disc list-inside space-y-0.5 text-[11px] pl-2 text-rose-700">
+                @foreach ($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form wire:submit.prevent="saveInvoice('issued')">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <!-- ========================================== -->
@@ -244,13 +258,14 @@
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach($items as $idx => $item)
-                                    <tr wire:key="line-row-{{ $idx }}-{{ $item['service_id'] ?? '' }}-{{ $item['unit'] ?? '' }}-{{ $item['quantity'] ?? 1 }}-{{ $item['rate'] ?? 0 }}" class="hover:bg-slate-50/40 transition">
+                                    <tr wire:key="line-row-{{ $idx }}" class="hover:bg-slate-50/40 transition">
                                         <td class="px-2 py-4 text-center font-bold text-slate-400 align-top">
                                             {{ $idx + 1 }}
                                         </td>
                                         <!-- Item / Service Autofill & Description -->
                                         <td class="px-3 py-3 space-y-1.5 align-top">
-                                            <select wire:key="service-select-{{ $idx }}-{{ $item['service_id'] ?? '' }}"
+                                            <select wire:key="service-select-{{ $idx }}"
+                                                    wire:model.live="items.{{ $idx }}.service_id"
                                                     wire:change="selectService({{ $idx }}, $event.target.value)" 
                                                     class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-red-500">
                                                 <option value="">-- {{ __('Select Catalog Service or Custom') }} --</option>
@@ -270,24 +285,30 @@
                                                     </optgroup>
                                                 @endif
                                             </select>
-                                            <textarea wire:key="desc-input-{{ $idx }}-{{ $item['service_id'] ?? '' }}"
+                                            <textarea wire:key="desc-input-{{ $idx }}"
                                                       wire:model.live.debounce.250ms="items.{{ $idx }}.description" 
                                                       rows="2" 
                                                       placeholder="{{ __('Description of service rendered (optional)...') }}"
                                                       class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:ring-1 focus:ring-red-500">{{ $item['description'] }}</textarea>
+                                            @error('items.' . $idx . '.description')
+                                                <span class="text-rose-600 text-[10px] block font-semibold">{{ $message }}</span>
+                                            @enderror
                                         </td>
 
                                         <!-- Quantity (Strict Integer, reactive) -->
                                         <td class="px-2 py-3 align-top">
                                             <input type="number" step="1" min="1" 
-                                                   wire:key="qty-input-{{ $idx }}-{{ $item['quantity'] ?? 1 }}"
+                                                   wire:key="qty-input-{{ $idx }}"
                                                    wire:model.live.debounce.250ms="items.{{ $idx }}.quantity"
                                                    class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center font-semibold text-slate-800 focus:ring-1 focus:ring-red-500">
+                                            @error('items.' . $idx . '.quantity')
+                                                <span class="text-rose-600 text-[10px] block font-semibold">{{ $message }}</span>
+                                            @enderror
                                         </td>
 
                                         <!-- Unit (Reactive & Synced with Preset / Service) -->
                                         <td class="px-2 py-3 align-top">
-                                            <select wire:key="unit-select-{{ $idx }}-{{ $item['unit'] ?? 'Project' }}" 
+                                            <select wire:key="unit-select-{{ $idx }}" 
                                                     wire:model.live="items.{{ $idx }}.unit" 
                                                     class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white">
                                                 <option value="Project" @selected(($item['unit'] ?? '') === 'Project')>Project</option>
@@ -304,17 +325,19 @@
                                         <!-- Rate -->
                                         <td class="px-3 py-3 align-top">
                                             <input type="number" step="0.01" 
-                                                   wire:key="rate-input-{{ $idx }}-{{ $item['rate'] ?? 0 }}"
+                                                   wire:key="rate-input-{{ $idx }}"
                                                    wire:model.live.debounce.250ms="items.{{ $idx }}.rate"
                                                    class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-right font-semibold text-slate-800 focus:ring-1 focus:ring-red-500">
+                                            @error('items.' . $idx . '.rate')
+                                                <span class="text-rose-600 text-[10px] block font-semibold">{{ $message }}</span>
+                                            @enderror
                                         </td>
 
                                         <!-- Tax Rate -->
                                         <td class="px-2 py-3 align-top">
-                                            <select wire:key="tax-select-{{ $idx }}-{{ $taxRate }}" 
-                                                    wire:model.live.debounce.250ms="taxRate" 
+                                            <select wire:key="tax-select-{{ $idx }}" 
+                                                    wire:model.live="taxRate" 
                                                     class="w-full px-1.5 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-700 bg-white">
-                                                <option value="{{ $taxRate }}">{{ number_format($taxRate, 0) }}%</option>
                                                 <option value="0">0%</option>
                                                 <option value="5">5%</option>
                                                 <option value="10">10%</option>
@@ -339,6 +362,12 @@
                             </tbody>
                         </table>
                     </div>
+
+                    @error('items')
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
+                            {{ $message }}
+                        </div>
+                    @enderror
 
                     <div>
                         <button type="button" wire:click="addItem" class="px-3 py-1.5 rounded-xl border border-dashed border-slate-300 text-slate-600 hover:border-red-500 hover:text-red-600 text-xs font-semibold transition flex items-center gap-1.5">

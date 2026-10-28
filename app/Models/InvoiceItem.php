@@ -53,4 +53,9 @@ class InvoiceItem extends Model
     {
         return number_format($this->amount_cents / 100, 2);
     }
+
+    public function getTitleAttribute(): string
+    {
+        return $this->description ?: 'Line Item';
+    }
 }

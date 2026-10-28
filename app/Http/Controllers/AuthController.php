@@ -131,6 +131,15 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 
+    public function logoutBeacon(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json(['status' => 'logged_out', 'message' => 'Session terminated on browser/tab close.']);
+    }
+
     public function showForgotPassword()
     {
         return view('auth.forgot-password');

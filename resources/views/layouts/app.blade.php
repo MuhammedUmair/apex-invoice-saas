@@ -335,6 +335,60 @@
         </main>
     </div>
 
+    <!-- Auto-Signout on Browser / Tab Close (Security Policy) -->
+    <script>
+        (function() {
+            let isInternalNavigation = false;
+
+            // Track internal link clicks
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                if (link && link.href) {
+                    try {
+                        const url = new URL(link.href, window.location.origin);
+                        if (url.origin === window.location.origin && link.target !== '_blank') {
+                            isInternalNavigation = true;
+                        }
+                    } catch(err) {}
+                }
+            }, true);
+
+            // Track form submissions
+            document.addEventListener('submit', function() {
+                isInternalNavigation = true;
+            }, true);
+
+            // Track reload / refresh shortcuts (F5, Ctrl+R, Cmd+R)
+            window.addEventListener('keydown', function(e) {
+                if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+                    isInternalNavigation = true;
+                }
+            });
+
+            // Track back / forward browser navigation
+            window.addEventListener('popstate', function() {
+                isInternalNavigation = true;
+            });
+
+            // Handle tab or browser close via pagehide event
+            window.addEventListener('pagehide', function(e) {
+                const navEntries = performance.getEntriesByType("navigation");
+                if (navEntries.length > 0 && navEntries[0].type === "reload") {
+                    isInternalNavigation = true;
+                }
+
+                if (!isInternalNavigation) {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                    const data = new FormData();
+                    if (token) data.append('_token', token);
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon('{{ route('logout.beacon') }}', data);
+                    }
+                }
+            });
+        })();
+    </script>
+
     @livewireScripts
 </body>
 </html>

@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'webhooks/*',
+            'logout-beacon',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

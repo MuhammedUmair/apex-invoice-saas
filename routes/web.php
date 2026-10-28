@@ -59,6 +59,7 @@ Route::middleware('guest')->group(function () {
 
 // Logout accepts both GET and POST to prevent 405 Method Not Allowed
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+Route::match(['get', 'post'], '/logout-beacon', [AuthController::class, 'logoutBeacon'])->name('logout.beacon');
 
 /*
 |--------------------------------------------------------------------------

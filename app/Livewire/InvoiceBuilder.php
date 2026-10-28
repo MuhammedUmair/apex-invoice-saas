@@ -430,27 +430,52 @@ class InvoiceBuilder extends Component
         $this->recalculate();
     }
 
+    public function updatedItems($value, $key)
+    {
+        if (str_ends_with($key, '.service_id')) {
+            $parts = explode('.', $key);
+            $idx = (int) $parts[0];
+            $this->selectService($idx, (string) $value);
+        }
+
+        $this->recalculate();
+    }
+
     public function removeItem(int $index)
     {
         if (count($this->items) > 1) {
             unset($this->items[$index]);
             $this->items = array_values($this->items);
-            $this->recalculate();
+        } else {
+            // Reset the only remaining row to clean empty state
+            $this->items = [[
+                'service_id' => '',
+                'description' => '',
+                'category' => 'General',
+                'quantity' => 1,
+                'unit' => 'Project',
+                'rate' => 0.00,
+                'tax_rate' => $this->taxRate,
+                'amount' => 0.00,
+            ]];
         }
+        $this->recalculate();
     }
 
-    public function selectService(int $index, string $serviceId)
+    public function selectService($index, $serviceId = '')
     {
+        $index = (int) $index;
+        $serviceId = (string) $serviceId;
+
         if (!isset($this->items[$index])) {
             return;
         }
 
         if (empty($serviceId)) {
             $this->items[$index]['service_id'] = '';
-            $this->items[$index]['description'] = '';
-            $this->items[$index]['unit'] = 'Project';
-            $this->items[$index]['rate'] = 0.00;
-            $this->items[$index]['amount'] = 0.00;
+            if (empty($this->items[$index]['unit'])) {
+                $this->items[$index]['unit'] = 'Project';
+            }
             $this->recalculate();
             return;
         }
@@ -604,7 +629,7 @@ class InvoiceBuilder extends Component
             'issueDate' => 'required|date',
             'dueDate' => 'required|date|after_or_equal:issueDate',
             'currency' => 'required|string|size:3',
-            'items.*.description' => 'required|string',
+            'items.*.description' => 'nullable|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.rate' => 'required|numeric|min:0',
         ];
