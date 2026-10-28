@@ -1,16 +1,19 @@
 <?php
 
 use App\Http\Controllers\AdminSubscriptionController;
+use App\Http\Controllers\AdvertisementController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CmsController;
 use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocsController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RecurringInvoiceController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WebsiteBuilderController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -149,7 +152,26 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
     Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
     Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
+
+    // Website Builder (Logos, Navigation & Landing Pages)
+    Route::get('/admin/website-builder', [WebsiteBuilderController::class, 'index'])->name('builder.index');
+    Route::post('/admin/website-builder/branding', [WebsiteBuilderController::class, 'updateBranding'])->name('builder.branding');
+    Route::post('/admin/website-builder/navigation', [WebsiteBuilderController::class, 'updateNavigation'])->name('builder.navigation');
+    Route::post('/admin/website-builder/sections', [WebsiteBuilderController::class, 'updateSections'])->name('builder.sections');
+    Route::post('/admin/website-builder/pages', [WebsiteBuilderController::class, 'storePage'])->name('builder.pages.store');
+    Route::post('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'updatePage'])->name('builder.pages.update');
+    Route::delete('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'destroyPage'])->name('builder.pages.destroy');
+
+    // Advertisement Management (Image, HTML, Text Ads)
+    Route::get('/admin/advertisements', [AdvertisementController::class, 'index'])->name('admin.ads.index');
+    Route::post('/admin/advertisements', [AdvertisementController::class, 'store'])->name('admin.ads.store');
+    Route::post('/admin/advertisements/{advertisement}/toggle', [AdvertisementController::class, 'toggle'])->name('admin.ads.toggle');
+    Route::delete('/admin/advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('admin.ads.destroy');
 });
+
+// Public Custom Pages & Ad Tracking
+Route::get('/p/{slug}', [PageController::class, 'show'])->name('pages.show');
+Route::get('/ads/{advertisement}/click', [AdvertisementController::class, 'click'])->name('ads.click');
 
 /*
 |--------------------------------------------------------------------------

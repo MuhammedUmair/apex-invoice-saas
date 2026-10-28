@@ -22,13 +22,17 @@
     </div>
 
     <footer class="py-6 text-center text-xs text-slate-400">
+        @php
+            $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+            $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
+        @endphp
         <div class="flex items-center justify-center gap-1.5 mb-1 text-slate-500">
             <svg class="w-3.5 h-3.5 text-red-600 inline-block" viewBox="0 0 900 900" fill="currentColor">
                 <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
             </svg>
-            <span class="font-bold text-slate-700">Invoicy <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">RedMaple</span></span>
+            <span class="font-bold text-slate-700">{{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">{{ $brandSub }}</span></span>
         </div>
-        <p>&copy; {{ date('Y') }} RedMaple &bull; Multi-Tenant SaaS Billing Suite</p>
+        <p>&copy; {{ date('Y') }} {{ $brandSub }} &bull; Multi-Tenant SaaS Billing Suite</p>
     </footer>
 
     @livewireScripts

@@ -159,11 +159,27 @@
                 </div>
 
                 @if(auth()->user()->isOwner() || auth()->user()->isAdmin())
+                <a href="{{ route('builder.index') }}" 
+                   :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('builder.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   :title="sidebarCollapsed ? '{{ __('Website Builder') }}' : ''">
+                    <i class="ph ph-paint-brush-broad text-lg text-emerald-400 shrink-0"></i>
+                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('Website Builder') }}</span>
+                </a>
+
+                <a href="{{ route('admin.ads.index') }}" 
+                   :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.ads.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   :title="sidebarCollapsed ? '{{ __('Advertisements') }}' : ''">
+                    <i class="ph ph-megaphone text-lg text-indigo-400 shrink-0"></i>
+                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('Advertisements') }}</span>
+                </a>
+
                 <a href="{{ route('cms.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
                    class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('cms.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Website & Docs CMS') }}' : ''">
-                    <i class="ph ph-note-pencil text-lg text-emerald-400 shrink-0"></i>
+                    <i class="ph ph-note-pencil text-lg text-teal-400 shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Website & Docs CMS') }}</span>
                 </a>
 
@@ -202,31 +218,84 @@
             </nav>
 
             <!-- Advertisement Section on Left Sidebar (Item 2) -->
+            @php
+                $sidebarAd = null;
+                try {
+                    $sidebarAd = \App\Models\Advertisement::getActive('app_sidebar');
+                } catch (\Throwable $e) {}
+            @endphp
             <div class="px-3 py-2" x-show="!sidebarCollapsed" x-transition.opacity.duration.200ms>
-                <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 p-3 text-white shadow-xs">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600/30 text-red-400 font-bold text-[9px] uppercase tracking-wider">
-                            <i class="ph ph-sparkle text-amber-300"></i> PRO SUITE
-                        </span>
-                        <a href="https://redmapleagency.com" target="_blank" class="text-slate-400 hover:text-white text-[10px]" title="Visit RedMaple Studio">
-                            <i class="ph ph-arrow-up-right text-xs"></i>
+                @if($sidebarAd)
+                    @php
+                        $adLink = route('ads.click', $sidebarAd->id);
+                        $adTarget = $sidebarAd->open_in_new_tab ? '_blank' : '_self';
+                    @endphp
+                    @if($sidebarAd->type === 'image' && !empty($sidebarAd->image_path))
+                        <div class="relative overflow-hidden rounded-xl border border-slate-700/80 shadow-xs group">
+                            <a href="{{ $adLink }}" target="{{ $adTarget }}" class="block">
+                                <img src="{{ $sidebarAd->image_path }}" alt="{{ $sidebarAd->alt_text ?? $sidebarAd->title }}" 
+                                     class="w-full h-auto max-h-24 object-cover group-hover:scale-105 transition duration-300">
+                            </a>
+                        </div>
+                    @elseif($sidebarAd->type === 'html' && !empty($sidebarAd->html_code))
+                        <div class="overflow-hidden rounded-xl bg-slate-800 border border-slate-700 p-2 text-xs">
+                            {!! $sidebarAd->html_code !!}
+                        </div>
+                    @else
+                        @php $styles = $sidebarAd->getThemeStyles(); @endphp
+                        <div class="relative overflow-hidden rounded-xl {{ $styles['card_bg'] }} p-3 text-white shadow-xs">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded {{ $styles['badge'] }} font-bold text-[9px] uppercase tracking-wider">
+                                    <i class="ph ph-sparkle text-amber-300"></i> {{ $sidebarAd->badge_text ?? 'PRO SUITE' }}
+                                </span>
+                                @if($sidebarAd->destination_url)
+                                    <a href="{{ $adLink }}" target="{{ $adTarget }}" class="text-slate-400 hover:text-white text-[10px]" title="Learn More">
+                                        <i class="ph ph-arrow-up-right text-xs"></i>
+                                    </a>
+                                @endif
+                            </div>
+                            <h5 class="font-bold text-xs text-white leading-tight">
+                                {{ $sidebarAd->headline }}
+                            </h5>
+                            @if($sidebarAd->body_text)
+                                <p class="text-[10px] text-slate-400 mt-1 leading-snug line-clamp-2">
+                                    {{ $sidebarAd->body_text }}
+                                </p>
+                            @endif
+                            <a href="{{ $adLink }}" target="{{ $adTarget }}" class="mt-2.5 w-full block text-center py-1.5 {{ $styles['btn'] }} font-bold text-[11px] rounded-lg transition shadow-2xs">
+                                {{ $sidebarAd->cta_text ?? 'Learn More' }}
+                            </a>
+                        </div>
+                    @endif
+                @else
+                    <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 p-3 text-white shadow-xs">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-600/30 text-red-400 font-bold text-[9px] uppercase tracking-wider">
+                                <i class="ph ph-sparkle text-amber-300"></i> PRO SUITE
+                            </span>
+                            <a href="https://redmapleagency.com" target="_blank" class="text-slate-400 hover:text-white text-[10px]" title="Visit RedMaple Studio">
+                                <i class="ph ph-arrow-up-right text-xs"></i>
+                            </a>
+                        </div>
+                        <h5 class="font-bold text-xs text-white leading-tight">
+                            Grow with RedMaple Studio
+                        </h5>
+                        <p class="text-[10px] text-slate-400 mt-1 leading-snug">
+                            Custom Apps, CRM & Dedicated Developer Pods for agencies.
+                        </p>
+                        <a href="{{ route('membership.index') }}" class="mt-2.5 w-full block text-center py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] rounded-lg transition shadow-2xs">
+                            Upgrade & Save 20%
                         </a>
                     </div>
-                    <h5 class="font-bold text-xs text-white leading-tight">
-                        Grow with RedMaple Studio
-                    </h5>
-                    <p class="text-[10px] text-slate-400 mt-1 leading-snug">
-                        Custom Apps, CRM & Dedicated Developer Pods for agencies.
-                    </p>
-                    <a href="{{ route('membership.index') }}" class="mt-2.5 w-full block text-center py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] rounded-lg transition shadow-2xs">
-                        Upgrade & Save 20%
-                    </a>
-                </div>
+                @endif
             </div>
 
             <!-- Compact Icon Ad for Collapsed State -->
             <div class="px-3 py-2 flex justify-center" x-show="sidebarCollapsed" x-cloak>
-                <a href="{{ route('membership.index') }}" class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white hover:scale-105 transition shadow-sm" title="Upgrade to Pro & Special Offers">
+                <a href="{{ $sidebarAd ? route('ads.click', $sidebarAd->id) : route('membership.index') }}" 
+                   target="{{ ($sidebarAd && $sidebarAd->open_in_new_tab) ? '_blank' : '_self' }}"
+                   class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 flex items-center justify-center text-white hover:scale-105 transition shadow-sm" 
+                   title="{{ $sidebarAd ? $sidebarAd->headline : 'Upgrade to Pro & Special Offers' }}">
                     <i class="ph ph-crown text-lg text-amber-300"></i>
                 </a>
             </div>

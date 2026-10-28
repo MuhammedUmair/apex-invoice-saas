@@ -662,37 +662,7 @@
                 </div>
 
                 <!-- Advertisement Card (Above Need Help?) -->
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 border border-red-500/30 p-5 text-white shadow-md">
-                    <!-- Subtle background decoration glow -->
-                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-red-600/20 rounded-full blur-2xl pointer-events-none"></div>
-                    <div class="relative z-10 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-400/30 text-red-300 font-bold text-[10px] uppercase tracking-wider">
-                                <i class="ph ph-sparkle text-amber-300"></i> SPONSORED PROMO
-                            </span>
-                            <span class="text-[10px] text-slate-400 font-medium">RedMaple Studio</span>
-                        </div>
-
-                        <div>
-                            <h4 class="font-extrabold text-white text-sm leading-snug">
-                                Scale Your Business with Custom Web & Mobile Apps
-                            </h4>
-                            <p class="text-xs text-slate-300 mt-1 leading-relaxed">
-                                Dedicated full-stack developers, custom CRM integrations, and turnkey SaaS development with RedMaple.
-                            </p>
-                        </div>
-
-                        <div class="pt-1 flex items-center gap-2">
-                            <a href="https://redmapleagency.com" target="_blank" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
-                                <span>Get Agency Quote</span>
-                                <i class="ph ph-arrow-up-right font-bold text-xs"></i>
-                            </a>
-                            <a href="{{ route('membership.index') }}" class="inline-flex items-center justify-center py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs rounded-xl border border-slate-700 transition">
-                                <span>Upgrade</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                @include('components.ad-slot', ['placement' => 'invoice_sidebar'])
 
                 <!-- 3. Need Help? Card -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-3">

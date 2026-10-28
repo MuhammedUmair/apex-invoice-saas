@@ -1,19 +1,39 @@
 @extends('layouts.guest')
 
 @section('content')
+@php
+    $loginLogo = \App\Models\CmsContent::getLoginLogo();
+    $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+    $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
+    $loginTitle = \App\Models\CmsContent::getVal('login_title');
+    $loginSubtitle = \App\Models\CmsContent::getVal('login_subtitle', 'Sign in to your commercial invoicing studio');
+@endphp
 <div class="min-h-[85vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10">
     <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
         <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm p-3">
-                <!-- Red Maple Leaf Vector Logo -->
-                <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
-                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                </svg>
-            </div>
-            <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-1">
-                Invoicy <span class="text-sm font-normal text-slate-400">by</span> <span class="text-red-600">RedMaple</span>
-            </h2>
-            <p class="text-xs text-slate-500 mt-1">Sign in to your commercial invoicing studio</p>
+            @if($loginLogo)
+                <div class="h-16 flex items-center justify-center mx-auto mb-3">
+                    <img src="{{ $loginLogo }}" alt="{{ $brandName }}" class="max-h-16 max-w-[220px] object-contain">
+                </div>
+            @else
+                <div class="w-16 h-16 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm p-3">
+                    <!-- Red Maple Leaf Vector Logo -->
+                    <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
+                        <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                    </svg>
+                </div>
+            @endif
+
+            @if($loginTitle)
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight">
+                    {{ $loginTitle }}
+                </h2>
+            @else
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-1">
+                    {{ $brandName }} <span class="text-sm font-normal text-slate-400">by</span> <span class="text-red-600">{{ $brandSub }}</span>
+                </h2>
+            @endif
+            <p class="text-xs text-slate-500 mt-1">{{ $loginSubtitle }}</p>
         </div>
 
         @if($errors->any())

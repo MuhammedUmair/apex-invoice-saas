@@ -1,3 +1,9 @@
+@php
+    $websiteLogo = \App\Models\CmsContent::getWebsiteLogo();
+    $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+    $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
+    $navItems = \App\Models\CmsContent::getNavItems();
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
 <head>
@@ -41,24 +47,28 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <!-- Brand Logo -->
             <a href="/" class="flex items-center gap-3 group">
-                <div class="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center p-2 shadow-xs group-hover:scale-105 transition">
-                    <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
-                        <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                    </svg>
-                </div>
-                <div>
-                    <span class="text-xl font-black text-slate-900 tracking-tight">Invoicy <span class="text-xs font-semibold text-slate-500">by</span> <span class="text-red-600">RedMaple</span></span>
-                    <span class="block text-[10px] uppercase font-bold tracking-widest text-slate-400">Enterprise SaaS Suite</span>
-                </div>
+                @if($websiteLogo)
+                    <div class="h-10 flex items-center">
+                        <img src="{{ $websiteLogo }}" alt="{{ $brandName }}" class="max-h-10 max-w-[200px] object-contain">
+                    </div>
+                @else
+                    <div class="w-10 h-10 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center p-2 shadow-xs group-hover:scale-105 transition">
+                        <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
+                            <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="text-xl font-black text-slate-900 tracking-tight">{{ $brandName }} <span class="text-xs font-semibold text-slate-500">by</span> <span class="text-red-600">{{ $brandSub }}</span></span>
+                        <span class="block text-[10px] uppercase font-bold tracking-widest text-slate-400">Enterprise SaaS Suite</span>
+                    </div>
+                @endif
             </a>
 
-            <!-- Navigation Links -->
+            <!-- Dynamic Navigation Links -->
             <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                <a href="#features" class="hover:text-red-600 transition">Features</a>
-                <a href="#reminders" class="hover:text-red-600 transition">Reminders & Planning</a>
-                <a href="#saas-suite" class="hover:text-red-600 transition">Future SaaS Suite</a>
-                <a href="#pricing" class="hover:text-red-600 transition">Pricing</a>
-                <a href="{{ route('docs.index') }}" class="hover:text-red-600 transition">Docs</a>
+                @foreach($navItems as $nav)
+                    <a href="{{ $nav['url'] }}" target="{{ $nav['target'] ?? '_self' }}" class="hover:text-red-600 transition">{{ $nav['label'] }}</a>
+                @endforeach
             </nav>
 
             <!-- Actions -->
@@ -515,13 +525,15 @@
             </div>
 
             <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-4">
-                <p>&copy; 2026 RedMaple Software Studio. All rights reserved. Invoicy is a proprietary product of RedMaple.</p>
+                <p>{{ \App\Models\CmsContent::getVal('footer_copyright', '© ' . date('Y') . " $brandName Software Studio. All rights reserved. $brandName is a proprietary product of $brandSub.") }}</p>
                 <div class="flex items-center gap-4">
-                    <span>Privacy Policy</span>
+                    <a href="{{ url('/p/privacy-policy') }}" class="hover:text-slate-400">Privacy Policy</a>
                     <span>&bull;</span>
-                    <span>Terms of Service</span>
+                    <a href="{{ url('/p/terms-of-service') }}" class="hover:text-slate-400">Terms of Service</a>
                     <span>&bull;</span>
-                    <a href="https://redmapleagency.com" class="hover:text-slate-400">redmapleagency.com</a>
+                    <a href="{{ url('/p/about-us') }}" class="hover:text-slate-400">About Us</a>
+                    <span>&bull;</span>
+                    <a href="https://redmapleagency.com" target="_blank" class="hover:text-slate-400">redmapleagency.com</a>
                 </div>
             </div>
         </div>
