@@ -136,10 +136,10 @@
                     <tbody class="divide-y divide-slate-100">
                         @foreach($workspaces as $ws)
                             @php
-                                $sub = $ws->subscriptions->first();
+                                $sub = $ws->currentSubscription ?? $ws->subscriptions->sortByDesc('created_at')->first();
                                 $plan = $sub->plan ?? null;
                                 $owner = $ws->users->first();
-                                $status = $sub->status ?? 'none';
+                                $status = $sub ? strtolower($sub->status) : 'none';
                             @endphp
                             <tr class="hover:bg-slate-50/50" x-data="{ openRenew: false, openEditOwner: false }">
                                 <td class="px-6 py-4">
@@ -179,6 +179,7 @@
                                         @elseif($status === 'expired') bg-rose-100 text-rose-800
                                         @elseif($status === 'suspended') bg-amber-100 text-amber-800
                                         @elseif($status === 'inactive') bg-slate-200 text-slate-700
+                                        @elseif($status === 'canceled') bg-rose-100 text-rose-800 border border-rose-200
                                         @else bg-slate-100 text-slate-700 @endif">
                                         {{ $status }}
                                     </span>
@@ -198,7 +199,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                                        <button type="button" @click="openRenew = true" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center gap-1">
+                                        <button type="button" @click="openRenew = true" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center gap-1 shadow-sm">
                                             <i class="ph ph-arrow-clockwise text-sm text-blue-600"></i> Renew / Change
                                         </button>
 
@@ -206,7 +207,7 @@
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline">
                                                 @csrf
                                                 <input type="hidden" name="status" value="active">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition flex items-center gap-1" title="Activate Workspace">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition flex items-center gap-1 shadow-sm" title="Activate Workspace">
                                                     <i class="ph ph-check-circle text-sm"></i> Activate
                                                 </button>
                                             </form>
@@ -216,7 +217,7 @@
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Suspend workspace {{ addslashes($ws->name) }}?')">
                                                 @csrf
                                                 <input type="hidden" name="status" value="suspended">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition flex items-center gap-1" title="Suspend Workspace">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition flex items-center gap-1 shadow-sm" title="Suspend Workspace">
                                                     <i class="ph ph-pause-circle text-sm"></i> Suspend
                                                 </button>
                                             </form>
@@ -226,8 +227,18 @@
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Deactivate workspace {{ addslashes($ws->name) }}?')">
                                                 @csrf
                                                 <input type="hidden" name="status" value="inactive">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition flex items-center gap-1" title="Deactivate Workspace">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition flex items-center gap-1 shadow-sm" title="Deactivate Workspace">
                                                     <i class="ph ph-x-circle text-sm"></i> Deactivate
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if($status !== 'canceled')
+                                            <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to cancel the subscription for {{ addslashes($ws->name) }}?')">
+                                                @csrf
+                                                <input type="hidden" name="status" value="canceled">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition flex items-center gap-1 shadow-sm" title="Cancel Subscription">
+                                                    <i class="ph ph-prohibit text-sm"></i> Cancel
                                                 </button>
                                             </form>
                                         @endif

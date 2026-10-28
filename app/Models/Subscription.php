@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Traits\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Subscription extends Model
 {
-    use HasFactory, HasUuids, BelongsToWorkspace;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'workspace_id',
@@ -29,6 +28,11 @@ class Subscription extends Model
         'current_period_ends_at' => 'datetime',
         'canceled_at' => 'datetime',
     ];
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
+    }
 
     public function plan(): BelongsTo
     {

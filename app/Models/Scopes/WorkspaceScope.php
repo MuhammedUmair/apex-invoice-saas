@@ -14,6 +14,10 @@ class WorkspaceScope implements Scope
      */
     public function apply(Builder $builder, Model $model): void
     {
+        if (request()->is('admin') || request()->is('admin/*')) {
+            return;
+        }
+
         if (Auth::hasUser() && Auth::user()->workspace_id) {
             $builder->where($model->qualifyColumn('workspace_id'), Auth::user()->workspace_id);
         }

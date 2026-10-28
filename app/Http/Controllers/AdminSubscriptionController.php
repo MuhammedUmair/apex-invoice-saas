@@ -16,7 +16,7 @@ class AdminSubscriptionController extends Controller
     {
         $currentTab = $request->input('tab', 'tenants');
 
-        $workspaces = Workspace::with(['users', 'subscriptions.plan'])
+        $workspaces = Workspace::with(['users', 'currentSubscription.plan', 'subscriptions.plan'])
             ->latest()
             ->paginate(15);
 
@@ -145,13 +145,15 @@ class AdminSubscriptionController extends Controller
         $plan = Plan::findOrFail($request->plan_id);
         $months = (int) $request->duration_months;
 
-        $sub = $workspace->subscriptions()->first();
+        $sub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
         $oldPlan = $sub?->plan;
 
         if ($sub) {
             $sub->update([
                 'plan_id' => $plan->id,
                 'status' => 'active',
+                'gateway' => $sub->gateway ?: 'manual_admin',
+                'canceled_at' => null,
                 'current_period_ends_at' => now()->addMonths($months),
             ]);
         } else {
@@ -160,6 +162,7 @@ class AdminSubscriptionController extends Controller
                 'plan_id' => $plan->id,
                 'gateway' => 'manual_admin',
                 'status' => 'active',
+                'canceled_at' => null,
                 'current_period_ends_at' => now()->addMonths($months),
             ]);
         }
@@ -177,10 +180,17 @@ class AdminSubscriptionController extends Controller
      */
     public function toggleWorkspaceStatus(Workspace $workspace)
     {
-        $sub = $workspace->subscriptions()->first();
+        $sub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
         if ($sub) {
             $newStatus = $sub->status === 'active' ? 'suspended' : 'active';
-            $sub->update(['status' => $newStatus]);
+            $updateData = ['status' => $newStatus];
+            if ($newStatus === 'active') {
+                if (!$sub->current_period_ends_at || $sub->current_period_ends_at->isPast()) {
+                    $updateData['current_period_ends_at'] = now()->addMonth();
+                }
+                $updateData['canceled_at'] = null;
+            }
+            $sub->update($updateData);
             return back()->with('success', "Workspace '{$workspace->name}' status updated to {$newStatus}.");
         }
 
@@ -188,26 +198,39 @@ class AdminSubscriptionController extends Controller
     }
 
     /**
-     * Set explicit status on workspace (Active, Inactive, Suspended)
+     * Set explicit status on workspace (Active, Inactive, Suspended, Canceled)
      */
     public function updateWorkspaceStatus(Workspace $workspace, Request $request)
     {
         $request->validate([
-            'status' => 'required|string|in:active,inactive,suspended,trialing,expired',
+            'status' => 'required|string|in:active,inactive,suspended,trialing,expired,canceled',
         ]);
 
         $newStatus = $request->input('status');
-        $sub = $workspace->subscriptions()->first();
+        $sub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
 
         if ($sub) {
-            $sub->update(['status' => $newStatus]);
+            $updateData = ['status' => $newStatus];
+            if ($newStatus === 'active') {
+                if (!$sub->current_period_ends_at || $sub->current_period_ends_at->isPast()) {
+                    $updateData['current_period_ends_at'] = now()->addMonth();
+                }
+                $updateData['canceled_at'] = null;
+            } elseif ($newStatus === 'canceled') {
+                $updateData['canceled_at'] = now();
+            }
+            $sub->update($updateData);
         } else {
-            $trialPlan = Plan::where('code', 'trial')->first() ?? Plan::first();
+            $planCode = ($newStatus === 'trialing') ? 'trial' : 'starter';
+            $defaultPlan = Plan::where('code', $planCode)->first() ?? Plan::first();
             Subscription::create([
                 'workspace_id' => $workspace->id,
-                'plan_id' => $trialPlan->id,
-                'gateway' => 'trial',
+                'plan_id' => $defaultPlan->id,
+                'gateway' => 'manual_admin',
                 'status' => $newStatus,
+                'trial_ends_at' => ($newStatus === 'trialing') ? now()->addDays(14) : null,
+                'current_period_ends_at' => ($newStatus === 'active') ? now()->addMonth() : null,
+                'canceled_at' => ($newStatus === 'canceled') ? now() : null,
             ]);
         }
 
