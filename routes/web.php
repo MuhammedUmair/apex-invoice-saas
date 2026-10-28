@@ -125,6 +125,7 @@ Route::middleware('auth')->group(function () {
     // Workspace Settings & Branding Customizer
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->middleware('throttle:6,1')->name('settings.smtp.test');
 
@@ -150,6 +151,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/subscriptions/check-expirations', [AdminSubscriptionController::class, 'runExpirationCheck'])->name('admin.subscriptions.check_expirations');
     Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
     Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
+    Route::post('/admin/subscriptions/{workspace}/status', [AdminSubscriptionController::class, 'updateWorkspaceStatus'])->name('admin.workspaces.status');
+    Route::post('/admin/subscriptions/{workspace}/owner', [AdminSubscriptionController::class, 'updateOwnerContact'])->name('admin.workspaces.owner');
 
     // Promotional Coupons & Offers Designer (Items 4 & 5)
     Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');

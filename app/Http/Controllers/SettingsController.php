@@ -152,6 +152,26 @@ class SettingsController extends Controller
         return redirect()->route('settings.index')->with('success', 'Workspace settings and logo updated successfully.');
     }
 
+    /**
+     * Update Owner / User Personal Profile (Name & Contact Email)
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+        ]);
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ]);
+
+        return redirect()->route('settings.index')->with('profile_success', 'Your owner name and contact email have been updated successfully!');
+    }
+
     public function updatePassword(Request $request)
     {
         $request->validate([

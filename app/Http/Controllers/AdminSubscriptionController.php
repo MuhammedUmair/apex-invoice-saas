@@ -188,6 +188,56 @@ class AdminSubscriptionController extends Controller
     }
 
     /**
+     * Set explicit status on workspace (Active, Inactive, Suspended)
+     */
+    public function updateWorkspaceStatus(Workspace $workspace, Request $request)
+    {
+        $request->validate([
+            'status' => 'required|string|in:active,inactive,suspended,trialing,expired',
+        ]);
+
+        $newStatus = $request->input('status');
+        $sub = $workspace->subscriptions()->first();
+
+        if ($sub) {
+            $sub->update(['status' => $newStatus]);
+        } else {
+            $trialPlan = Plan::where('code', 'trial')->first() ?? Plan::first();
+            Subscription::create([
+                'workspace_id' => $workspace->id,
+                'plan_id' => $trialPlan->id,
+                'gateway' => 'trial',
+                'status' => $newStatus,
+            ]);
+        }
+
+        return back()->with('success', "Workspace '{$workspace->name}' status updated to " . ucfirst($newStatus) . ".");
+    }
+
+    /**
+     * Update Workspace Owner Contact Information (Name & Email)
+     */
+    public function updateOwnerContact(Workspace $workspace, Request $request)
+    {
+        $owner = $workspace->users()->first();
+        if (!$owner) {
+            return back()->with('error', 'No owner account found for this workspace.');
+        }
+
+        $validated = $request->validate([
+            'owner_name' => 'required|string|max:255',
+            'owner_email' => 'required|email|max:255|unique:users,email,' . $owner->id,
+        ]);
+
+        $owner->update([
+            'name' => $validated['owner_name'],
+            'email' => $validated['owner_email'],
+        ]);
+
+        return back()->with('success', "Owner contact for '{$workspace->name}' updated to {$owner->name} ({$owner->email})!");
+    }
+
+    /**
      * Mark single alert as read
      */
     public function markAlertRead(SubscriptionAlert $alert)

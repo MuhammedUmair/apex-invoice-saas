@@ -312,15 +312,18 @@
             <!-- Bottom User Profile & Sign Out -->
             <div class="p-4 border-t border-slate-800">
                 <div class="flex items-center justify-between" :class="sidebarCollapsed ? 'justify-center flex-col gap-2' : ''">
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0">
+                    <a href="{{ route('settings.index') }}#profile" class="flex items-center gap-2 overflow-hidden group hover:opacity-90 transition" title="Click to edit owner profile & contact name">
+                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 group-hover:scale-105 transition">
                             {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
                         </div>
                         <div class="text-xs truncate" x-show="!sidebarCollapsed">
-                            <p class="font-medium text-white truncate max-w-[100px]">{{ auth()->user()->name }}</p>
-                            <p class="text-slate-400 capitalize">{{ auth()->user()->role }}</p>
+                            <p class="font-medium text-white truncate max-w-[100px] group-hover:text-red-300 transition">{{ auth()->user()->name }}</p>
+                            <p class="text-slate-400 capitalize text-[10px] flex items-center gap-1">
+                                <span>{{ auth()->user()->role }}</span>
+                                <i class="ph ph-pencil-simple text-[10px] text-slate-500 group-hover:text-slate-300"></i>
+                            </p>
                         </div>
-                    </div>
+                    </a>
                     <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
                        class="text-slate-400 hover:text-rose-400 p-1.5 transition cursor-pointer" title="{{ __('Sign Out') }}">
                         <i class="ph ph-sign-out text-lg"></i>

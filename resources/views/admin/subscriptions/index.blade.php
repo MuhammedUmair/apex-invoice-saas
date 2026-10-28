@@ -141,14 +141,23 @@
                                 $owner = $ws->users->first();
                                 $status = $sub->status ?? 'none';
                             @endphp
-                            <tr class="hover:bg-slate-50/50" x-data="{ openRenew: false }">
+                            <tr class="hover:bg-slate-50/50" x-data="{ openRenew: false, openEditOwner: false }">
                                 <td class="px-6 py-4">
                                     <span class="font-bold text-slate-900">{{ $ws->name }}</span>
                                     <span class="block text-xs font-mono text-slate-400">/{{ $ws->slug }}</span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="font-medium text-slate-800">{{ $owner->name ?? 'N/A' }}</span>
-                                    <span class="block text-xs text-slate-400">{{ $owner->email ?? 'N/A' }}</span>
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div>
+                                            <span class="font-medium text-slate-800">{{ $owner->name ?? 'N/A' }}</span>
+                                            <span class="block text-xs text-slate-400">{{ $owner->email ?? 'N/A' }}</span>
+                                        </div>
+                                        @if($owner)
+                                            <button type="button" @click="openEditOwner = true" class="text-slate-400 hover:text-blue-600 transition p-1 rounded hover:bg-slate-100" title="Edit Owner Contact">
+                                                <i class="ph ph-pencil-simple text-sm"></i>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     @if($plan)
@@ -168,7 +177,8 @@
                                         @if($status === 'active') bg-emerald-100 text-emerald-800
                                         @elseif($status === 'trialing') bg-blue-100 text-blue-800
                                         @elseif($status === 'expired') bg-rose-100 text-rose-800
-                                        @elseif($status === 'suspended') bg-rose-100 text-rose-800
+                                        @elseif($status === 'suspended') bg-amber-100 text-amber-800
+                                        @elseif($status === 'inactive') bg-slate-200 text-slate-700
                                         @else bg-slate-100 text-slate-700 @endif">
                                         {{ $status }}
                                     </span>
@@ -186,30 +196,65 @@
                                         N/A
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <button @click="openRenew = true" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition">
-                                        <i class="ph ph-arrow-clockwise"></i> Renew / Change
-                                    </button>
-                                    <form action="{{ route('admin.workspaces.toggle', $ws->id) }}" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition {{ ($sub && $sub->status === 'active') ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' }}">
-                                            {{ ($sub && $sub->status === 'active') ? 'Suspend' : 'Activate' }}
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-1.5 flex-wrap">
+                                        <button type="button" @click="openRenew = true" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center gap-1">
+                                            <i class="ph ph-arrow-clockwise text-sm text-blue-600"></i> Renew / Change
                                         </button>
-                                    </form>
+
+                                        @if($status !== 'active')
+                                            <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <input type="hidden" name="status" value="active">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition flex items-center gap-1" title="Activate Workspace">
+                                                    <i class="ph ph-check-circle text-sm"></i> Activate
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if($status !== 'suspended')
+                                            <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Suspend workspace {{ addslashes($ws->name) }}?')">
+                                                @csrf
+                                                <input type="hidden" name="status" value="suspended">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition flex items-center gap-1" title="Suspend Workspace">
+                                                    <i class="ph ph-pause-circle text-sm"></i> Suspend
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if($status !== 'inactive')
+                                            <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Deactivate workspace {{ addslashes($ws->name) }}?')">
+                                                @csrf
+                                                <input type="hidden" name="status" value="inactive">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition flex items-center gap-1" title="Deactivate Workspace">
+                                                    <i class="ph ph-x-circle text-sm"></i> Deactivate
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
 
                                     <!-- Renew Modal -->
-                                    <div x-show="openRenew" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
+                                    <div x-show="openRenew" 
+                                         x-cloak 
+                                         @click.self="openRenew = false" 
+                                         @keydown.escape.window="openRenew = false" 
+                                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
                                         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
                                             <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                                                <h3 class="font-bold text-slate-900 text-base">Renew / Upgrade {{ $ws->name }}</h3>
-                                                <button @click="openRenew = false" class="text-slate-400 hover:text-slate-600">&times;</button>
+                                                <div>
+                                                    <h3 class="font-bold text-slate-900 text-base">Renew / Upgrade {{ $ws->name }}</h3>
+                                                    <p class="text-xs text-slate-500">Assign a new plan tier or extend expiration date</p>
+                                                </div>
+                                                <button type="button" @click="openRenew = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="Close">
+                                                    <i class="ph ph-x text-lg"></i>
+                                                </button>
                                             </div>
 
                                             <form method="POST" action="{{ route('admin.workspaces.renew', $ws->id) }}" class="space-y-4">
                                                 @csrf
                                                 <div>
                                                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select Subscription Plan</label>
-                                                    <select name="plan_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+                                                    <select name="plan_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white font-semibold">
                                                         @foreach($plans as $p)
                                                             <option value="{{ $p->id }}" {{ ($plan && $plan->id === $p->id) ? 'selected' : '' }}>
                                                                 {{ $p->name }} (${{ number_format($p->price_cents / 100, 2) }}/mo)
@@ -220,7 +265,7 @@
 
                                                 <div>
                                                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Extension Duration (Months)</label>
-                                                    <select name="duration_months" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+                                                    <select name="duration_months" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white font-semibold">
                                                         <option value="1">1 Month Extension</option>
                                                         <option value="3">3 Months Extension</option>
                                                         <option value="6">6 Months Extension</option>
@@ -228,13 +273,62 @@
                                                     </select>
                                                 </div>
 
-                                                <div class="flex justify-end gap-2 pt-3 border-t">
-                                                    <button type="button" @click="openRenew = false" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                                                    <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow">Confirm Renewal</button>
+                                                <div class="flex items-center justify-end gap-2 pt-3 border-t">
+                                                    <button type="button" @click="openRenew = false" class="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition flex items-center gap-1">
+                                                        <i class="ph ph-x text-sm"></i> Cancel
+                                                    </button>
+                                                    <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                                                        <i class="ph ph-check text-sm"></i> Confirm Renewal
+                                                    </button>
                                                 </div>
                                             </form>
                                         </div>
                                     </div>
+
+                                    <!-- Edit Owner Contact Modal -->
+                                    @if($owner)
+                                    <div x-show="openEditOwner" 
+                                         x-cloak 
+                                         @click.self="openEditOwner = false" 
+                                         @keydown.escape.window="openEditOwner = false" 
+                                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
+                                        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+                                            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                                                <div>
+                                                    <h3 class="font-bold text-slate-900 text-base">Edit Owner Contact</h3>
+                                                    <p class="text-xs text-slate-500">{{ $ws->name }} account contact details</p>
+                                                </div>
+                                                <button type="button" @click="openEditOwner = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="Close">
+                                                    <i class="ph ph-x text-lg"></i>
+                                                </button>
+                                            </div>
+
+                                            <form method="POST" action="{{ route('admin.workspaces.owner', $ws->id) }}" class="space-y-4">
+                                                @csrf
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Owner Contact Full Name *</label>
+                                                    <input type="text" name="owner_name" value="{{ $owner->name }}" required
+                                                           class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Owner Contact Email Address *</label>
+                                                    <input type="email" name="owner_email" value="{{ $owner->email }}" required
+                                                           class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                                                </div>
+
+                                                <div class="flex items-center justify-end gap-2 pt-3 border-t">
+                                                    <button type="button" @click="openEditOwner = false" class="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition flex items-center gap-1">
+                                                        <i class="ph ph-x text-sm"></i> Cancel
+                                                    </button>
+                                                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                                                        <i class="ph ph-floppy-disk text-sm"></i> Save Owner Contact
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

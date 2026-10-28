@@ -40,6 +40,51 @@
             {{ session('smtp_error') }}
         </div>
     @endif
+    @if (session('profile_success'))
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-user-check text-base text-emerald-600"></i>
+            {{ session('profile_success') }}
+        </div>
+    @endif
+
+    <!-- Card 0: Owner Contact & Personal Profile -->
+    <div id="profile" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                <i class="ph ph-user-circle"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Owner Profile & Account Contact</h3>
+                <p class="text-xs text-slate-500">Update your personal contact name and email displayed in the bottom sidebar and account communications</p>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('settings.profile') }}" class="space-y-4">
+            @csrf
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Owner Full Name *</label>
+                    <input type="text" name="name" value="{{ old('name', auth()->user()->name) }}" required
+                           placeholder="e.g. Alex Rivera"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 font-semibold outline-none bg-white">
+                    @error('name') <span class="text-rose-600 text-xs">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Owner Account Email (Login & Contact) *</label>
+                    <input type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required
+                           placeholder="owner@domain.com"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 font-semibold outline-none bg-white">
+                    @error('email') <span class="text-rose-600 text-xs">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+                    <i class="ph ph-floppy-disk text-base"></i> Update Owner Profile
+                </button>
+            </div>
+        </form>
+    </div>
 
     <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data" class="space-y-8">
         @csrf
