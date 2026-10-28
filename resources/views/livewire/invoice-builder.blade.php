@@ -158,11 +158,11 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">{{ __('Issue Date') }}</label>
-                                <input type="date" wire:model.live="issueDate" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                                <input type="date" wire:model.live="issueDate" value="{{ $issueDate }}" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
                             </div>
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">{{ __('Payment Due Date') }}</label>
-                                <input type="date" wire:model.live="dueDate" min="{{ $issueDate }}" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                                <input type="date" wire:model.live="dueDate" min="{{ $issueDate }}" value="{{ $dueDate }}" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
                             </div>
                         </div>
 
@@ -171,7 +171,7 @@
                                 <label class="block text-[11px] font-semibold text-slate-700">{{ __('Applied Tax Rate (%)') }}</label>
                                 <span class="text-xs font-bold text-red-600">{{ $taxName }}</span>
                             </div>
-                            <input type="number" step="0.01" wire:model.live.debounce.250ms="taxRate" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                            <input type="number" step="0.01" wire:model.live.debounce.250ms="taxRate" value="{{ $taxRate }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
                         </div>
 
                         <!-- Future Scheduled Banner -->
@@ -297,6 +297,7 @@
                                             <input type="number" step="1" min="1" 
                                                    wire:key="qty-input-{{ $idx }}"
                                                    wire:model.live.debounce.250ms="items.{{ $idx }}.quantity"
+                                                   value="{{ $item['quantity'] ?? 1 }}"
                                                    class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center font-semibold text-slate-800 focus:ring-1 focus:ring-red-500">
                                             @error('items.' . $idx . '.quantity')
                                                 <span class="text-rose-600 text-[10px] block font-semibold">{{ $message }}</span>
@@ -324,6 +325,7 @@
                                             <input type="number" step="0.01" 
                                                    wire:key="rate-input-{{ $idx }}"
                                                    wire:model.live.debounce.250ms="items.{{ $idx }}.rate"
+                                                   value="{{ $item['rate'] ?? '0.00' }}"
                                                    class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-right font-semibold text-slate-800 focus:ring-1 focus:ring-red-500">
                                             @error('items.' . $idx . '.rate')
                                                 <span class="text-rose-600 text-[10px] block font-semibold">{{ $message }}</span>

@@ -45,8 +45,6 @@
             }
         }
     </script>
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <!-- Phosphor Icons CDN -->
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css"/>
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"/>
@@ -340,50 +338,23 @@
         (function() {
             let isInternalNavigation = false;
 
-            // Track any user interaction inside the document (buttons, links, inputs, selects)
-            document.addEventListener('click', function(e) {
-                const link = e.target.closest('a');
-                if (link && link.href) {
-                    try {
-                        const url = new URL(link.href, window.location.origin);
-                        if (url.origin !== window.location.origin) {
-                            return; // External link
-                        }
-                    } catch(err) {}
-                }
-                isInternalNavigation = true;
-                setTimeout(() => { isInternalNavigation = false; }, 3000);
-            }, true);
+            // Mark internal navigation on any user interaction inside the document
+            document.addEventListener('pointerdown', function() { isInternalNavigation = true; }, true);
+            document.addEventListener('click', function() { isInternalNavigation = true; }, true);
+            document.addEventListener('submit', function() { isInternalNavigation = true; }, true);
+            document.addEventListener('keydown', function() { isInternalNavigation = true; }, true);
+            window.addEventListener('popstate', function() { isInternalNavigation = true; });
+            document.addEventListener('livewire:navigating', function() { isInternalNavigation = true; });
 
-            // Track form submissions
-            document.addEventListener('submit', function() {
-                isInternalNavigation = true;
-                setTimeout(() => { isInternalNavigation = false; }, 3000);
-            }, true);
-
-            // Track reload / refresh shortcuts (F5, Ctrl+R, Cmd+R)
-            window.addEventListener('keydown', function(e) {
-                if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
-                    isInternalNavigation = true;
-                    setTimeout(() => { isInternalNavigation = false; }, 3000);
-                }
+            // Reset flag when page finishes rendering in the current tab
+            window.addEventListener('pageshow', function() {
+                isInternalNavigation = false;
             });
 
-            // Track back / forward browser navigation
-            window.addEventListener('popstate', function() {
-                isInternalNavigation = true;
-                setTimeout(() => { isInternalNavigation = false; }, 3000);
-            });
-
-            // Livewire 3 navigation event
-            document.addEventListener('livewire:navigating', function() {
-                isInternalNavigation = true;
-            });
-
-            // Handle tab or browser close via pagehide event
-            window.addEventListener('pagehide', function(e) {
-                const navEntries = performance.getEntriesByType("navigation");
-                if (navEntries.length > 0 && navEntries[0].type === "reload") {
+            // Dispatches logout beacon ONLY when the tab/window is being closed (click was outside the page)
+            window.addEventListener('beforeunload', function(e) {
+                const nav = performance.getEntriesByType("navigation")[0];
+                if (nav && nav.type === "reload") {
                     isInternalNavigation = true;
                 }
 
