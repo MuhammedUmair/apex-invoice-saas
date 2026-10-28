@@ -163,11 +163,10 @@
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Plan & Billing') }}</span>
                 </a>
 
+                @if(auth()->user()->isSuperAdmin())
                 <div class="pt-3 pb-1 border-t border-slate-800/80 my-2">
-                    <span x-show="!sidebarCollapsed" class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">System & Admin</span>
+                    <span x-show="!sidebarCollapsed" class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Platform Admin</span>
                 </div>
-
-                @if(auth()->user()->isOwner() || auth()->user()->isAdmin())
                 <a href="{{ route('builder.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
                    class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('builder.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"

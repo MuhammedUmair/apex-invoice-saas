@@ -135,45 +135,48 @@ Route::middleware('auth')->group(function () {
     Route::post('/recurring-invoices/{recurring}/approve', [RecurringInvoiceController::class, 'approveAndSend'])->name('recurring.approve');
     Route::post('/recurring-invoices/{recurring}/toggle', [RecurringInvoiceController::class, 'toggleStatus'])->name('recurring.toggle');
 
-    // Website & Docs CMS with Auto-Translate (Items 12 & 13)
-    Route::get('/admin/cms', [CmsController::class, 'index'])->name('cms.index');
-    Route::post('/admin/cms', [CmsController::class, 'update'])->name('cms.update');
-    Route::post('/admin/cms/docs', [CmsController::class, 'storeDocArticle'])->name('cms.docs.store');
-    Route::post('/admin/cms/docs/{article}', [CmsController::class, 'updateDocArticle'])->name('cms.docs.update');
-    Route::post('/admin/cms/docs/{article}/translate', [CmsController::class, 'autoTranslateDoc'])->name('cms.docs.translate');
+    // Super Admin / Platform Management Routes (Restricted strictly to Platform Super Admins)
+    Route::middleware([\App\Http\Middleware\EnsureSuperAdmin::class])->group(function () {
+        // Website & Docs CMS with Auto-Translate (Items 12 & 13)
+        Route::get('/admin/cms', [CmsController::class, 'index'])->name('cms.index');
+        Route::post('/admin/cms', [CmsController::class, 'update'])->name('cms.update');
+        Route::post('/admin/cms/docs', [CmsController::class, 'storeDocArticle'])->name('cms.docs.store');
+        Route::post('/admin/cms/docs/{article}', [CmsController::class, 'updateDocArticle'])->name('cms.docs.update');
+        Route::post('/admin/cms/docs/{article}/translate', [CmsController::class, 'autoTranslateDoc'])->name('cms.docs.translate');
 
-    // Super Admin Subscriptions & Plans Manager (Item 14)
-    Route::get('/admin/subscriptions', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions.index');
-    Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
-    Route::post('/admin/subscriptions/settings', [AdminSubscriptionController::class, 'updateAlertSettings'])->name('admin.subscriptions.settings');
-    Route::post('/admin/subscriptions/alerts/read-all', [AdminSubscriptionController::class, 'markAllAlertsRead'])->name('admin.subscriptions.alerts.read_all');
-    Route::post('/admin/subscriptions/alerts/{alert}/read', [AdminSubscriptionController::class, 'markAlertRead'])->name('admin.subscriptions.alerts.read');
-    Route::post('/admin/subscriptions/check-expirations', [AdminSubscriptionController::class, 'runExpirationCheck'])->name('admin.subscriptions.check_expirations');
-    Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
-    Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
-    Route::post('/admin/subscriptions/{workspace}/status', [AdminSubscriptionController::class, 'updateWorkspaceStatus'])->name('admin.workspaces.status');
-    Route::post('/admin/subscriptions/{workspace}/owner', [AdminSubscriptionController::class, 'updateOwnerContact'])->name('admin.workspaces.owner');
+        // Super Admin Subscriptions & Plans Manager (Item 14)
+        Route::get('/admin/subscriptions', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions.index');
+        Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
+        Route::post('/admin/subscriptions/settings', [AdminSubscriptionController::class, 'updateAlertSettings'])->name('admin.subscriptions.settings');
+        Route::post('/admin/subscriptions/alerts/read-all', [AdminSubscriptionController::class, 'markAllAlertsRead'])->name('admin.subscriptions.alerts.read_all');
+        Route::post('/admin/subscriptions/alerts/{alert}/read', [AdminSubscriptionController::class, 'markAlertRead'])->name('admin.subscriptions.alerts.read');
+        Route::post('/admin/subscriptions/check-expirations', [AdminSubscriptionController::class, 'runExpirationCheck'])->name('admin.subscriptions.check_expirations');
+        Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
+        Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
+        Route::post('/admin/subscriptions/{workspace}/status', [AdminSubscriptionController::class, 'updateWorkspaceStatus'])->name('admin.workspaces.status');
+        Route::post('/admin/subscriptions/{workspace}/owner', [AdminSubscriptionController::class, 'updateOwnerContact'])->name('admin.workspaces.owner');
 
-    // Promotional Coupons & Offers Designer (Items 4 & 5)
-    Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');
-    Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
-    Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
-    Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
+        // Promotional Coupons & Offers Designer (Items 4 & 5)
+        Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');
+        Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
+        Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
+        Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
 
-    // Website Builder (Logos, Navigation & Landing Pages)
-    Route::get('/admin/website-builder', [WebsiteBuilderController::class, 'index'])->name('builder.index');
-    Route::post('/admin/website-builder/branding', [WebsiteBuilderController::class, 'updateBranding'])->name('builder.branding');
-    Route::post('/admin/website-builder/navigation', [WebsiteBuilderController::class, 'updateNavigation'])->name('builder.navigation');
-    Route::post('/admin/website-builder/sections', [WebsiteBuilderController::class, 'updateSections'])->name('builder.sections');
-    Route::post('/admin/website-builder/pages', [WebsiteBuilderController::class, 'storePage'])->name('builder.pages.store');
-    Route::post('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'updatePage'])->name('builder.pages.update');
-    Route::delete('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'destroyPage'])->name('builder.pages.destroy');
+        // Website Builder (Logos, Navigation & Landing Pages)
+        Route::get('/admin/website-builder', [WebsiteBuilderController::class, 'index'])->name('builder.index');
+        Route::post('/admin/website-builder/branding', [WebsiteBuilderController::class, 'updateBranding'])->name('builder.branding');
+        Route::post('/admin/website-builder/navigation', [WebsiteBuilderController::class, 'updateNavigation'])->name('builder.navigation');
+        Route::post('/admin/website-builder/sections', [WebsiteBuilderController::class, 'updateSections'])->name('builder.sections');
+        Route::post('/admin/website-builder/pages', [WebsiteBuilderController::class, 'storePage'])->name('builder.pages.store');
+        Route::post('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'updatePage'])->name('builder.pages.update');
+        Route::delete('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'destroyPage'])->name('builder.pages.destroy');
 
-    // Advertisement Management (Image, HTML, Text Ads)
-    Route::get('/admin/advertisements', [AdvertisementController::class, 'index'])->name('admin.ads.index');
-    Route::post('/admin/advertisements', [AdvertisementController::class, 'store'])->name('admin.ads.store');
-    Route::post('/admin/advertisements/{advertisement}/toggle', [AdvertisementController::class, 'toggle'])->name('admin.ads.toggle');
-    Route::delete('/admin/advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('admin.ads.destroy');
+        // Advertisement Management (Image, HTML, Text Ads)
+        Route::get('/admin/advertisements', [AdvertisementController::class, 'index'])->name('admin.ads.index');
+        Route::post('/admin/advertisements', [AdvertisementController::class, 'store'])->name('admin.ads.store');
+        Route::post('/admin/advertisements/{advertisement}/toggle', [AdvertisementController::class, 'toggle'])->name('admin.ads.toggle');
+        Route::delete('/admin/advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('admin.ads.destroy');
+    });
 });
 
 // Public Custom Pages & Ad Tracking

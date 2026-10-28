@@ -17,6 +17,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_super_admin',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
@@ -33,6 +34,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'two_factor_confirmed_at' => 'datetime',
+        'is_super_admin' => 'boolean',
     ];
 
     public function workspace(): BelongsTo
@@ -53,5 +55,19 @@ class User extends Authenticatable
     public function isStaff(): bool
     {
         return $this->role === 'staff';
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        if ($this->is_super_admin) {
+            return true;
+        }
+
+        $superAdminEmails = [
+            'admin@redmaplestudio.com',
+            'admin@redmapleagency.com',
+        ];
+
+        return in_array(strtolower($this->email), array_map('strtolower', $superAdminEmails));
     }
 }
