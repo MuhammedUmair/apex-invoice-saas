@@ -12,8 +12,15 @@ class Coupon extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'workspace_id',
         'code',
+        'name',
+        'description',
         'discount_type',
+        'offer_type',
+        'service_id',
+        'service_name',
+        'target',
         'discount_value',
         'currency_restriction',
         'min_purchase_cents',

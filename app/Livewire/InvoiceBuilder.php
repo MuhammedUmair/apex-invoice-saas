@@ -73,6 +73,12 @@ class InvoiceBuilder extends Component
     public float $taxAmount = 0.00;
     public float $totalAmount = 0.00;
 
+    // Promotional Coupon Properties (Items 4 & 5)
+    public string $couponCode = '';
+    public ?string $appliedCouponCode = null;
+    public ?string $couponMessage = null;
+    public bool $couponApplied = false;
+
     protected TaxCalculationService $taxService;
     protected InvoiceNumberService $numberService;
     protected PdfSecurityService $pdfService;
@@ -103,6 +109,45 @@ class InvoiceBuilder extends Component
         'AU' => 'AUD',
         'IN' => 'INR',
         'TR' => 'TRY',
+    ];
+
+    public array $presets = [
+        'consulting' => [
+            'name' => 'Consulting & Professional Advisory',
+            'rate' => 100.00,
+            'unit' => 'Hour',
+            'category' => 'Consulting',
+        ],
+        'web_dev' => [
+            'name' => 'Web Design & Software Development',
+            'rate' => 750.00,
+            'unit' => 'Project',
+            'category' => 'Development',
+        ],
+        'retainer' => [
+            'name' => 'Monthly Retainer & Technical Support',
+            'rate' => 500.00,
+            'unit' => 'Month',
+            'category' => 'Retainer',
+        ],
+        'labor' => [
+            'name' => 'Custom Technical Labor / Implementation',
+            'rate' => 75.00,
+            'unit' => 'Hour',
+            'category' => 'Labor',
+        ],
+        'marketing' => [
+            'name' => 'SEO Optimization & Digital Marketing',
+            'rate' => 250.00,
+            'unit' => 'Package',
+            'category' => 'Marketing',
+        ],
+        'product' => [
+            'name' => 'General Merchandise / Goods Supply',
+            'rate' => 45.00,
+            'unit' => 'Item',
+            'category' => 'Product',
+        ],
     ];
 
     public function boot(
@@ -207,15 +252,9 @@ class InvoiceBuilder extends Component
     public function updated($propertyName = null)
     {
         if ($propertyName === 'currency') {
-            if (isset($this->currencyToTaxMap[$this->currency])) {
-                $this->countryTaxCode = $this->currencyToTaxMap[$this->currency];
-                $this->applyCountryTaxPreset($this->countryTaxCode);
-            }
+            $this->onCurrencyChange($this->currency);
         } elseif ($propertyName === 'countryTaxCode') {
-            $this->applyCountryTaxPreset($this->countryTaxCode);
-            if (isset($this->taxToCurrencyMap[$this->countryTaxCode])) {
-                $this->currency = $this->taxToCurrencyMap[$this->countryTaxCode];
-            }
+            $this->onCountryTaxChange($this->countryTaxCode);
         } elseif ($propertyName === 'clientId') {
             if ($this->clientId === 'walkin') {
                 $this->isWalkin = true;
@@ -225,18 +264,10 @@ class InvoiceBuilder extends Component
                     $client = Client::find($this->clientId);
                     if ($client) {
                         if ($client->preferred_currency) {
-                            $this->currency = $client->preferred_currency;
-                            if (isset($this->currencyToTaxMap[$this->currency])) {
-                                $this->countryTaxCode = $this->currencyToTaxMap[$this->currency];
-                                $this->applyCountryTaxPreset($this->countryTaxCode);
-                            }
+                            $this->onCurrencyChange($client->preferred_currency);
                         }
                         if ($client->country_code) {
-                            $this->countryTaxCode = $client->country_code;
-                            $this->applyCountryTaxPreset($client->country_code);
-                            if (isset($this->taxToCurrencyMap[$this->countryTaxCode])) {
-                                $this->currency = $this->taxToCurrencyMap[$this->countryTaxCode];
-                            }
+                            $this->onCountryTaxChange($client->country_code);
                         }
                     }
                 }
@@ -247,6 +278,36 @@ class InvoiceBuilder extends Component
             $this->updatedDueDate($this->dueDate);
         }
 
+        $this->recalculate();
+    }
+
+    public function updatedCurrency($val)
+    {
+        $this->onCurrencyChange($val);
+    }
+
+    public function onCurrencyChange($val)
+    {
+        $this->currency = $val;
+        if (isset($this->currencyToTaxMap[$val])) {
+            $this->countryTaxCode = $this->currencyToTaxMap[$val];
+            $this->applyCountryTaxPreset($this->countryTaxCode);
+        }
+        $this->recalculate();
+    }
+
+    public function updatedCountryTaxCode($val)
+    {
+        $this->onCountryTaxChange($val);
+    }
+
+    public function onCountryTaxChange($val)
+    {
+        $this->countryTaxCode = $val;
+        $this->applyCountryTaxPreset($val);
+        if (isset($this->taxToCurrencyMap[$val])) {
+            $this->currency = $this->taxToCurrencyMap[$val];
+        }
         $this->recalculate();
     }
 
@@ -297,6 +358,11 @@ class InvoiceBuilder extends Component
         $preset = $this->taxService->getPresetForCountry($countryCode);
         $this->taxName = $preset['name'];
         $this->taxRate = (float) $preset['rate'];
+
+        // Synchronize taxRate across all line items
+        foreach ($this->items as $i => $item) {
+            $this->items[$i]['tax_rate'] = $this->taxRate;
+        }
     }
 
     public function addItem()
@@ -306,7 +372,7 @@ class InvoiceBuilder extends Component
             'description' => '',
             'category' => 'General',
             'quantity' => 1,
-            'unit' => 'unit',
+            'unit' => 'Project',
             'rate' => 0.00,
             'tax_rate' => $this->taxRate,
             'amount' => 0.00,
@@ -319,55 +385,49 @@ class InvoiceBuilder extends Component
      */
     public function addPresetItem(string $type)
     {
-        $presets = [
-            'consulting' => ['name' => 'Consulting & Professional Advisory', 'rate' => 100.00, 'unit' => 'hr', 'category' => 'Consulting'],
-            'web_dev' => ['name' => 'Web Design & Software Development', 'rate' => 750.00, 'unit' => 'project', 'category' => 'Development'],
-            'retainer' => ['name' => 'Monthly Retainer & Technical Support', 'rate' => 500.00, 'unit' => 'month', 'category' => 'Retainer'],
-            'labor' => ['name' => 'Custom Technical Labor / Implementation', 'rate' => 75.00, 'unit' => 'hr', 'category' => 'Labor'],
-            'marketing' => ['name' => 'SEO Optimization & Digital Marketing', 'rate' => 250.00, 'unit' => 'package', 'category' => 'Marketing'],
-            'product' => ['name' => 'General Merchandise / Goods Supply', 'rate' => 45.00, 'unit' => 'item', 'category' => 'Product'],
-        ];
-
-        if (isset($presets[$type])) {
-            $p = $presets[$type];
-
-            // Check if this item is already present in the list
-            $existingIndex = null;
-            foreach ($this->items as $i => $item) {
-                if (trim($item['description'] ?? '') === $p['name']) {
-                    $existingIndex = $i;
-                    break;
-                }
-            }
-
-            if ($existingIndex !== null) {
-                // Click multiple times -> increment quantity!
-                $currentQty = max(1, (int) ($this->items[$existingIndex]['quantity'] ?? 1));
-                $newQty = $currentQty + 1;
-                $this->items[$existingIndex]['quantity'] = $newQty;
-                $this->items[$existingIndex]['amount'] = round($newQty * (float) $this->items[$existingIndex]['rate'], 2);
-            } else {
-                $newItem = [
-                    'service_id' => '',
-                    'description' => $p['name'],
-                    'category' => $p['category'],
-                    'quantity' => 1,
-                    'unit' => $p['unit'],
-                    'rate' => (float) $p['rate'],
-                    'tax_rate' => $this->taxRate,
-                    'amount' => (float) $p['rate'],
-                ];
-
-                // Overwrite first empty service row if empty or unselected
-                if (count($this->items) === 1 && empty(trim($this->items[0]['description'] ?? '')) && empty($this->items[0]['rate'])) {
-                    $this->items[0] = $newItem;
-                } else {
-                    $this->items[] = $newItem;
-                }
-            }
-
-            $this->recalculate();
+        if (!isset($this->presets[$type])) {
+            return;
         }
+
+        $p = $this->presets[$type];
+        $presetKey = 'preset_' . $type;
+
+        // Check if an item with this preset is already in the list
+        $existingIndex = null;
+        foreach ($this->items as $i => $item) {
+            if (($item['service_id'] ?? '') === $presetKey) {
+                $existingIndex = $i;
+                break;
+            }
+        }
+
+        if ($existingIndex !== null) {
+            // Click multiple times -> increment quantity!
+            $currentQty = max(1, (int) ($this->items[$existingIndex]['quantity'] ?? 1));
+            $newQty = $currentQty + 1;
+            $this->items[$existingIndex]['quantity'] = $newQty;
+            $this->items[$existingIndex]['amount'] = round($newQty * (float) $this->items[$existingIndex]['rate'], 2);
+        } else {
+            $newItem = [
+                'service_id' => $presetKey,
+                'description' => '', // Empty by default as requested!
+                'category' => $p['category'],
+                'quantity' => 1,
+                'unit' => $p['unit'], // Unit updated based on quick preset!
+                'rate' => (float) $p['rate'],
+                'tax_rate' => $this->taxRate,
+                'amount' => (float) $p['rate'],
+            ];
+
+            // Overwrite first empty service row if empty or unselected
+            if (count($this->items) === 1 && empty($this->items[0]['service_id']) && empty($this->items[0]['rate'])) {
+                $this->items[0] = $newItem;
+            } else {
+                $this->items[] = $newItem;
+            }
+        }
+
+        $this->recalculate();
     }
 
     public function removeItem(int $index)
@@ -381,17 +441,131 @@ class InvoiceBuilder extends Component
 
     public function selectService(int $index, string $serviceId)
     {
-        if (empty($serviceId)) return;
+        if (!isset($this->items[$index])) {
+            return;
+        }
 
+        if (empty($serviceId)) {
+            $this->items[$index]['service_id'] = '';
+            $this->items[$index]['description'] = '';
+            $this->items[$index]['unit'] = 'Project';
+            $this->items[$index]['rate'] = 0.00;
+            $this->items[$index]['amount'] = 0.00;
+            $this->recalculate();
+            return;
+        }
+
+        // Check if selected a preset
+        if (str_starts_with($serviceId, 'preset_')) {
+            $type = substr($serviceId, 7);
+            if (isset($this->presets[$type])) {
+                $p = $this->presets[$type];
+                $this->items[$index]['service_id'] = $serviceId;
+                $this->items[$index]['description'] = ''; // Empty by default as requested!
+                $this->items[$index]['category'] = $p['category'];
+                $this->items[$index]['unit'] = $p['unit']; // Unit updated based on preset!
+                $this->items[$index]['rate'] = (float) $p['rate'];
+                $qty = max(1, (int) ($this->items[$index]['quantity'] ?? 1));
+                $this->items[$index]['amount'] = round($qty * (float) $p['rate'], 2);
+                $this->recalculate();
+                return;
+            }
+        }
+
+        // Otherwise catalog Service model
         $service = Service::find($serviceId);
-        if ($service && isset($this->items[$index])) {
+        if ($service) {
             $this->items[$index]['service_id'] = $service->id;
-            $this->items[$index]['description'] = $service->name . ($service->description ? " - " . $service->description : '');
-            $this->items[$index]['category'] = $service->category;
-            $this->items[$index]['unit'] = $service->unit;
-            $this->items[$index]['rate'] = $service->rate_cents / 100;
+            $this->items[$index]['description'] = ''; // Empty by default as requested!
+            $this->items[$index]['category'] = $service->category ?? 'General';
+            $this->items[$index]['unit'] = $this->normalizeUnit($service->unit); // Unit updated based on service select!
+            $this->items[$index]['rate'] = (float) ($service->rate_cents / 100);
+            $qty = max(1, (int) ($this->items[$index]['quantity'] ?? 1));
+            $this->items[$index]['amount'] = round($qty * (float) ($service->rate_cents / 100), 2);
             $this->recalculate();
         }
+    }
+
+    protected function normalizeUnit(?string $unit): string
+    {
+        if (!$unit) return 'Project';
+        $u = strtolower(trim($unit));
+        return match($u) {
+            'hr', 'hour', 'hours' => 'Hour',
+            'mo', 'month', 'months' => 'Month',
+            'day', 'days' => 'Day',
+            'item', 'items' => 'Item',
+            'pkg', 'package', 'packages' => 'Package',
+            'unit', 'units' => 'Unit',
+            'yr', 'year', 'years' => 'Year',
+            'project', 'projects' => 'Project',
+            default => ucfirst($unit),
+        };
+    }
+
+    public function applyCoupon()
+    {
+        if (empty(trim($this->couponCode))) {
+            $this->addError('couponCode', 'Please enter a coupon code.');
+            return;
+        }
+
+        $couponService = app(\App\Services\CouponService::class);
+        $amountCents = (int) round($this->subtotal * 100);
+        $check = $couponService->validate($this->couponCode, 'invoice', $amountCents, $this->currency);
+
+        if (!$check['valid']) {
+            $this->couponApplied = false;
+            $this->couponMessage = null;
+            $this->addError('couponCode', $check['message']);
+            return;
+        }
+
+        $coupon = $check['coupon'];
+        $this->resetErrorBag('couponCode');
+        $this->appliedCouponCode = $coupon->code;
+        $this->couponApplied = true;
+
+        if ($coupon->offer_type === 'service' || !empty($coupon->service_name)) {
+            $serviceName = $coupon->service_name ?: 'Complimentary Promotional Service';
+            $this->items[] = [
+                'service_id' => $coupon->service_id ?: 'preset_promo',
+                'description' => "[Promo Offer: {$coupon->code}] " . $serviceName,
+                'category' => 'Promotion',
+                'quantity' => 1,
+                'unit' => 'Package',
+                'rate' => 0.00,
+                'tax_rate' => 0,
+                'amount' => 0.00,
+            ];
+            $this->couponMessage = "Complimentary service '{$serviceName}' added to invoice at no charge!";
+        } else {
+            $discountCents = $coupon->calculateDiscountCents($amountCents);
+            $this->discountAmount = round($discountCents / 100, 2);
+            $this->couponMessage = "Promo code '{$coupon->code}' applied: {$this->currency} " . number_format($this->discountAmount, 2) . " discount.";
+        }
+
+        $this->recalculate();
+    }
+
+    public function removeCoupon()
+    {
+        $this->couponCode = '';
+        $this->appliedCouponCode = null;
+        $this->couponMessage = null;
+        $this->couponApplied = false;
+        $this->discountAmount = 0.00;
+
+        // Remove any promo items
+        $this->items = array_values(array_filter($this->items, function ($item) {
+            return ($item['category'] ?? '') !== 'Promotion';
+        }));
+
+        if (empty($this->items)) {
+            $this->addItem();
+        }
+
+        $this->recalculate();
     }
 
     public function recalculate()
@@ -578,10 +752,29 @@ class InvoiceBuilder extends Component
             $rateCents = (int) round(((float)$item['rate']) * 100);
             $amountCents = (int) round(((float)$item['amount']) * 100);
 
+            $desc = trim($item['description'] ?? '');
+            if (empty($desc)) {
+                if (!empty($item['service_id'])) {
+                    if (str_starts_with($item['service_id'], 'preset_')) {
+                        $type = substr($item['service_id'], 7);
+                        $desc = $this->presets[$type]['name'] ?? 'Professional Service';
+                    } else {
+                        $srv = Service::find($item['service_id']);
+                        $desc = $srv ? $srv->name : 'Professional Service';
+                    }
+                } else {
+                    $desc = 'Professional Service';
+                }
+            }
+
+            $serviceId = (!empty($item['service_id']) && !str_starts_with($item['service_id'], 'preset_'))
+                ? $item['service_id']
+                : null;
+
             InvoiceItem::create([
                 'invoice_id' => $invoice->id,
-                'service_id' => !empty($item['service_id']) ? $item['service_id'] : null,
-                'description' => $item['description'],
+                'service_id' => $serviceId,
+                'description' => $desc,
                 'category' => $item['category'] ?? 'General',
                 'quantity' => $item['quantity'],
                 'unit' => $item['unit'] ?? 'unit',

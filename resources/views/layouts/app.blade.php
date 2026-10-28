@@ -136,6 +136,11 @@
                     <i class="ph ph-shield-check text-lg text-amber-400"></i>
                     {{ __('SaaS Subscriptions') }}
                 </a>
+
+                <a href="{{ route('admin.coupons.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.coupons.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                    <i class="ph ph-ticket text-lg text-fuchsia-400"></i>
+                    {{ __('Coupons & Offers') }}
+                </a>
                 @endif
 
                 <a href="{{ route('docs.index') }}" target="_blank" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition">

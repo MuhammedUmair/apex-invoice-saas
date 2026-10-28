@@ -119,6 +119,46 @@ class InvoiceController extends Controller
     }
 
     /**
+     * Apply promotional coupon code directly on the public invoice portal.
+     */
+    public function applyPortalCoupon(Request $request, string $token, \App\Services\CouponService $couponService)
+    {
+        $invoice = Invoice::withoutGlobalScopes()
+            ->where('public_secure_token', $token)
+            ->with(['client', 'items', 'workspace'])
+            ->firstOrFail();
+
+        $code = trim($request->input('coupon_code', ''));
+        if (empty($code)) {
+            return back()->with('coupon_error', 'Please enter a valid coupon or promo code.');
+        }
+
+        $check = $couponService->validate(
+            $code,
+            'invoice',
+            $invoice->subtotal_cents,
+            $invoice->currency,
+            $invoice->workspace
+        );
+
+        if (!$check['valid']) {
+            return back()->with('coupon_error', $check['message']);
+        }
+
+        $res = $couponService->applyToInvoice($check['coupon'], $invoice);
+
+        $msg = "Promo code '{$check['coupon']->code}' applied successfully!";
+        if (!empty($res['service_granted'])) {
+            $msg .= " Added complimentary service: {$res['service_granted']}.";
+        } elseif (!empty($res['discount_cents'])) {
+            $formatted = number_format($res['discount_cents'] / 100, 2);
+            $msg .= " Discount of {$invoice->currency} {$formatted} applied.";
+        }
+
+        return back()->with('coupon_success', $msg);
+    }
+
+    /**
      * Password challenge page for protected customer PDFs.
      */
     public function pdfChallenge(string $token)

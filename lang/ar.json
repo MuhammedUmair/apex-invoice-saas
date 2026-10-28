@@ -111,5 +111,14 @@
     "TAX": "الضريبة",
     "AMOUNT": "المبلغ",
     "ACTIONS": "الإجراءات",
-    "Select Catalog Service or Custom": "اختر خدمة من الكتالوج أو اكتب مخصص"
+    "Select Catalog Service or Custom": "اختر خدمة من الكتالوج أو اكتب مخصص",
+    "Coupons & Promotional Offers": "الكوبونات والعروض الترويجية",
+    "Coupons & Offers": "الكوبونات والعروض",
+    "Design New Promotion": "تصميم عرض ترويجي جديد",
+    "Design New Promotional Offer / Code": "تصميم كود أو عرض ترويجي جديد",
+    "All Promotional Offers & Codes": "جميع العروض الترويجية والأكواد",
+    "Promo / Coupon Code": "كود الخصم / الترويجي",
+    "Have a Promo or Coupon Code?": "هل لديك كود خصم أو برومو؟",
+    "Apply Code": "تطبيق الكود",
+    "Apply Offer": "تطبيق العرض"
 }

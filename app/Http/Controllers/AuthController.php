@@ -68,6 +68,7 @@ class AuthController extends Controller
             ],
             'country_code' => 'required|string|size:2',
             'currency' => 'required|string|size:3',
+            'coupon_code' => 'nullable|string|max:50',
         ]);
 
         // 1. Create Workspace for Tenant
@@ -100,9 +101,25 @@ class AuthController extends Controller
             ]);
         }
 
+        // 4. Process Promotional / Referral Coupon (Item 4)
+        $welcomeMsg = 'Welcome to RedMaple Invoicy! Your 14-day trial has begun.';
+        if (!empty($data['coupon_code'])) {
+            try {
+                $couponService = app(\App\Services\CouponService::class);
+                $check = $couponService->validate($data['coupon_code'], 'signup', 0, $data['currency'], $workspace);
+                if ($check['valid']) {
+                    $couponService->applyToSignup($check['coupon'], $workspace, $user);
+                    $offerName = $check['coupon']->name ?: $check['coupon']->code;
+                    $welcomeMsg = "Welcome! Promotional offer '{$offerName}' has been successfully applied to your account.";
+                }
+            } catch (\Throwable $e) {
+                // Graceful fallback if coupon process fails
+            }
+        }
+
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('success', 'Welcome to RedMaple Invoice Generator! Your 14-day trial has begun.');
+        return redirect()->route('dashboard')->with('success', $welcomeMsg);
     }
 
     public function logout(Request $request)

@@ -111,5 +111,14 @@
     "TAX": "VERGİ",
     "AMOUNT": "TUTAR",
     "ACTIONS": "İŞLEMLER",
-    "Select Catalog Service or Custom": "Katalogdan Hizmet Seçin veya Yazın"
+    "Select Catalog Service or Custom": "Katalogdan Hizmet Seçin veya Yazın",
+    "Coupons & Promotional Offers": "Kuponlar ve Promosyon Teklifleri",
+    "Coupons & Offers": "Kuponlar ve Teklifler",
+    "Design New Promotion": "Yeni Promosyon Tasarla",
+    "Design New Promotional Offer / Code": "Yeni Promosyon Kodu Tasarla",
+    "All Promotional Offers & Codes": "Tüm Promosyon Teklifleri ve Kodları",
+    "Promo / Coupon Code": "Promosyon / Kupon Kodu",
+    "Have a Promo or Coupon Code?": "Promosyon veya Kupon Kodunuz var mı?",
+    "Apply Code": "Kodu Uygula",
+    "Apply Offer": "Teklifi Uygula"
 }

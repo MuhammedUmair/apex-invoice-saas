@@ -106,33 +106,39 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">{{ __('Currency') }}</label>
-                                <select wire:model.live="currency" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
-                                    <option value="PKR">PKR (Rs) - Pakistani Rupee</option>
-                                    <option value="USD">USD ($) - US Dollar</option>
-                                    <option value="AED">AED (AED) - UAE Dirham</option>
-                                    <option value="SAR">SAR (SAR) - Saudi Riyal</option>
-                                    <option value="EUR">EUR (€) - Euro</option>
-                                    <option value="GBP">GBP (£) - British Pound</option>
-                                    <option value="CAD">CAD ($) - Canadian Dollar</option>
-                                    <option value="AUD">AUD ($) - Australian Dollar</option>
-                                    <option value="INR">INR (₹) - Indian Rupee</option>
-                                    <option value="TRY">TRY (₺) - Turkish Lira</option>
+                                <select wire:key="currency-select-{{ $currency }}" 
+                                        wire:model.live="currency" 
+                                        wire:change="onCurrencyChange($event.target.value)" 
+                                        class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                                    <option value="PKR" @selected($currency === 'PKR')>PKR (Rs) - Pakistani Rupee</option>
+                                    <option value="USD" @selected($currency === 'USD')>USD ($) - US Dollar</option>
+                                    <option value="AED" @selected($currency === 'AED')>AED (AED) - UAE Dirham</option>
+                                    <option value="SAR" @selected($currency === 'SAR')>SAR (SAR) - Saudi Riyal</option>
+                                    <option value="EUR" @selected($currency === 'EUR')>EUR (€) - Euro</option>
+                                    <option value="GBP" @selected($currency === 'GBP')>GBP (£) - British Pound</option>
+                                    <option value="CAD" @selected($currency === 'CAD')>CAD ($) - Canadian Dollar</option>
+                                    <option value="AUD" @selected($currency === 'AUD')>AUD ($) - Australian Dollar</option>
+                                    <option value="INR" @selected($currency === 'INR')>INR (₹) - Indian Rupee</option>
+                                    <option value="TRY" @selected($currency === 'TRY')>TRY (₺) - Turkish Lira</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">{{ __('Country Tax Rule') }}</label>
-                                <select wire:model.live="countryTaxCode" class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
-                                    <option value="PK">Pakistan - 16% SST</option>
-                                    <option value="AE">UAE - 5% VAT</option>
-                                    <option value="SA">Saudi Arabia - 15% ZATCA VAT</option>
-                                    <option value="GB">United Kingdom - 20% VAT</option>
-                                    <option value="US">United States - 0% (Sales Tax)</option>
-                                    <option value="DE">Germany - 19% MwSt</option>
-                                    <option value="FR">France - 20% TVA</option>
-                                    <option value="CA">Canada - 13% GST/HST</option>
-                                    <option value="AU">Australia - 10% GST</option>
-                                    <option value="IN">India - 18% GST</option>
-                                    <option value="TR">Turkey - 20% KDV</option>
+                                <select wire:key="tax-country-select-{{ $countryTaxCode }}" 
+                                        wire:model.live="countryTaxCode" 
+                                        wire:change="onCountryTaxChange($event.target.value)" 
+                                        class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                                    <option value="PK" @selected($countryTaxCode === 'PK')>Pakistan - 16% SST</option>
+                                    <option value="AE" @selected($countryTaxCode === 'AE')>UAE - 5% VAT</option>
+                                    <option value="SA" @selected($countryTaxCode === 'SA')>Saudi Arabia - 15% ZATCA VAT</option>
+                                    <option value="GB" @selected($countryTaxCode === 'GB')>United Kingdom - 20% VAT</option>
+                                    <option value="US" @selected($countryTaxCode === 'US')>United States - 0% (Sales Tax)</option>
+                                    <option value="DE" @selected($countryTaxCode === 'DE')>Germany - 19% MwSt</option>
+                                    <option value="FR" @selected($countryTaxCode === 'FR')>France - 20% TVA</option>
+                                    <option value="CA" @selected($countryTaxCode === 'CA')>Canada - 13% GST/HST</option>
+                                    <option value="AU" @selected($countryTaxCode === 'AU')>Australia - 10% GST</option>
+                                    <option value="IN" @selected($countryTaxCode === 'IN')>India - 18% GST</option>
+                                    <option value="TR" @selected($countryTaxCode === 'TR')>Turkey - 20% KDV</option>
                                 </select>
                             </div>
                         </div>
@@ -238,50 +244,76 @@
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach($items as $idx => $item)
-                                    <tr wire:key="line-row-{{ $idx }}-{{ $item['description'] ?? '' }}-{{ $item['quantity'] ?? 1 }}-{{ $item['rate'] ?? 0 }}" class="hover:bg-slate-50/40 transition">
+                                    <tr wire:key="line-row-{{ $idx }}-{{ $item['service_id'] ?? '' }}-{{ $item['unit'] ?? '' }}-{{ $item['quantity'] ?? 1 }}-{{ $item['rate'] ?? 0 }}" class="hover:bg-slate-50/40 transition">
                                         <td class="px-2 py-4 text-center font-bold text-slate-400 align-top">
                                             {{ $idx + 1 }}
                                         </td>
                                         <!-- Item / Service Autofill & Description -->
                                         <td class="px-3 py-3 space-y-1.5 align-top">
-                                            <select wire:change="selectService({{ $idx }}, $event.target.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-red-500">
+                                            <select wire:key="service-select-{{ $idx }}-{{ $item['service_id'] ?? '' }}"
+                                                    wire:change="selectService({{ $idx }}, $event.target.value)" 
+                                                    class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-red-500">
                                                 <option value="">-- {{ __('Select Catalog Service or Custom') }} --</option>
-                                                @foreach($services as $s)
-                                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                                @endforeach
+                                                <optgroup label="{{ __('Quick Presets') }}">
+                                                    <option value="preset_consulting" @selected(($item['service_id'] ?? '') === 'preset_consulting')>{{ __('Consulting & Professional Advisory') }}</option>
+                                                    <option value="preset_web_dev" @selected(($item['service_id'] ?? '') === 'preset_web_dev')>{{ __('Web Design & Software Development') }}</option>
+                                                    <option value="preset_retainer" @selected(($item['service_id'] ?? '') === 'preset_retainer')>{{ __('Monthly Retainer & Technical Support') }}</option>
+                                                    <option value="preset_labor" @selected(($item['service_id'] ?? '') === 'preset_labor')>{{ __('Custom Technical Labor / Implementation') }}</option>
+                                                    <option value="preset_marketing" @selected(($item['service_id'] ?? '') === 'preset_marketing')>{{ __('SEO Optimization & Digital Marketing') }}</option>
+                                                    <option value="preset_product" @selected(($item['service_id'] ?? '') === 'preset_product')>{{ __('General Merchandise / Goods Supply') }}</option>
+                                                </optgroup>
+                                                @if($services->count() > 0)
+                                                    <optgroup label="{{ __('Catalog Services') }}">
+                                                        @foreach($services as $s)
+                                                            <option value="{{ $s->id }}" @selected(($item['service_id'] ?? '') == $s->id)>{{ $s->name }}</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                @endif
                                             </select>
-                                            <textarea wire:model.live.debounce.250ms="items.{{ $idx }}.description" rows="2" placeholder="{{ __('Description of service rendered...') }}"
+                                            <textarea wire:key="desc-input-{{ $idx }}-{{ $item['service_id'] ?? '' }}"
+                                                      wire:model.live.debounce.250ms="items.{{ $idx }}.description" 
+                                                      rows="2" 
+                                                      placeholder="{{ __('Description of service rendered (optional)...') }}"
                                                       class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 focus:ring-1 focus:ring-red-500">{{ $item['description'] }}</textarea>
                                         </td>
 
                                         <!-- Quantity (Strict Integer, reactive) -->
                                         <td class="px-2 py-3 align-top">
-                                            <input type="number" step="1" min="1" wire:model.live.debounce.250ms="items.{{ $idx }}.quantity"
+                                            <input type="number" step="1" min="1" 
+                                                   wire:key="qty-input-{{ $idx }}-{{ $item['quantity'] ?? 1 }}"
+                                                   wire:model.live.debounce.250ms="items.{{ $idx }}.quantity"
                                                    class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-center font-semibold text-slate-800 focus:ring-1 focus:ring-red-500">
                                         </td>
 
-                                        <!-- Unit -->
+                                        <!-- Unit (Reactive & Synced with Preset / Service) -->
                                         <td class="px-2 py-3 align-top">
-                                            <select wire:model.live.debounce.250ms="items.{{ $idx }}.unit" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white">
-                                                <option value="Project">{{ __('Project') }}</option>
-                                                <option value="Month">{{ __('Month') }}</option>
-                                                <option value="Hour">{{ __('Hour') }}</option>
-                                                <option value="Day">{{ __('Day') }}</option>
-                                                <option value="Unit">{{ __('Unit') }}</option>
-                                                <option value="Item">{{ __('Item') }}</option>
-                                                <option value="Package">{{ __('Package') }}</option>
+                                            <select wire:key="unit-select-{{ $idx }}-{{ $item['unit'] ?? 'Project' }}" 
+                                                    wire:model.live="items.{{ $idx }}.unit" 
+                                                    class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white">
+                                                <option value="Project" @selected(($item['unit'] ?? '') === 'Project')>{{ __('Project') }}</option>
+                                                <option value="Hour" @selected(($item['unit'] ?? '') === 'Hour')>{{ __('Hour') }}</option>
+                                                <option value="Month" @selected(($item['unit'] ?? '') === 'Month')>{{ __('Month') }}</option>
+                                                <option value="Day" @selected(($item['unit'] ?? '') === 'Day')>{{ __('Day') }}</option>
+                                                <option value="Item" @selected(($item['unit'] ?? '') === 'Item')>{{ __('Item') }}</option>
+                                                <option value="Package" @selected(($item['unit'] ?? '') === 'Package')>{{ __('Package') }}</option>
+                                                <option value="Unit" @selected(($item['unit'] ?? '') === 'Unit')>{{ __('Unit') }}</option>
+                                                <option value="Year" @selected(($item['unit'] ?? '') === 'Year')>{{ __('Year') }}</option>
                                             </select>
                                         </td>
 
                                         <!-- Rate -->
                                         <td class="px-3 py-3 align-top">
-                                            <input type="number" step="0.01" wire:model.live.debounce.250ms="items.{{ $idx }}.rate"
+                                            <input type="number" step="0.01" 
+                                                   wire:key="rate-input-{{ $idx }}-{{ $item['rate'] ?? 0 }}"
+                                                   wire:model.live.debounce.250ms="items.{{ $idx }}.rate"
                                                    class="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs text-right font-semibold text-slate-800 focus:ring-1 focus:ring-red-500">
                                         </td>
 
                                         <!-- Tax Rate -->
                                         <td class="px-2 py-3 align-top">
-                                            <select wire:model.live.debounce.250ms="taxRate" class="w-full px-1.5 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-700 bg-white">
+                                            <select wire:key="tax-select-{{ $idx }}-{{ $taxRate }}" 
+                                                    wire:model.live.debounce.250ms="taxRate" 
+                                                    class="w-full px-1.5 py-1.5 rounded-lg border border-slate-200 text-xs text-center text-slate-700 bg-white">
                                                 <option value="{{ $taxRate }}">{{ number_format($taxRate, 0) }}%</option>
                                                 <option value="0">0%</option>
                                                 <option value="5">5%</option>
@@ -455,6 +487,39 @@
                                        class="w-24 text-right px-2 py-1 rounded-lg border border-slate-200 text-xs font-semibold focus:ring-1 focus:ring-red-500 bg-white">
                                 <span class="text-[11px] text-slate-500 font-semibold">{{ $currency }}</span>
                             </div>
+                        </div>
+
+                        <!-- Promo / Coupon Code Section (Items 4 & 5) -->
+                        <div class="pt-2 border-t border-slate-100">
+                            @if($couponApplied)
+                                <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 space-y-1">
+                                    <div class="flex items-center justify-between font-bold">
+                                        <span class="flex items-center gap-1">
+                                            <i class="ph ph-ticket text-emerald-600 text-sm"></i> {{ $appliedCouponCode }}
+                                        </span>
+                                        <button type="button" wire:click="removeCoupon" class="text-rose-600 hover:underline text-[10px] font-semibold">
+                                            {{ __('Remove') }}
+                                        </button>
+                                    </div>
+                                    <p class="text-slate-600 text-[10px]">{{ $couponMessage }}</p>
+                                </div>
+                            @else
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="relative flex-1">
+                                            <input type="text" wire:model="couponCode" placeholder="{{ __('Promo / Coupon Code') }}"
+                                                   class="w-full pl-7 pr-2 py-1.5 rounded-lg border border-slate-200 text-xs font-mono uppercase focus:ring-1 focus:ring-red-500 bg-white">
+                                            <i class="ph ph-ticket absolute left-2 top-2 text-slate-400 text-xs"></i>
+                                        </div>
+                                        <button type="button" wire:click="applyCoupon" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-xs transition">
+                                            {{ __('Apply') }}
+                                        </button>
+                                    </div>
+                                    @error('couponCode')
+                                        <span class="text-rose-600 text-[10px] block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            @endif
                         </div>
 
                         <div class="flex items-center justify-between text-xs">

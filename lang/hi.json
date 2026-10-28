@@ -111,5 +111,14 @@
     "TAX": "कर",
     "AMOUNT": "रकम",
     "ACTIONS": "कार्रवाई",
-    "Select Catalog Service or Custom": "कैटलॉग सेवा चुनें या विवरण दर्ज करें"
+    "Select Catalog Service or Custom": "कैटलॉग सेवा चुनें या विवरण दर्ज करें",
+    "Coupons & Promotional Offers": "कूपन और प्रचार ऑफर",
+    "Coupons & Offers": "कूपन और ऑफर",
+    "Design New Promotion": "नया प्रमोशन डिज़ाइन करें",
+    "Design New Promotional Offer / Code": "नया प्रचार कोड डिज़ाइन करें",
+    "All Promotional Offers & Codes": "सभी प्रचार ऑफर और कोड",
+    "Promo / Coupon Code": "प्रोमो / कूपन कोड",
+    "Have a Promo or Coupon Code?": "क्या आपके पास प्रोमो या कूपन कोड है?",
+    "Apply Code": "कोड लागू करें",
+    "Apply Offer": "ऑफ़र लागू करें"
 }

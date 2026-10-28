@@ -53,6 +53,46 @@
         </div>
     </div>
 
+    <!-- Coupon Alerts -->
+    @if(session('coupon_success'))
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-3">
+            <i class="ph ph-check-circle text-xl text-emerald-600"></i>
+            <div>
+                <p class="font-bold">Promo Offer Applied!</p>
+                <p>{{ session('coupon_success') }}</p>
+            </div>
+        </div>
+    @endif
+    @if(session('coupon_error'))
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
+            <i class="ph ph-warning-circle text-xl text-rose-600"></i>
+            <div>
+                <p class="font-bold">Promo Coupon Error</p>
+                <p>{{ session('coupon_error') }}</p>
+            </div>
+        </div>
+    @endif
+
+    @if($invoice->due_cents > 0)
+        <!-- Promo / Discount Code Box -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+            <form method="POST" action="{{ route('invoices.portal.coupon', $invoice->public_secure_token) }}" class="flex flex-col sm:flex-row items-center gap-3">
+                @csrf
+                <div class="flex items-center gap-2 text-slate-700 shrink-0">
+                    <i class="ph ph-ticket text-xl text-fuchsia-600"></i>
+                    <span class="text-xs font-bold">Have a Promo or Coupon Code?</span>
+                </div>
+                <div class="relative flex-1 w-full">
+                    <input type="text" name="coupon_code" placeholder="Enter promo code (e.g. SAVE20, FREESERVICE)..." 
+                           class="w-full pl-3 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-mono uppercase focus:ring-2 focus:ring-red-500 bg-slate-50">
+                </div>
+                <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition">
+                    Apply Offer
+                </button>
+            </form>
+        </div>
+    @endif
+
     <!-- Dual Payment Gateways (Stripe & PayPal) -->
     @if($invoice->due_cents > 0)
         <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">

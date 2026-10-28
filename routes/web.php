@@ -142,6 +142,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
     Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
     Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
+
+    // Promotional Coupons & Offers Designer (Items 4 & 5)
+    Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');
+    Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
+    Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
+    Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
 });
 
 /*
@@ -153,6 +159,7 @@ Route::prefix('invoices/p')->middleware('throttle:60,1')->group(function () {
     // Interactive customer viewing & payment portal
     Route::get('/{token}', [InvoiceController::class, 'customerPortal'])->name('invoices.portal');
     Route::match(['get', 'post'], '/{token}/pay', [PaymentController::class, 'processPortalPayment'])->name('invoices.pay');
+    Route::post('/{token}/coupon', [InvoiceController::class, 'applyPortalCoupon'])->name('invoices.portal.coupon');
 
     // PDF security & download
     Route::get('/{token}/pdf-unlock', [InvoiceController::class, 'pdfChallenge'])->name('invoices.pdf.challenge');

@@ -141,6 +141,22 @@
                 </div>
             </div>
 
+            <!-- Promotional / Referral Coupon Code Field (Item 4) -->
+            <div class="pt-1">
+                <label for="coupon_code" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i class="ph ph-ticket text-fuchsia-600 text-sm"></i> Promo / Referral Code
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-normal lowercase">(optional)</span>
+                </label>
+                <div class="relative">
+                    <input id="coupon_code" type="text" name="coupon_code" value="{{ old('coupon_code', request('promo') ?? request('ref')) }}" placeholder="e.g. WELCOME50, FREESERVICE"
+                           class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 text-sm uppercase font-mono tracking-wide focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
+                    <i class="ph ph-tag absolute left-3 top-3 text-slate-400 text-base"></i>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Have an offer code? Enter it above to unlock exclusive discounts, extended trial, or free service credits.</p>
+            </div>
+
             <button type="submit" class="w-full mt-2 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
                 <i class="ph ph-rocket-launch text-base"></i>
                 Create Invoicy Workspace
