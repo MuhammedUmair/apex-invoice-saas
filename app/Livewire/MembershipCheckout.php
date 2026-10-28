@@ -6,6 +6,7 @@ use App\Models\Coupon;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\CouponService;
+use App\Services\SubscriptionAlertService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -16,7 +17,9 @@ class MembershipCheckout extends Component
     public string $couponStatus = '';
     public bool $isCouponValid = false;
     public int $discountCents = 0;
-    public string $gateway = 'stripe'; // stripe or paypal
+    public string $paymentNotes = '';
+    public bool $requestSubmitted = false;
+    public ?string $submittedPlanName = null;
 
     protected CouponService $couponService;
 
@@ -39,6 +42,7 @@ class MembershipCheckout extends Component
     public function selectPlan(string $planId)
     {
         $this->selectedPlanId = $planId;
+        $this->requestSubmitted = false;
         if ($this->couponCode) {
             $this->validateCoupon();
         }
@@ -74,7 +78,47 @@ class MembershipCheckout extends Component
 
         $finalPriceCents = max(0, $plan->price_cents - $this->discountCents);
 
-        // If coupon applied, record atomic redemption
+        // Case 1: 100% Free Promotion via Valid Promotional Coupon
+        if ($this->isCouponValid && $this->couponCode && $finalPriceCents === 0) {
+            $coupon = Coupon::where('code', strtoupper(trim($this->couponCode)))->first();
+            if ($coupon) {
+                $this->couponService->redeemCoupon(
+                    $coupon,
+                    $workspace,
+                    $plan->price_cents,
+                    $plan->currency,
+                    'coupon_promo_' . time(),
+                    'promo_coupon'
+                );
+            }
+
+            $existingSub = $workspace->currentSubscription ?? $workspace->subscriptions()->first();
+            $oldPlan = $existingSub?->plan;
+
+            Subscription::updateOrCreate(
+                ['workspace_id' => $workspace->id],
+                [
+                    'plan_id' => $plan->id,
+                    'gateway' => 'promo_coupon',
+                    'gateway_subscription_id' => 'promo_' . time(),
+                    'status' => 'active',
+                    'current_period_ends_at' => now()->addMonth(),
+                ]
+            );
+
+            app(SubscriptionAlertService::class)->notifyPlanChange(
+                $workspace,
+                $oldPlan,
+                $plan,
+                'promo_coupon',
+                0
+            );
+
+            session()->flash('success', "Promotional Coupon Applied! Your membership has been activated on {$plan->name}!");
+            return redirect()->route('dashboard');
+        }
+
+        // Case 2: Standard Paid Plan Upgrade Request (Option B - Manual Wire / Bank Invoice Approval)
         if ($this->isCouponValid && $this->couponCode) {
             $coupon = Coupon::where('code', strtoupper(trim($this->couponCode)))->first();
             if ($coupon) {
@@ -83,42 +127,31 @@ class MembershipCheckout extends Component
                     $workspace,
                     $plan->price_cents,
                     $plan->currency,
-                    'sub_active_' . time(),
-                    $this->gateway
+                    'pending_upgrade_' . time(),
+                    'wire_transfer'
                 );
             }
         }
 
-        $existingSub = $workspace->subscriptions()->first();
-        $oldPlan = $existingSub?->plan;
-
-        // Activate / Update Subscription
-        Subscription::updateOrCreate(
-            ['workspace_id' => $workspace->id],
-            [
-                'plan_id' => $plan->id,
-                'gateway' => $this->gateway,
-                'gateway_subscription_id' => 'sub_' . strtolower($this->gateway) . '_' . time(),
-                'status' => 'active',
-                'current_period_ends_at' => now()->addMonth(),
-            ]
-        );
-
-        // Dispatch Super Admin Upgrade / Downgrade Alert (Item 5)
-        app(\App\Services\SubscriptionAlertService::class)->notifyPlanChange(
+        // Dispatch Super Admin Upgrade Request Alert with customer notes
+        app(SubscriptionAlertService::class)->notifyUpgradeRequest(
             $workspace,
-            $oldPlan,
             $plan,
-            $this->gateway,
+            $this->paymentNotes,
             $finalPriceCents
         );
 
-        session()->flash('success', "Your membership has been upgraded to {$plan->name}!");
-        return redirect()->route('dashboard');
+        $this->requestSubmitted = true;
+        $this->submittedPlanName = $plan->name;
+
+        session()->flash('upgrade_requested', "Your upgrade request for {$plan->name} has been submitted! Our billing team has been notified and will verify your wire transfer / manual payment before activating your account.");
     }
 
     public function render()
     {
+        $currentSub = Auth::user()->workspace->currentSubscription;
+        $currentPlan = $currentSub?->plan;
+
         $plans = Plan::where('is_active', true)->where('code', '!=', 'trial')->orderBy('price_cents')->get();
         $selectedPlan = $this->selectedPlanId ? Plan::find($this->selectedPlanId) : null;
 
@@ -129,6 +162,8 @@ class MembershipCheckout extends Component
         }
 
         return view('livewire.membership-checkout', [
+            'currentSub' => $currentSub,
+            'currentPlan' => $currentPlan,
             'plans' => $plans,
             'selectedPlan' => $selectedPlan,
             'finalPriceFormatted' => $finalPriceFormatted,

@@ -25,6 +25,7 @@ class AdminSubscriptionAlertMailable extends Mailable
         $prefix = match ($this->alert->type) {
             'signup' => '🚀 [New Signup]',
             'upgrade' => '⭐ [Plan Upgrade]',
+            'upgrade_request' => '💳 [Upgrade Request]',
             'downgrade' => '⚠️ [Plan Downgrade]',
             'trial_expired' => '⏳ [Trial Expired]',
             'renewal' => '🔄 [Subscription Renewed]',

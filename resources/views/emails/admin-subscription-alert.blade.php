@@ -13,6 +13,7 @@
         .badge { display: inline-block; padding: 5px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
         .badge-signup { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
         .badge-upgrade { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .badge-upgrade_request { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
         .badge-downgrade { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
         .badge-trial_expired { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
         .badge-default { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
@@ -36,6 +37,7 @@
                 $badgeClass = match($alert->type) {
                     'signup' => 'badge-signup',
                     'upgrade' => 'badge-upgrade',
+                    'upgrade_request' => 'badge-upgrade_request',
                     'downgrade' => 'badge-downgrade',
                     'trial_expired' => 'badge-trial_expired',
                     default => 'badge-default',
@@ -68,6 +70,18 @@
                     <div class="row">
                         <span class="row-label">Active Plan:</span>
                         <span class="row-val">{{ $metadata['plan_name'] }}</span>
+                    </div>
+                @endif
+                @if(isset($metadata['requested_plan_name']))
+                    <div class="row">
+                        <span class="row-label">Requested Upgrade Plan:</span>
+                        <span class="row-val" style="color: #0284c7;">{{ $metadata['requested_plan_name'] }}</span>
+                    </div>
+                @endif
+                @if(isset($metadata['notes']))
+                    <div class="row">
+                        <span class="row-label">Customer Payment Notes:</span>
+                        <span class="row-val">{{ $metadata['notes'] }}</span>
                     </div>
                 @endif
                 @if(isset($metadata['old_plan_name']))

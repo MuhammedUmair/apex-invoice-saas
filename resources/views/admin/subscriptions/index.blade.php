@@ -655,17 +655,30 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        @if(!$alert->is_read)
-                                            <form method="POST" action="{{ route('admin.subscriptions.alerts.read', $alert->id) }}" class="inline">
-                                                @csrf
-                                                <input type="hidden" name="tab" value="alerts">
-                                                <button type="submit" class="text-xs font-bold text-slate-600 hover:text-slate-900 underline">
-                                                    Mark Read
-                                                </button>
-                                            </form>
-                                        @else
-                                            <span class="text-xs text-slate-400">Read</span>
-                                        @endif
+                                        <div class="flex items-center justify-end gap-2 flex-wrap">
+                                            @if($alert->type === 'upgrade_request' && !empty($alert->metadata['requested_plan_id']) && $alert->workspace)
+                                                <form method="POST" action="{{ route('admin.workspaces.renew', $alert->workspace_id) }}" class="inline" onsubmit="return confirm('Approve and activate {{ $alert->metadata['requested_plan_name'] ?? 'Plan' }} for {{ addslashes($alert->workspace->name) }}?')">
+                                                    @csrf
+                                                    <input type="hidden" name="plan_id" value="{{ $alert->metadata['requested_plan_id'] }}">
+                                                    <input type="hidden" name="duration_months" value="1">
+                                                    <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition flex items-center gap-1">
+                                                        <i class="ph ph-check text-xs"></i> Approve Upgrade
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            @if(!$alert->is_read)
+                                                <form method="POST" action="{{ route('admin.subscriptions.alerts.read', $alert->id) }}" class="inline">
+                                                    @csrf
+                                                    <input type="hidden" name="tab" value="alerts">
+                                                    <button type="submit" class="text-xs font-bold text-slate-600 hover:text-slate-900 underline">
+                                                        Mark Read
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <span class="text-xs text-slate-400">Read</span>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach

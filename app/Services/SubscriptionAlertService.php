@@ -134,6 +134,46 @@ class SubscriptionAlertService
     }
 
     /**
+     * Notify Admin of Manual Upgrade / Wire Transfer Request
+     */
+    public function notifyUpgradeRequest(Workspace $workspace, Plan $requestedPlan, ?string $notes = null, int $finalPriceCents = 0): ?SubscriptionAlert
+    {
+        try {
+            $owner = $workspace->users()->first();
+            $currentSub = $workspace->currentSubscription;
+            $currentPlan = $currentSub?->plan;
+
+            $alert = SubscriptionAlert::create([
+                'workspace_id' => $workspace->id,
+                'user_id' => $owner?->id,
+                'type' => 'upgrade_request',
+                'title' => "Upgrade Request: {$workspace->name} requested {$requestedPlan->name}",
+                'message' => "{$owner?->name} ({$owner?->email}) from '{$workspace->name}' has submitted an upgrade request for {$requestedPlan->name} (" . ($finalPriceCents > 0 ? '$' . number_format($finalPriceCents / 100, 2) . '/mo' : 'Free') . "). Wire transfer / bank payment verification required.",
+                'metadata' => [
+                    'workspace_name' => $workspace->name,
+                    'workspace_slug' => $workspace->slug,
+                    'owner_name' => $owner?->name ?? 'N/A',
+                    'owner_email' => $owner?->email ?? 'N/A',
+                    'current_plan' => $currentPlan?->name ?? 'None',
+                    'requested_plan_id' => $requestedPlan->id,
+                    'requested_plan_name' => $requestedPlan->name,
+                    'price_formatted' => '$' . number_format($finalPriceCents / 100, 2),
+                    'notes' => $notes ?: 'No specific notes provided.',
+                ],
+                'is_read' => false,
+                'email_sent' => false,
+            ]);
+
+            $this->dispatchEmail($alert);
+
+            return $alert;
+        } catch (\Throwable $e) {
+            Log::error("Failed to record subscription upgrade request alert: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Notify Admin of Trial Expiration
      */
     public function notifyTrialExpired(Workspace $workspace, Subscription $sub): ?SubscriptionAlert

@@ -53,6 +53,7 @@ class SubscriptionAlert extends Model
         return match ($this->type) {
             'signup' => 'bg-blue-50 text-blue-700 border-blue-200',
             'upgrade' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            'upgrade_request' => 'bg-cyan-50 text-cyan-800 border-cyan-200',
             'downgrade' => 'bg-amber-50 text-amber-700 border-amber-200',
             'trial_expired' => 'bg-rose-50 text-rose-700 border-rose-200',
             'renewal' => 'bg-purple-50 text-purple-700 border-purple-200',
@@ -65,6 +66,7 @@ class SubscriptionAlert extends Model
         return match ($this->type) {
             'signup' => 'ph-user-plus',
             'upgrade' => 'ph-trend-up',
+            'upgrade_request' => 'ph-credit-card',
             'downgrade' => 'ph-trend-down',
             'trial_expired' => 'ph-hourglass-low',
             'renewal' => 'ph-arrow-clockwise',
