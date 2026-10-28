@@ -196,22 +196,22 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <button type="button" wire:click="addPresetItem('consulting')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> {{ __('Consulting') }} ($100/hr)
+                            <span class="text-rose-500 font-bold">+</span> Consulting ($100/hr)
                         </button>
                         <button type="button" wire:click="addPresetItem('web_dev')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> {{ __('Web Design') }} ($750)
+                            <span class="text-rose-500 font-bold">+</span> Web Design ($750)
                         </button>
                         <button type="button" wire:click="addPresetItem('retainer')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> {{ __('Monthly Retainer') }} ($500)
+                            <span class="text-rose-500 font-bold">+</span> Monthly Retainer ($500)
                         </button>
                         <button type="button" wire:click="addPresetItem('labor')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> {{ __('Technical Labor') }} ($75/hr)
+                            <span class="text-rose-500 font-bold">+</span> Technical Labor ($75/hr)
                         </button>
                         <button type="button" wire:click="addPresetItem('marketing')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> {{ __('Marketing') }} ($250)
+                            <span class="text-rose-500 font-bold">+</span> Marketing ($250)
                         </button>
                         <button type="button" wire:click="addPresetItem('product')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> {{ __('Merchandise') }} ($45)
+                            <span class="text-rose-500 font-bold">+</span> Merchandise ($45)
                         </button>
                     </div>
                 </div>
@@ -254,13 +254,13 @@
                                                     wire:change="selectService({{ $idx }}, $event.target.value)" 
                                                     class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-red-500">
                                                 <option value="">-- {{ __('Select Catalog Service or Custom') }} --</option>
-                                                <optgroup label="{{ __('Quick Presets') }}">
-                                                    <option value="preset_consulting" @selected(($item['service_id'] ?? '') === 'preset_consulting')>{{ __('Consulting & Professional Advisory') }}</option>
-                                                    <option value="preset_web_dev" @selected(($item['service_id'] ?? '') === 'preset_web_dev')>{{ __('Web Design & Software Development') }}</option>
-                                                    <option value="preset_retainer" @selected(($item['service_id'] ?? '') === 'preset_retainer')>{{ __('Monthly Retainer & Technical Support') }}</option>
-                                                    <option value="preset_labor" @selected(($item['service_id'] ?? '') === 'preset_labor')>{{ __('Custom Technical Labor / Implementation') }}</option>
-                                                    <option value="preset_marketing" @selected(($item['service_id'] ?? '') === 'preset_marketing')>{{ __('SEO Optimization & Digital Marketing') }}</option>
-                                                    <option value="preset_product" @selected(($item['service_id'] ?? '') === 'preset_product')>{{ __('General Merchandise / Goods Supply') }}</option>
+                                                <optgroup label="Quick Presets">
+                                                    <option value="preset_consulting" @selected(($item['service_id'] ?? '') === 'preset_consulting')>Consulting & Professional Advisory</option>
+                                                    <option value="preset_web_dev" @selected(($item['service_id'] ?? '') === 'preset_web_dev')>Web Design & Software Development</option>
+                                                    <option value="preset_retainer" @selected(($item['service_id'] ?? '') === 'preset_retainer')>Monthly Retainer & Technical Support</option>
+                                                    <option value="preset_labor" @selected(($item['service_id'] ?? '') === 'preset_labor')>Custom Technical Labor / Implementation</option>
+                                                    <option value="preset_marketing" @selected(($item['service_id'] ?? '') === 'preset_marketing')>SEO Optimization & Digital Marketing</option>
+                                                    <option value="preset_product" @selected(($item['service_id'] ?? '') === 'preset_product')>General Merchandise / Goods Supply</option>
                                                 </optgroup>
                                                 @if($services->count() > 0)
                                                     <optgroup label="{{ __('Catalog Services') }}">
@@ -290,14 +290,14 @@
                                             <select wire:key="unit-select-{{ $idx }}-{{ $item['unit'] ?? 'Project' }}" 
                                                     wire:model.live="items.{{ $idx }}.unit" 
                                                     class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white">
-                                                <option value="Project" @selected(($item['unit'] ?? '') === 'Project')>{{ __('Project') }}</option>
-                                                <option value="Hour" @selected(($item['unit'] ?? '') === 'Hour')>{{ __('Hour') }}</option>
-                                                <option value="Month" @selected(($item['unit'] ?? '') === 'Month')>{{ __('Month') }}</option>
-                                                <option value="Day" @selected(($item['unit'] ?? '') === 'Day')>{{ __('Day') }}</option>
-                                                <option value="Item" @selected(($item['unit'] ?? '') === 'Item')>{{ __('Item') }}</option>
-                                                <option value="Package" @selected(($item['unit'] ?? '') === 'Package')>{{ __('Package') }}</option>
-                                                <option value="Unit" @selected(($item['unit'] ?? '') === 'Unit')>{{ __('Unit') }}</option>
-                                                <option value="Year" @selected(($item['unit'] ?? '') === 'Year')>{{ __('Year') }}</option>
+                                                <option value="Project" @selected(($item['unit'] ?? '') === 'Project')>Project</option>
+                                                <option value="Hour" @selected(($item['unit'] ?? '') === 'Hour')>Hour</option>
+                                                <option value="Month" @selected(($item['unit'] ?? '') === 'Month')>Month</option>
+                                                <option value="Day" @selected(($item['unit'] ?? '') === 'Day')>Day</option>
+                                                <option value="Item" @selected(($item['unit'] ?? '') === 'Item')>Item</option>
+                                                <option value="Package" @selected(($item['unit'] ?? '') === 'Package')>Package</option>
+                                                <option value="Unit" @selected(($item['unit'] ?? '') === 'Unit')>Unit</option>
+                                                <option value="Year" @selected(($item['unit'] ?? '') === 'Year')>Year</option>
                                             </select>
                                         </td>
 
@@ -631,6 +631,39 @@
                             {{ __('Turn on recurring billing to automatically generate and dispatch invoices to this client on a recurring schedule.') }}
                         </p>
                     @endif
+                </div>
+
+                <!-- Advertisement Card (Above Need Help?) -->
+                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 border border-red-500/30 p-5 text-white shadow-md">
+                    <!-- Subtle background decoration glow -->
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-red-600/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="relative z-10 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-400/30 text-red-300 font-bold text-[10px] uppercase tracking-wider">
+                                <i class="ph ph-sparkle text-amber-300"></i> SPONSORED PROMO
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-medium">RedMaple Studio</span>
+                        </div>
+
+                        <div>
+                            <h4 class="font-extrabold text-white text-sm leading-snug">
+                                Scale Your Business with Custom Web & Mobile Apps
+                            </h4>
+                            <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                                Dedicated full-stack developers, custom CRM integrations, and turnkey SaaS development with RedMaple.
+                            </p>
+                        </div>
+
+                        <div class="pt-1 flex items-center gap-2">
+                            <a href="https://redmapleagency.com" target="_blank" class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                                <span>Get Agency Quote</span>
+                                <i class="ph ph-arrow-up-right font-bold text-xs"></i>
+                            </a>
+                            <a href="{{ route('membership.index') }}" class="inline-flex items-center justify-center py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs rounded-xl border border-slate-700 transition">
+                                <span>Upgrade</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 3. Need Help? Card -->
