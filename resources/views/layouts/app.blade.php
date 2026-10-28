@@ -195,9 +195,9 @@
                 <a href="{{ route('admin.subscriptions.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
                    class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.subscriptions.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                   :title="sidebarCollapsed ? '{{ __('SaaS Subscriptions') }}' : ''">
-                    <i class="ph ph-shield-check text-lg text-amber-400 shrink-0"></i>
-                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('SaaS Subscriptions') }}</span>
+                   :title="sidebarCollapsed ? '{{ __('Subscriptions & Plans') }}' : ''">
+                    <i class="ph ph-crown text-lg text-amber-400 shrink-0"></i>
+                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('Subscriptions & Plans') }}</span>
                 </a>
 
                 <a href="{{ route('admin.coupons.index') }}" 

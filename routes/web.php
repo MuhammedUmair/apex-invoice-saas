@@ -144,6 +144,10 @@ Route::middleware('auth')->group(function () {
     // Super Admin Subscriptions & Plans Manager (Item 14)
     Route::get('/admin/subscriptions', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions.index');
     Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
+    Route::post('/admin/subscriptions/settings', [AdminSubscriptionController::class, 'updateAlertSettings'])->name('admin.subscriptions.settings');
+    Route::post('/admin/subscriptions/alerts/read-all', [AdminSubscriptionController::class, 'markAllAlertsRead'])->name('admin.subscriptions.alerts.read_all');
+    Route::post('/admin/subscriptions/alerts/{alert}/read', [AdminSubscriptionController::class, 'markAlertRead'])->name('admin.subscriptions.alerts.read');
+    Route::post('/admin/subscriptions/check-expirations', [AdminSubscriptionController::class, 'runExpirationCheck'])->name('admin.subscriptions.check_expirations');
     Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
     Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
 

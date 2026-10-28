@@ -30,6 +30,12 @@ class DashboardController extends Controller
             ->get();
 
         $subscription = $workspace->currentSubscription;
+        if ($subscription && $subscription->isExpired()) {
+            if ($subscription->status === 'trialing') {
+                $subscription->update(['status' => 'expired']);
+                app(\App\Services\SubscriptionAlertService::class)->notifyTrialExpired($workspace, $subscription);
+            }
+        }
 
         return view('dashboard', [
             'workspace' => $workspace,

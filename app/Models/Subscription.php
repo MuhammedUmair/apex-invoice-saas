@@ -49,4 +49,30 @@ class Subscription extends Model
     {
         return $this->isTrialing() || $this->isActive();
     }
+
+    public function isExpired(): bool
+    {
+        if ($this->status === 'expired') {
+            return true;
+        }
+
+        if ($this->status === 'trialing' && $this->trial_ends_at && $this->trial_ends_at->isPast()) {
+            return true;
+        }
+
+        if ($this->status === 'active' && $this->current_period_ends_at && $this->current_period_ends_at->isPast()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function trialDaysRemaining(): int
+    {
+        if (!$this->trial_ends_at || $this->trial_ends_at->isPast()) {
+            return 0;
+        }
+
+        return (int) ceil(now()->diffInHours($this->trial_ends_at) / 24);
+    }
 }

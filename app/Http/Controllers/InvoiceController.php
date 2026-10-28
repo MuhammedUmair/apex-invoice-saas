@@ -36,6 +36,24 @@ class InvoiceController extends Controller
 
     public function create()
     {
+        $workspace = Auth::user()->workspace;
+        $sub = $workspace->currentSubscription;
+
+        // 1. Check if trial or subscription is expired
+        if ($sub && $sub->isExpired()) {
+            if ($sub->status === 'trialing') {
+                $sub->update(['status' => 'expired']);
+                app(\App\Services\SubscriptionAlertService::class)->notifyTrialExpired($workspace, $sub);
+            }
+            return redirect()->route('membership.index')->with('error', 'Your free trial / subscription has expired. Please upgrade your package to continue creating invoices.');
+        }
+
+        // 2. Check if monthly invoice quota is reached for plan
+        $plan = $sub?->plan;
+        if ($plan && !$plan->canCreateInvoice($workspace)) {
+            return redirect()->route('membership.index')->with('error', "You have reached your {$plan->name} quota of {$plan->invoice_limit} invoices for this monthly cycle. Upgrade to Pro Business or Enterprise Scale for unlimited invoicing.");
+        }
+
         return view('invoices.create');
     }
 

@@ -89,6 +89,9 @@ class MembershipCheckout extends Component
             }
         }
 
+        $existingSub = $workspace->subscriptions()->first();
+        $oldPlan = $existingSub?->plan;
+
         // Activate / Update Subscription
         Subscription::updateOrCreate(
             ['workspace_id' => $workspace->id],
@@ -99,6 +102,15 @@ class MembershipCheckout extends Component
                 'status' => 'active',
                 'current_period_ends_at' => now()->addMonth(),
             ]
+        );
+
+        // Dispatch Super Admin Upgrade / Downgrade Alert (Item 5)
+        app(\App\Services\SubscriptionAlertService::class)->notifyPlanChange(
+            $workspace,
+            $oldPlan,
+            $plan,
+            $this->gateway,
+            $finalPriceCents
         );
 
         session()->flash('success', "Your membership has been upgraded to {$plan->name}!");

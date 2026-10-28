@@ -89,20 +89,26 @@ class AuthController extends Controller
             'role' => 'owner',
         ]);
 
-        // 3. Assign 14-Day Free Trial Subscription
+        // 3. Assign Free Trial Subscription (Configurable Days)
+        $trialDays = (int) \App\Models\CmsContent::getVal('trial_duration_days', 14);
         $trialPlan = Plan::where('code', 'trial')->first();
+        $sub = null;
         if ($trialPlan) {
-            Subscription::create([
+            $sub = Subscription::create([
                 'workspace_id' => $workspace->id,
                 'plan_id' => $trialPlan->id,
                 'gateway' => 'trial',
                 'status' => 'trialing',
-                'trial_ends_at' => now()->addDays(14),
+                'trial_ends_at' => now()->addDays($trialDays),
+                'current_period_ends_at' => now()->addDays($trialDays),
             ]);
+
+            // Dispatch Super Admin Signup Alert (Item 4)
+            app(\App\Services\SubscriptionAlertService::class)->notifySignup($user, $workspace, $trialPlan, $sub);
         }
 
         // 4. Process Promotional / Referral Coupon (Item 4)
-        $welcomeMsg = 'Welcome to RedMaple Invoicy! Your 14-day trial has begun.';
+        $welcomeMsg = "Welcome to RedMaple Invoicy! Your {$trialDays}-day trial has begun.";
         if (!empty($data['coupon_code'])) {
             try {
                 $couponService = app(\App\Services\CouponService::class);

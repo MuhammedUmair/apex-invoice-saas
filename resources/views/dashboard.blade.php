@@ -2,17 +2,34 @@
 
 @section('content')
 <div class="space-y-8">
-    <!-- Top Subscription Banner (if trialing or needs upgrade) -->
-    @if($subscription && $subscription->isTrialing())
+    <!-- Top Subscription Banner (if expired or trialing) -->
+    @if($subscription && $subscription->isExpired())
+        <div class="bg-gradient-to-r from-rose-900 to-red-900 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-300 text-2xl shrink-0">
+                    <i class="ph ph-warning-octagon"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg">Subscription / Free Trial Expired</h3>
+                    <p class="text-sm text-rose-200">
+                        Your trial period has concluded. Upgrade to Starter Agency, Pro Business, or Enterprise Scale to continue invoicing clients without interruption.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('membership.index') }}" class="px-5 py-2.5 bg-white hover:bg-slate-100 text-rose-900 font-bold text-sm rounded-xl shadow-md transition whitespace-nowrap">
+                Choose a Plan & Upgrade &rarr;
+            </a>
+        </div>
+    @elseif($subscription && $subscription->isTrialing())
         <div class="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-amber-400 text-2xl">
+                <div class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-amber-400 text-2xl shrink-0">
                     <i class="ph ph-sparkle"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-lg">14-Day Pro Trial Active</h3>
+                    <h3 class="font-bold text-lg">{{ $subscription->plan->name ?? 'Free Trial' }} Active</h3>
                     <p class="text-sm text-blue-200">
-                        Your free trial ends {{ $subscription->trial_ends_at ? $subscription->trial_ends_at->diffForHumans() : 'soon' }}. Upgrade now to keep unlimited invoices & custom branding.
+                        Your free trial ends {{ $subscription->trial_ends_at ? $subscription->trial_ends_at->diffForHumans() : 'soon' }} ({{ $subscription->trialDaysRemaining() }} days left). Upgrade now to keep unlimited features & custom branding.
                     </p>
                 </div>
             </div>
