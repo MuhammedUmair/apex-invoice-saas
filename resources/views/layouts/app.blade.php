@@ -340,33 +340,43 @@
         (function() {
             let isInternalNavigation = false;
 
-            // Track internal link clicks
+            // Track any user interaction inside the document (buttons, links, inputs, selects)
             document.addEventListener('click', function(e) {
                 const link = e.target.closest('a');
                 if (link && link.href) {
                     try {
                         const url = new URL(link.href, window.location.origin);
-                        if (url.origin === window.location.origin && link.target !== '_blank') {
-                            isInternalNavigation = true;
+                        if (url.origin !== window.location.origin) {
+                            return; // External link
                         }
                     } catch(err) {}
                 }
+                isInternalNavigation = true;
+                setTimeout(() => { isInternalNavigation = false; }, 3000);
             }, true);
 
             // Track form submissions
             document.addEventListener('submit', function() {
                 isInternalNavigation = true;
+                setTimeout(() => { isInternalNavigation = false; }, 3000);
             }, true);
 
             // Track reload / refresh shortcuts (F5, Ctrl+R, Cmd+R)
             window.addEventListener('keydown', function(e) {
                 if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
                     isInternalNavigation = true;
+                    setTimeout(() => { isInternalNavigation = false; }, 3000);
                 }
             });
 
             // Track back / forward browser navigation
             window.addEventListener('popstate', function() {
+                isInternalNavigation = true;
+                setTimeout(() => { isInternalNavigation = false; }, 3000);
+            });
+
+            // Livewire 3 navigation event
+            document.addEventListener('livewire:navigating', function() {
                 isInternalNavigation = true;
             });
 

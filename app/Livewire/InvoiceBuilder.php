@@ -276,6 +276,15 @@ class InvoiceBuilder extends Component
             $this->updatedIssueDate($this->issueDate);
         } elseif ($propertyName === 'dueDate') {
             $this->updatedDueDate($this->dueDate);
+        } elseif ($propertyName === 'taxRate') {
+            foreach ($this->items as $i => $item) {
+                $this->items[$i]['tax_rate'] = (float) $this->taxRate;
+            }
+        } elseif (is_string($propertyName) && str_starts_with($propertyName, 'items.') && str_ends_with($propertyName, '.service_id')) {
+            $parts = explode('.', $propertyName);
+            $idx = (int) $parts[1];
+            $val = $this->items[$idx]['service_id'] ?? '';
+            $this->selectService($idx, (string) $val);
         }
 
         $this->recalculate();
@@ -430,9 +439,9 @@ class InvoiceBuilder extends Component
         $this->recalculate();
     }
 
-    public function updatedItems($value, $key)
+    public function updatedItems($value = null, $key = null)
     {
-        if (str_ends_with($key, '.service_id')) {
+        if ($key && is_string($key) && str_ends_with($key, '.service_id')) {
             $parts = explode('.', $key);
             $idx = (int) $parts[0];
             $this->selectService($idx, (string) $value);

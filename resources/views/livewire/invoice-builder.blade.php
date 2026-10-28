@@ -120,9 +120,8 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">{{ __('Currency') }}</label>
-                                <select wire:key="currency-select-{{ $currency }}" 
+                                <select wire:key="currency-select" 
                                         wire:model.live="currency" 
-                                        wire:change="onCurrencyChange($event.target.value)" 
                                         class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
                                     <option value="PKR" @selected($currency === 'PKR')>PKR (Rs) - Pakistani Rupee</option>
                                     <option value="USD" @selected($currency === 'USD')>USD ($) - US Dollar</option>
@@ -138,9 +137,8 @@
                             </div>
                             <div>
                                 <label class="block text-[11px] font-semibold text-slate-700 mb-1">{{ __('Country Tax Rule') }}</label>
-                                <select wire:key="tax-country-select-{{ $countryTaxCode }}" 
+                                <select wire:key="tax-country-select" 
                                         wire:model.live="countryTaxCode" 
-                                        wire:change="onCountryTaxChange($event.target.value)" 
                                         class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
                                     <option value="PK" @selected($countryTaxCode === 'PK')>Pakistan - 16% SST</option>
                                     <option value="AE" @selected($countryTaxCode === 'AE')>UAE - 5% VAT</option>
@@ -266,7 +264,6 @@
                                         <td class="px-3 py-3 space-y-1.5 align-top">
                                             <select wire:key="service-select-{{ $idx }}"
                                                     wire:model.live="items.{{ $idx }}.service_id"
-                                                    wire:change="selectService({{ $idx }}, $event.target.value)" 
                                                     class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-red-500">
                                                 <option value="">-- {{ __('Select Catalog Service or Custom') }} --</option>
                                                 <optgroup label="Quick Presets">
