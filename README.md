@@ -92,4 +92,31 @@ The database has been seeded with initial agency data, demo clients, and subscri
 
 ---
 
+## 📚 Project Documentation Hub (`docs/`)
+
+All system architecture, product requirements, technical design, and testing specifications are organized inside the [`docs/`](docs/) directory:
+
+| Document | Description |
+| :--- | :--- |
+| **[`docs/APPFLOW.md`](docs/APPFLOW.md)** | Application Flow, Navigation Hierarchies & SaaS State Machine |
+| **[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)** | Tailwind CSS Design System, Brand Palette, Typography & Component Specs |
+| **[`docs/END_TO_END_FLOW_TESTING.md`](docs/END_TO_END_FLOW_TESTING.md)** | Complete End-to-End User Journey & Commerce Verification Suite |
+| **[`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)** | Phased Engineering Plan, Milestone Breakdown & Delivery Schedule |
+| **[`docs/PRD.md`](docs/PRD.md)** | Product Requirements Document (PRD) detailing Core Features & Personas |
+| **[`docs/QA_STRATEGY_360.md`](docs/QA_STRATEGY_360.md)** | 360-Degree Quality Assurance Framework (Unit, Integration, Security, Performance) |
+| **[`docs/SCHEMA.md`](docs/SCHEMA.md)** | Full Database Schema, Entity Relationships, Indexes & Foreign Keys |
+| **[`docs/SECURITY_CHECKLIST.md`](docs/SECURITY_CHECKLIST.md)** | Comprehensive OWASP Top 10 Hardening & Security Audit Checklist |
+| **[`docs/TECH_STACK.md`](docs/TECH_STACK.md)** | Technology Stack, Backend, Frontend, Storage & Infrastructure Architecture |
+| **[`docs/TEST_CASES_300.md`](docs/TEST_CASES_300.md)** | 300 Exhaustive Test Cases covering all modules (`TC-001` through `TC-300`) |
+| **[`docs/TRD.md`](docs/TRD.md)** | Technical Requirements Document (TRD), API Specs & Data Contracts |
+| **[`docs/VISUAL_APPFLOW.md`](docs/VISUAL_APPFLOW.md)** | Visual Architectural Diagrams, Mermaid Flowcharts & State Transitions |
+| **[`docs/HOSTINGER_DEPLOYMENT_GUIDE.md`](docs/HOSTINGER_DEPLOYMENT_GUIDE.md)** | Hostinger Deployment & Zero-Downtime Synchronization Runbook |
+| **[`docs/MODULES.md`](docs/MODULES.md)** | Architectural Module Map & System Boundaries |
+| **[`docs/SECURITY_CHECKLIST_AND_TEST_CASES.md`](docs/SECURITY_CHECKLIST_AND_TEST_CASES.md)** | Multi-Tenant Data Isolation & Security Test Suites |
+| **[`docs/TEST_EXECUTION_AND_SECURITY_REPORT.md`](docs/TEST_EXECUTION_AND_SECURITY_REPORT.md)** | Real-time Test Execution Logs & Verification Audit Report |
+
+---
+
+---
+
 © 2026 RedMaple. All rights reserved.
