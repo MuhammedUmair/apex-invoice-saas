@@ -66,6 +66,25 @@ class InvoiceController extends Controller
     {
         $invoice->load(['client', 'workspace']);
 
+        // 1. Phishing & Spam Relay Prevention: Require Verified Email (Item 4)
+        if (!Auth::user()->hasVerifiedEmail()) {
+            return back()->with('error', 'Email Verification Required: You must verify your account email address before dispatching invoices to clients.');
+        }
+
+        // 2. Anti-Abuse Send Cap per Workspace (Item 4)
+        if ($invoice->workspace->hasReachedDailyEmailCap()) {
+            $cap = $invoice->workspace->dailyEmailCap();
+            return back()->with('error', "Daily dispatch cap reached: Your account is limited to {$cap} outbound emails per day. Upgrade your subscription to increase dispatch limits.");
+        }
+
+        // 3. Trial Expiration Restriction
+        if ($invoice->workspace->isTrial()) {
+            $sub = $invoice->workspace->currentSubscription;
+            if ($sub && $sub->isExpired()) {
+                return back()->with('error', 'Trial Expired: Your free trial has ended. Please upgrade your package to dispatch invoices.');
+            }
+        }
+
         if (!$invoice->client || empty($invoice->client->email)) {
             return back()->with('error', 'This client does not have a registered email address in CRM.');
         }
@@ -93,6 +112,14 @@ class InvoiceController extends Controller
                 'sent_at' => now(),
             ]);
 
+            // Track daily send count to enforce send caps
+            $invoice->workspace->incrementDailyEmailCount();
+
+            \App\Services\AuditService::log('invoice.dispatched_email', $invoice, null, [
+                'recipient' => $invoice->client->email,
+                'invoice_number' => $invoice->invoice_number,
+            ]);
+
             return back()->with('message', "Invoice #{$invoice->invoice_number} successfully dispatched to {$invoice->client->email}!");
         } catch (\Throwable $e) {
             \Log::error("Failed to email invoice: " . $e->getMessage());
@@ -102,10 +129,26 @@ class InvoiceController extends Controller
 
     public function sendReminder(Invoice $invoice, InvoiceReminderService $reminderService)
     {
+        // Require verified email and check send cap for manual reminders too
+        if (!Auth::user()->hasVerifiedEmail()) {
+            return back()->with('error', 'Email Verification Required: You must verify your account email address before sending payment reminders.');
+        }
+
+        if ($invoice->workspace->hasReachedDailyEmailCap()) {
+            $cap = $invoice->workspace->dailyEmailCap();
+            return back()->with('error', "Daily dispatch cap reached: Your account is limited to {$cap} outbound emails per day.");
+        }
+
         try {
             $res = $reminderService->sendManualReminder($invoice);
 
             if (!empty($res['success'])) {
+                $invoice->workspace->incrementDailyEmailCount();
+
+                \App\Services\AuditService::log('invoice.manual_reminder', $invoice, null, [
+                    'recipient' => $invoice->client->email,
+                ]);
+
                 return back()->with('message', "Payment reminder successfully dispatched to {$invoice->client->email} and alert sent to vendor!");
             }
 
@@ -133,6 +176,11 @@ class InvoiceController extends Controller
             ->with(['client', 'items', 'workspace'])
             ->firstOrFail();
 
+        // 1. Expiring Token Verification (Item 6)
+        if ($invoice->isTokenExpired()) {
+            abort(410, 'Security Notice: This invoice portal access token has expired. Please contact the vendor for a refreshed link.');
+        }
+
         return view('invoices.customer-portal', compact('invoice'));
     }
 
@@ -145,6 +193,10 @@ class InvoiceController extends Controller
             ->where('public_secure_token', $token)
             ->with(['client', 'items', 'workspace'])
             ->firstOrFail();
+
+        if ($invoice->isTokenExpired()) {
+            return back()->with('coupon_error', 'Invoice portal token expired.');
+        }
 
         $code = trim($request->input('coupon_code', ''));
         if (empty($code)) {
@@ -185,11 +237,15 @@ class InvoiceController extends Controller
             ->where('public_secure_token', $token)
             ->firstOrFail();
 
+        if ($invoice->isTokenExpired()) {
+            abort(410, 'Security Notice: This document download link has expired.');
+        }
+
         return view('invoices.pdf-challenge', compact('invoice'));
     }
 
     /**
-     * Download or stream PDF invoice with optional password encryption.
+     * Download or stream PDF invoice with optional password encryption and PIN lockout.
      */
     public function downloadPdf(Request $request, string $token)
     {
@@ -198,13 +254,31 @@ class InvoiceController extends Controller
             ->with(['client', 'items', 'workspace'])
             ->firstOrFail();
 
+        if ($invoice->isTokenExpired()) {
+            abort(410, 'Security Notice: This PDF download token has expired.');
+        }
+
         if ($invoice->is_pdf_password_protected) {
+            // Check if token is currently locked out from too many failed PIN attempts (Item 6)
+            if ($invoice->isPinLocked()) {
+                $rem = max(1, (int) ceil(now()->diffInSeconds($invoice->pin_locked_until) / 60));
+                return redirect()->route('invoices.pdf.challenge', $token)
+                    ->withErrors(['password' => "Access locked: Maximum PIN attempts exceeded. Document download is blocked for {$rem} minute(s)."]);
+            }
+
             $password = $request->input('password') ?? session("pdf_auth_{$invoice->id}");
             if (!$this->pdfService->verifyPassword($invoice, $password)) {
+                $remAttempts = $invoice->recordFailedPinAttempt();
+                $err = $remAttempts > 0
+                    ? "Incorrect PIN entered. ({$remAttempts} attempt(s) remaining before 60-minute document lockout)."
+                    : "Access locked: 3 incorrect PIN attempts reached. This document link is blocked for 60 minutes.";
+
                 return redirect()->route('invoices.pdf.challenge', $token)
-                    ->withErrors(['password' => 'Incorrect password entered. This invoice document is protected.']);
+                    ->withErrors(['password' => $err]);
             }
-            // Store successful password check in session for duration of viewing
+
+            // Successful PIN check: reset lockout counter & store in session
+            $invoice->resetPinLockout();
             session(["pdf_auth_{$invoice->id}" => $password]);
         }
 

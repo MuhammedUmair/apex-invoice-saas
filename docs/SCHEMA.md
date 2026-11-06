@@ -162,30 +162,33 @@ Customer address, language, and billing preferences.
 ### 4.2 `invoices` & `invoice_items`
 Core invoicing transactions, calculation snapshots, and sequential tracking.
 
-| Table | Key Columns | Description |
-| :--- | :--- | :--- |
-| `invoices` | `id`, `workspace_id`, `client_id`, `invoice_number` (`UNIQUE`), `status` (`draft`, `issued`, `partially_paid`, `paid`, `overdue`, `cancelled`), `issue_date`, `due_date`, `currency`, `subtotal_cents`, `discount_cents`, `tax_cents`, `total_cents`, `paid_cents`, `due_cents`, `security_pin`, `client_snapshot_json`, `workspace_snapshot_json` | Complete invoice ledger record with frozen historical snapshots. |
-| `invoice_items` | `id`, `invoice_id`, `description`, `quantity`, `unit_price_cents`, `tax_rate`, `subtotal_cents`, `total_cents`, `sort_order` | Individual line items. Amounts calculated strictly in integer cents. |
-| `invoice_sequences` | `id`, `workspace_id`, `year`, `current_sequence` | Counter table locked via `SELECT ... FOR UPDATE` during generation. |
+| Table | Key Columns | Indexes & Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `invoices` | `id` (UUID), `workspace_id`, `client_id`, `invoice_number`, `status` (`draft`, `issued`, `sent`, `partially_paid`, `paid`, `overdue`, `void`, `credited`), `issue_date`, `due_date`, `currency`, `subtotal_cents`, `discount_cents`, `tax_cents`, `total_cents`, `paid_cents`, `due_cents`, `public_secure_token`, `portal_token_expires_at`, `failed_pin_attempts`, `pin_locked_until`, `client_snapshot`, `workspace_snapshot` | `PRIMARY KEY (id)`<br>`UNIQUE (workspace_id, invoice_number)`<br>`UNIQUE (public_secure_token)`<br>`INDEX (workspace_id, status)` | Multi-tenant invoice ledger record. Invoice numbering is strictly scoped per workspace `UNIQUE(workspace_id, invoice_number)`. Public portal tokens expire and lockout after 3 incorrect PIN attempts. |
+| `invoice_items` | `id` (UUID), `invoice_id`, `service_id`, `description`, `category`, `quantity`, `unit`, `rate_cents`, `tax_rate`, `tax_cents`, `amount_cents`, `sort_order` | `PRIMARY KEY (id)`<br>`INDEX (invoice_id, sort_order)` | Individual line items. Amounts calculated strictly in integer cents with GAAP/IFRS pre-tax discounts. |
+| `invoice_sequences` | `id`, `workspace_id`, `prefix`, `year`, `last_number` | `PRIMARY KEY (id)`<br>`UNIQUE (workspace_id, prefix, year)` | Counter table locked atomically via `SELECT ... FOR UPDATE` with `firstOrCreate` to prevent race conditions during year rollover. |
 
 ### 4.3 `payments` & `credit_notes`
 Payment reconciliation and ledger adjustments.
 
-| Table | Key Columns | Description |
-| :--- | :--- | :--- |
-| `payments` | `id`, `workspace_id`, `invoice_id`, `client_id`, `payment_number`, `gateway`, `amount_cents`, `currency`, `gateway_transaction_id`, `idempotency_key`, `status` (`completed`) | Idempotent transaction ledger. Duplicate webhooks with same key are ignored. |
-| `credit_notes` | `id`, `workspace_id`, `invoice_id`, `client_id`, `credit_note_number`, `amount_cents`, `reason`, `status` (`issued`, `applied`) | Official accounting refund/credit adjustment. Soft-deletion is prohibited. |
+| Table | Key Columns | Indexes & Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `payments` | `id` (UUID), `workspace_id`, `invoice_id`, `client_id`, `payment_number`, `gateway` (`stripe`, `paypal`, `bank_transfer`, `cash`, `manual`), `amount_cents`, `currency`, `gateway_transaction_id`, `idempotency_key`, `status` (`completed`, `pending`, `refunded`, `failed`) | `PRIMARY KEY (id)`<br>`UNIQUE (workspace_id, payment_number)`<br>`UNIQUE (idempotency_key)`<br>`INDEX (workspace_id, invoice_id)` | Idempotent transaction ledger. Unique constraint on `idempotency_key` guarantees concurrent retries and webhooks cannot produce duplicate ledger postings. |
+| `credit_notes` | `id` (UUID), `workspace_id`, `invoice_id`, `client_id`, `credit_note_number`, `amount_cents`, `tax_cents`, `currency`, `reason`, `status` (`issued`, `applied`, `refunded`, `void`) | `PRIMARY KEY (id)`<br>`UNIQUE (workspace_id, credit_note_number)`<br>`INDEX (workspace_id, invoice_id)` | Official accounting credit note adjustment. Scoped per workspace; records are permanent for audit compliance. |
 
 ---
 
-## 5. Automation, CMS & Platform Tables
+## 5. Security, Audit Logs & Platform Tables
 
-| Table | Purpose & Structure |
-| :--- | :--- |
-| `invoice_reminders` | Tracks automated dunning reminders dispatched (`invoice_id`, `stage`, `sent_at`, `recipient_email`). |
-| `recurring_invoices` | Retainer schedules (`client_id`, `frequency`, `next_run_date`, `status`, `auto_send`). |
-| `cms_contents` | System-wide configuration key-value store (`admin_alert_email`, `alert_on_signup`, `system_logo_url`). |
-| `doc_articles` | Multilingual software documentation articles (`category`, `title_json`, `content_json`, `slug`). |
-| `advertisements` | Sponsor ads (`title`, `headline`, `image_url`, `destination_url`, `position`, `clicks_count`). |
-| `website_pages` | Public custom pages (`title`, `slug`, `content_html`, `show_in_footer`, `is_published`). |
-| `subscription_alerts` | Super admin notification queue (`type`, `title`, `message`, `metadata`, `is_read`, `email_sent`). |
+| Table | Purpose & Structure | Key Constraints & Indexes |
+| :--- | :--- | :--- |
+| `audit_logs` | Immutable audit trail recording administrative actions, email updates, role changes, and approvals. (`id` UUID, `workspace_id` UUID NULL, `user_id` BIGINT NULL, `action` VARCHAR(100), `auditable_type`, `auditable_id`, `old_values` JSON, `new_values` JSON, `ip_address` VARCHAR(45), `user_agent` TEXT, `created_at` TIMESTAMP). | `PRIMARY KEY (id)`<br>`INDEX (workspace_id, created_at)`<br>`INDEX (user_id, created_at)` |
+| `users` | User accounts with multi-tenant scoping, Bcrypt hashing, Super Admin flag, and 2FA secrets (`two_factor_secret`, `two_factor_recovery_codes`, `two_factor_confirmed_at`). | `PRIMARY KEY (id)`<br>`UNIQUE (email)`<br>`INDEX (workspace_id)` |
+| `workspaces` | Tenant entity with daily email dispatch limits (`daily_email_send_cap`, `daily_emails_sent_count`, `last_email_sent_date`), banking instructions, and encrypted credentials. | `PRIMARY KEY (id)`<br>`UNIQUE (slug)` |
+| `invoice_reminders` | Tracks automated dunning reminders dispatched (`invoice_id`, `days_before`, `recipient_customer_email`, `created_at`). | `INDEX (invoice_id, days_before)` |
+| `recurring_invoices` | Retainer schedules (`client_id`, `frequency`, `next_run_date`, `status`, `auto_send`). | `INDEX (workspace_id, next_run_date)` |
+| `cms_contents` | System-wide configuration key-value store (`admin_alert_email`, `alert_on_signup`, `system_logo_url`). | `UNIQUE (key)` |
+| `doc_articles` | Multilingual software documentation articles (`category`, `title_json`, `content_json`, `slug`). | `UNIQUE (slug)` |
+| `advertisements` | Sponsor ads (`title`, `headline`, `image_url`, `destination_url`, `placement`, `clicks_count`). | `INDEX (placement, is_active)` |
+| `website_pages` | Public custom pages (`title`, `slug`, `content_html`, `show_in_footer`, `is_published`). | `UNIQUE (slug)` |
+| `subscription_alerts` | Super admin notification queue (`type`, `title`, `message`, `metadata`, `is_read`, `email_sent`). | `INDEX (is_read, created_at)` |

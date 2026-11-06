@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -30,15 +31,41 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
+        $throttleKey = 'login_attempt:' . Str::lower($credentials['email']) . '|' . $request->ip();
+
+        // Enforce 60-minute lockout on 3 failed attempts (Item 2)
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+
+            return back()->withErrors([
+                'email' => "Account locked: Too many failed login attempts. Your login is blocked for {$minutes} minute(s). Please try again later.",
+            ])->onlyInput('email')->setStatusCode(429);
+        }
+
         $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
+
+            \App\Services\AuditService::log('auth.login_success', Auth::user());
+
             return redirect()->intended(route('dashboard'));
         }
 
+        // Increment failed attempt counter with 3600-second (60 minutes) decay window
+        RateLimiter::hit($throttleKey, 3600);
+        $remaining = RateLimiter::remaining($throttleKey, 3);
+
+        $errorMessage = $remaining > 0
+            ? "The provided credentials do not match our records. (Warning: {$remaining} attempt(s) remaining before a 60-minute account lockout)."
+            : "Account locked: 3 incorrect password attempts reached. Your account login is blocked for 60 minutes.";
+
+        \App\Services\AuditService::log('auth.login_failed', null, null, ['email' => $credentials['email'], 'remaining' => $remaining]);
+
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
+            'email' => $errorMessage,
         ])->onlyInput('email');
     }
 

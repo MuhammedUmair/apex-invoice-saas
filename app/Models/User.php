@@ -70,4 +70,9 @@ class User extends Authenticatable
 
         return in_array(strtolower($this->email), array_map('strtolower', $superAdminEmails));
     }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return !empty($this->two_factor_secret) && $this->two_factor_confirmed_at !== null;
+    }
 }

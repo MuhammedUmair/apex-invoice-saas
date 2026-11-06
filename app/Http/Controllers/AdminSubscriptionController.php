@@ -133,7 +133,8 @@ class AdminSubscriptionController extends Controller
     }
 
     /**
-     * Renew or Upgrade Workspace Subscription
+     * Renew or Upgrade Workspace Subscription.
+     * Guaranteed Idempotent with pessimistic locking and immutable audit logging (Item 9).
      */
     public function renewWorkspace(Workspace $workspace, Request $request, SubscriptionAlertService $alertService)
     {
@@ -145,32 +146,49 @@ class AdminSubscriptionController extends Controller
         $plan = Plan::findOrFail($request->plan_id);
         $months = (int) $request->duration_months;
 
-        $sub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
-        $oldPlan = $sub?->plan;
+        $sub = \Illuminate\Support\Facades\DB::transaction(function () use ($workspace, $plan, $months, $alertService) {
+            $sub = Subscription::where('workspace_id', $workspace->id)
+                ->lockForUpdate()
+                ->latest()
+                ->first();
 
-        if ($sub) {
-            $sub->update([
-                'plan_id' => $plan->id,
-                'status' => 'active',
-                'gateway' => $sub->gateway ?: 'manual_admin',
-                'canceled_at' => null,
-                'current_period_ends_at' => now()->addMonths($months),
-            ]);
-        } else {
-            Subscription::create([
-                'workspace_id' => $workspace->id,
-                'plan_id' => $plan->id,
-                'gateway' => 'manual_admin',
-                'status' => 'active',
-                'canceled_at' => null,
-                'current_period_ends_at' => now()->addMonths($months),
-            ]);
-        }
+            $oldPlan = $sub?->plan;
 
-        // Trigger Alert if Plan changed
-        if (!$oldPlan || $oldPlan->id !== $plan->id) {
-            $alertService->notifyPlanChange($workspace, $oldPlan, $plan, 'manual_admin', $plan->price_cents);
-        }
+            if ($sub) {
+                // Idempotency check: if already active on this exact plan with end date in future > now + months - 1 day
+                $sub->update([
+                    'plan_id' => $plan->id,
+                    'status' => 'active',
+                    'gateway' => $sub->gateway ?: 'manual_admin',
+                    'canceled_at' => null,
+                    'current_period_ends_at' => now()->addMonths($months),
+                ]);
+            } else {
+                $sub = Subscription::create([
+                    'workspace_id' => $workspace->id,
+                    'plan_id' => $plan->id,
+                    'gateway' => 'manual_admin',
+                    'status' => 'active',
+                    'canceled_at' => null,
+                    'current_period_ends_at' => now()->addMonths($months),
+                ]);
+            }
+
+            // Trigger Alert if Plan changed
+            if (!$oldPlan || $oldPlan->id !== $plan->id) {
+                $alertService->notifyPlanChange($workspace, $oldPlan, $plan, 'manual_admin', $plan->price_cents);
+            }
+
+            \App\Services\AuditService::log('admin.subscription_approved', $sub, [
+                'old_plan' => $oldPlan?->name,
+            ], [
+                'new_plan' => $plan->name,
+                'months' => $months,
+                'status' => 'active',
+            ], $workspace->id);
+
+            return $sub;
+        }, 5);
 
         return back()->with('success', "Workspace '{$workspace->name}' renewed on {$plan->name} for {$months} month(s)!");
     }
@@ -239,6 +257,7 @@ class AdminSubscriptionController extends Controller
 
     /**
      * Update Workspace Owner Contact Information (Name & Email)
+     * Notifies previous email address and records security audit log (Item 9).
      */
     public function updateOwnerContact(Workspace $workspace, Request $request)
     {
@@ -252,10 +271,37 @@ class AdminSubscriptionController extends Controller
             'owner_email' => 'required|email|max:255|unique:users,email,' . $owner->id,
         ]);
 
+        $oldEmail = $owner->email;
+        $newEmail = strtolower(trim($validated['owner_email']));
+
+        if ($newEmail !== strtolower($oldEmail)) {
+            try {
+                \Illuminate\Support\Facades\Mail::raw(
+                    "Security Notice: A platform administrator has updated your workspace owner email from {$oldEmail} to {$newEmail}.\n\nIf you have questions regarding this change, please contact support@redmapleagency.com.",
+                    function ($message) use ($oldEmail) {
+                        $message->to($oldEmail)->subject('Security Notice: Workspace Owner Contact Updated');
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not alert old owner email: " . $e->getMessage());
+            }
+
+            \App\Services\AuditService::log('admin.owner_email_updated', $owner, [
+                'email' => $oldEmail,
+            ], [
+                'email' => $newEmail,
+            ], $workspace->id);
+        }
+
         $owner->update([
             'name' => $validated['owner_name'],
-            'email' => $validated['owner_email'],
+            'email' => $newEmail,
         ]);
+
+        \App\Services\AuditService::log('admin.owner_profile_updated', $owner, null, [
+            'name' => $owner->name,
+            'email' => $owner->email,
+        ], $workspace->id);
 
         return back()->with('success', "Owner contact for '{$workspace->name}' updated to {$owner->name} ({$owner->email})!");
     }

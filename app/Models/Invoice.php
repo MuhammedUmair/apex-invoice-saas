@@ -83,9 +83,60 @@ class Invoice extends Model
 
         static::creating(function ($invoice) {
             if (empty($invoice->public_secure_token)) {
-                $invoice->public_secure_token = Str::random(48);
+                $invoice->public_secure_token = Str::random(64);
+            }
+            if (empty($invoice->portal_token_expires_at)) {
+                $invoice->portal_token_expires_at = now()->addDays(90);
             }
         });
+    }
+
+    /**
+     * Check if the invoice belongs to a workspace currently on Trial.
+     */
+    public function isTrialInvoice(): bool
+    {
+        return $this->workspace ? $this->workspace->isTrial() : false;
+    }
+
+    /**
+     * Check if the public portal token has expired.
+     */
+    public function isTokenExpired(): bool
+    {
+        return $this->portal_token_expires_at && $this->portal_token_expires_at->isPast();
+    }
+
+    /**
+     * Check if PIN attempts are currently locked out for this token.
+     */
+    public function isPinLocked(): bool
+    {
+        return $this->pin_locked_until && $this->pin_locked_until->isFuture();
+    }
+
+    /**
+     * Record a failed PIN attempt. Lockout for 60 minutes after 3 failed attempts.
+     */
+    public function recordFailedPinAttempt(): int
+    {
+        $this->failed_pin_attempts = ($this->failed_pin_attempts ?? 0) + 1;
+        if ($this->failed_pin_attempts >= 3) {
+            $this->pin_locked_until = now()->addMinutes(60);
+        }
+        $this->save();
+
+        return 3 - $this->failed_pin_attempts;
+    }
+
+    /**
+     * Reset PIN attempts counter upon successful unlock.
+     */
+    public function resetPinLockout(): void
+    {
+        $this->failed_pin_attempts = 0;
+        $this->pin_locked_until = null;
+        $this->save();
     }
 
     public function client(): BelongsTo

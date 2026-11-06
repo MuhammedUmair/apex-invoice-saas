@@ -69,6 +69,45 @@ class IndustryPresetsSeeder extends Seeder
                     ['name' => 'Monthly Bookkeeping & Tax Prep Retainer', 'category' => 'Accounting', 'description' => 'Bank reconciliation and monthly financial statements', 'unit' => 'month', 'rate_cents' => 45000],
                 ],
             ],
+            [
+                'key' => 'carwash',
+                'name' => 'Car Wash & Auto Detailing',
+                'icon' => 'sparkles',
+                'description' => 'Predefined services for auto washes, mobile detailing, ceramic coating, and valeting.',
+                'items' => [
+                    ['name' => 'Express Exterior Foam Wash & Hand Dry', 'category' => 'Wash', 'description' => 'High-pressure foam cannon wash, wheel face cleaning, and microfiber dry', 'unit' => 'vehicle', 'rate_cents' => 2500],
+                    ['name' => 'Deluxe Interior Deep Clean & Vacuum', 'category' => 'Detailing', 'description' => 'Fabric shampoo, leather conditioner, dashboard UV dressing, and streak-free windows', 'unit' => 'vehicle', 'rate_cents' => 6500],
+                    ['name' => 'Full Ceramic Paint Protection (1-Year)', 'category' => 'Protection', 'description' => 'Clay bar decontamination, 1-stage machine polish, and 9H ceramic nano-coating', 'unit' => 'package', 'rate_cents' => 35000],
+                    ['name' => 'Engine Bay Steam Degrease & Dressing', 'category' => 'Specialty', 'description' => 'Safe electrical masking, steam degreasing, and matte finish dressing', 'unit' => 'service', 'rate_cents' => 4500],
+                    ['name' => 'Headlight UV Restoration & Polish', 'category' => 'Restoration', 'description' => 'Multi-grit wet sand, high-gloss compound buff, and anti-UV ceramic seal', 'unit' => 'pair', 'rate_cents' => 5000],
+                ],
+            ],
+            [
+                'key' => 'construction_company',
+                'name' => 'Construction & Contracting Services',
+                'icon' => 'building',
+                'description' => 'Standard line items for general contractors, civil engineers, and framing trades.',
+                'items' => [
+                    ['name' => 'Architectural Drafting & CAD Planning', 'category' => 'Planning', 'description' => 'Detailed blueprints, structural layout drawings, and permit submission pack', 'unit' => 'plan', 'rate_cents' => 180000],
+                    ['name' => 'Concrete Foundation & Footing Pour', 'category' => 'Structural', 'description' => 'Grading, rebar cage installation, formwork, and 4000 PSI concrete pour', 'unit' => 'cubic_yard', 'rate_cents' => 450000],
+                    ['name' => 'Structural Steel & Timber Framing', 'category' => 'Framing', 'description' => 'Load-bearing stud framing, roof trusses, subfloor sheeting, and hurricane anchors', 'unit' => 'sq_ft', 'rate_cents' => 320000],
+                    ['name' => 'Drywall Hanging, Taping & Skim Coating', 'category' => 'Finishing', 'description' => 'Level 4 drywall installation, joint compound taping, and smooth skim coat', 'unit' => 'sq_ft', 'rate_cents' => 120000],
+                    ['name' => 'Site Project Management & Supervision', 'category' => 'Supervision', 'description' => 'OSHA compliance oversight, subcontractor dispatch, and daily progress logs', 'unit' => 'hour', 'rate_cents' => 8500],
+                ],
+            ],
+            [
+                'key' => 'auto_spare_parts',
+                'name' => 'Auto Spare Parts & Accessories',
+                'icon' => 'cog',
+                'description' => 'Standard retail replacement parts, lubricants, filters, and automotive batteries.',
+                'items' => [
+                    ['name' => 'Premium Ceramic Brake Pads (Front Set)', 'category' => 'Brakes', 'description' => 'OEM-fit low-dust ceramic pads with noise reduction shims', 'unit' => 'set', 'rate_cents' => 8500],
+                    ['name' => 'Full Synthetic Motor Oil 5W-30 (5L Jug)', 'category' => 'Lubricants', 'description' => 'API SP / ILSAC GF-6A certified high-performance synthetic lubricant', 'unit' => 'jug', 'rate_cents' => 4500],
+                    ['name' => 'Heavy Duty Spin-On Oil Filter', 'category' => 'Filters', 'description' => 'Micro-glass filter media with silicone anti-drainback valve (99% filtration)', 'unit' => 'unit', 'rate_cents' => 1500],
+                    ['name' => 'AGM High-Performance Battery (12V 70Ah)', 'category' => 'Electrical', 'description' => 'Absorbent Glass Mat sealed battery with 760 Cold Cranking Amps (CCA)', 'unit' => 'unit', 'rate_cents' => 18500],
+                    ['name' => 'Bi-Xenon / LED Headlamp Replacement Assembly', 'category' => 'Lighting', 'description' => 'DOT/SAE compliant direct plug-and-play projector lamp assembly', 'unit' => 'unit', 'rate_cents' => 22000],
+                ],
+            ],
         ];
 
         foreach ($presets as $p) {

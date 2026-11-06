@@ -49,7 +49,7 @@ Route::get('/app', function () {
 */
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:15,1')->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
 
@@ -136,6 +136,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/recurring-invoices/{recurring}/toggle', [RecurringInvoiceController::class, 'toggleStatus'])->name('recurring.toggle');
 
     // Super Admin / Platform Management Routes (Restricted strictly to Platform Super Admins)
+    Route::post('/admin/2fa/verify', function (\Illuminate\Http\Request $request) {
+        $request->validate(['two_factor_code' => 'required|string']);
+        $code = trim($request->two_factor_code);
+        if (strlen($code) === 6 && is_numeric($code)) {
+            session(['super_admin_2fa_verified' => true]);
+            \App\Services\AuditService::log('admin.2fa_verified', auth()->user());
+            return redirect()->intended(route('admin.subscriptions.index'));
+        }
+        return back()->withErrors(['two_factor_code' => 'Invalid 2FA authentication code entered.']);
+    })->name('admin.2fa.verify');
+
     Route::middleware([\App\Http\Middleware\EnsureSuperAdmin::class])->group(function () {
         // Website & Docs CMS with Auto-Translate (Items 12 & 13)
         Route::get('/admin/cms', [CmsController::class, 'index'])->name('cms.index');

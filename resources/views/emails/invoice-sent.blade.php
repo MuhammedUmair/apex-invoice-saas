@@ -59,6 +59,12 @@
                 <a href="{{ $portalUrl }}" class="btn">View & Pay Online</a>
                 <a href="{{ $pdfUrl }}" class="btn btn-secondary">Download PDF</a>
             </div>
+
+            @if($invoice->isTrialInvoice())
+                <div style="margin-top: 24px; padding: 12px; background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 8px; font-size: 11px; color: #92400e; line-height: 1.4;">
+                    <strong>🛡️ Verification & Security Notice:</strong> This invoice was dispatched from an evaluation Free Trial account on Invoicy SaaS. Please verify sender authenticity and remittance bank details independently before submitting funds. Report suspicious invoices to <a href="mailto:abuse@redmapleagency.com" style="color: #b45309; text-decoration: underline;">abuse@redmapleagency.com</a>.
+                </div>
+            @endif
         </div>
         <div class="footer">
             <p>Sent securely via Invoicy by RedMaple &bull; {{ $invoice->workspace->email ?? 'support@redmapleagency.com' }}</p>

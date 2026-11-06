@@ -71,18 +71,19 @@ Verify customer portal accessibility, PIN challenge defense, and payment reconci
 
 ### 3.2 Execution Steps
 1. As an unauthenticated guest (incognito window), open customer portal link:  
-   `https://invoicy.redmapleagency.com/invoices/{id}/portal`.
-2. Observe invoice presentation with agency branding and wire remittance details.
-3. Click **"Download Official PDF"**.
-4. Enter invalid PIN `9999` -> Observe access denied.
-5. Enter correct 4-digit PIN -> Observe immediate download of official vector invoice PDF.
-6. Simulate online payment completion via Stripe/PayPal webhook.
+   `https://invoicy.redmapleagency.com/invoices/p/{token}`.
+2. Observe invoice presentation with agency branding and wire remittance details (and big diagonal watermark on trial invoices).
+3. Click **"Download Official PDF"** navigating to `/invoices/p/{token}/pdf-unlock`.
+4. Enter invalid PIN 3 consecutive times -> Observe 60-minute token lockout response (`pin_locked_until`).
+5. Enter correct 4-digit PIN on unlocked token -> Observe immediate download of official vector invoice PDF at `/invoices/p/{token}/pdf`.
+6. Simulate online payment completion via Stripe/PayPal webhook with `idempotency_key`.
 
 ### 3.3 Verification Criteria & Results
-- [x] Portal loads cleanly without requiring user login.
-- [x] Security PIN challenge halts unauthorized PDF download.
+- [x] Portal loads cleanly via token without requiring user login (`/invoices/p/{token}`).
+- [x] Expired tokens reject access with HTTP 410 Gone.
+- [x] Security PIN challenge halts unauthorized PDF download with 3-attempt/60-minute lockout.
 - [x] Correct PIN successfully unlocks high-fidelity PDF stream.
-- [x] Webhook records payment in `payments` table with unique `idempotency_key`.
+- [x] Webhook records payment idempotently with database unique constraint on `idempotency_key`.
 - [x] Invoice `paid_cents` increments and status updates to `paid`.
 
 ---

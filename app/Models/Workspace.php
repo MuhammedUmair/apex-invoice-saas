@@ -103,4 +103,68 @@ class Workspace extends Model
 
         return $sub->isValid();
     }
+
+    /**
+     * Check if workspace is currently on a Trial version.
+     */
+    public function isTrial(): bool
+    {
+        $sub = $this->currentSubscription;
+        if (!$sub) {
+            return true;
+        }
+
+        if ($sub->status === 'trialing') {
+            return true;
+        }
+
+        return $sub->plan && ($sub->plan->is_trial || $sub->plan->code === 'trial');
+    }
+
+    /**
+     * Return daily email send quota based on plan tier.
+     */
+    public function dailyEmailCap(): int
+    {
+        if ($this->isTrial()) {
+            return 5; // Trial accounts capped at 5 sends/day to prevent spam relays
+        }
+
+        $planCode = $this->currentSubscription?->plan?->code;
+        return match ($planCode) {
+            'starter' => 50,
+            'pro' => 250,
+            'enterprise' => 1000,
+            default => 25,
+        };
+    }
+
+    /**
+     * Check if workspace has reached daily email dispatch cap.
+     */
+    public function hasReachedDailyEmailCap(): bool
+    {
+        $today = now()->toDateString();
+        if ($this->last_email_sent_date !== $today) {
+            return false;
+        }
+
+        return ($this->daily_emails_sent_count ?? 0) >= $this->dailyEmailCap();
+    }
+
+    /**
+     * Record an email send and increment daily counter.
+     */
+    public function incrementDailyEmailCount(): void
+    {
+        $today = now()->toDateString();
+        if ($this->last_email_sent_date !== $today) {
+            $this->last_email_sent_date = $today;
+            $this->daily_emails_sent_count = 1;
+        } else {
+            $this->daily_emails_sent_count = ($this->daily_emails_sent_count ?? 0) + 1;
+        }
+
+        $this->save();
+    }
 }

@@ -10,7 +10,9 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 
 class CouponService
 {
@@ -24,11 +26,25 @@ class CouponService
         string $currency = 'USD',
         ?Workspace $workspace = null
     ): array {
+        // 1. Rate-limit coupon validation attempts: 5 attempts per 10 minutes (Item 5)
+        $throttleKey = 'coupon_validate:' . (request() ? request()->ip() : 'cli');
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return [
+                'valid' => false,
+                'message' => "Too many coupon validation attempts. Please wait {$minutes} minute(s) before trying another promo code.",
+                'coupon' => null,
+                'discount_cents' => 0,
+            ];
+        }
+
         $cleanCode = strtoupper(trim($code));
 
         $coupon = Coupon::whereRaw('UPPER(code) = ?', [$cleanCode])->first();
 
         if (!$coupon) {
+            RateLimiter::hit($throttleKey, 600); // 10-minute penalty
             return [
                 'valid' => false,
                 'message' => 'Invalid or unrecognized promo coupon code.',
@@ -38,6 +54,7 @@ class CouponService
         }
 
         if (!$coupon->is_active) {
+            RateLimiter::hit($throttleKey, 600);
             return [
                 'valid' => false,
                 'message' => 'This promo code is no longer active.',
@@ -55,13 +72,47 @@ class CouponService
             ];
         }
 
+        // 2. Global Max Redemptions Cap (Item 5)
         if ($coupon->max_redemptions !== null && $coupon->times_redeemed >= $coupon->max_redemptions) {
             return [
                 'valid' => false,
-                'message' => 'This coupon has reached its maximum usage limit.',
+                'message' => 'This coupon has reached its maximum global usage limit.',
                 'coupon' => $coupon,
                 'discount_cents' => 0,
             ];
+        }
+
+        // 3. Prevent Free-Plan Loop: User-Level Redemption Check Across Workspaces (Item 5)
+        $userId = Auth::id();
+        if ($userId) {
+            $alreadyUsedByUser = CouponRedemption::where('coupon_id', $coupon->id)
+                ->where('user_id', $userId)
+                ->exists();
+
+            if ($alreadyUsedByUser) {
+                return [
+                    'valid' => false,
+                    'message' => 'You have already redeemed this promotional coupon on your account.',
+                    'coupon' => $coupon,
+                    'discount_cents' => 0,
+                ];
+            }
+        }
+
+        // 4. Workspace single-use check
+        if ($workspace) {
+            $alreadyUsedByWorkspace = CouponRedemption::where('coupon_id', $coupon->id)
+                ->where('workspace_id', $workspace->id)
+                ->exists();
+
+            if ($alreadyUsedByWorkspace) {
+                return [
+                    'valid' => false,
+                    'message' => 'This coupon has already been redeemed for this workspace.',
+                    'coupon' => $coupon,
+                    'discount_cents' => 0,
+                ];
+            }
         }
 
         // Validate target

@@ -143,7 +143,14 @@
     </div>
 
     <!-- Invoice Content Paper -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8 relative overflow-hidden">
+        @if($invoice->isTrialInvoice())
+            <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-center overflow-hidden z-20">
+                <div class="transform -rotate-25 border-4 border-dashed border-red-500/30 px-10 py-4 text-center font-black tracking-widest text-red-500/25 text-2xl sm:text-4xl uppercase whitespace-nowrap">
+                    Trial Version &bull; Not For Official Accounting
+                </div>
+            </div>
+        @endif
         <!-- Invoice Parties -->
         <div class="grid grid-cols-2 gap-8 border-b border-slate-100 pb-8">
             <div>

@@ -154,6 +154,8 @@ class SettingsController extends Controller
 
     /**
      * Update Owner / User Personal Profile (Name & Contact Email)
+     * Hardened against Account-Takeover (ATO): Requires password confirmation,
+     * dispatches security alert to previous email, and logs audit trail (Item 9).
      */
     public function updateProfile(Request $request)
     {
@@ -162,12 +164,42 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'current_password' => 'nullable|string',
         ]);
 
-        $user->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-        ]);
+        $oldEmail = $user->email;
+        $newEmail = strtolower(trim($validated['email']));
+
+        if ($newEmail !== strtolower($oldEmail)) {
+            // Require current password verification to prevent unauthorized account takeover
+            if (empty($request->current_password) || !\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+                return back()->withErrors([
+                    'current_password' => 'Security Verification Required: You must verify your current account password to change your login email address.',
+                ]);
+            }
+
+            // Dispatch alert to previous email address
+            try {
+                \Illuminate\Support\Facades\Mail::raw(
+                    "Security Alert: Your Invoicy workspace account email has been updated from {$oldEmail} to {$newEmail}.\n\nIf you did not authorize this change, please contact support@redmapleagency.com immediately.",
+                    function ($message) use ($oldEmail) {
+                        $message->to($oldEmail)->subject('Security Alert: Invoicy Account Email Address Changed');
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to dispatch email change alert to old address: " . $e->getMessage());
+            }
+
+            $user->email = $newEmail;
+            $user->email_verified_at = null; // Invalidate verification for new email
+
+            \App\Services\AuditService::log('user.email_changed', $user, ['email' => $oldEmail], ['email' => $newEmail]);
+        }
+
+        $user->name = $validated['name'];
+        $user->save();
+
+        \App\Services\AuditService::log('user.profile_updated', $user, null, ['name' => $user->name, 'email' => $user->email]);
 
         return redirect()->route('settings.index')->with('profile_success', 'Your owner name and contact email have been updated successfully!');
     }

@@ -52,8 +52,8 @@ Phase 6: CMS & Website Builder <── Phase 5: Reminders & Retainers <── Ph
 ### Phase 4: PDF PIN Security, Customer Portal & Gateways
 - **Objective:** Client-facing invoice portal, secure PDF access challenge, and payment reconciliation.
 - **Key Deliverables:**
-  - Public customer portal route (`/invoices/{id}/portal`) accessible via secure token.
-  - 4-digit PIN security challenge for downloading official vector PDFs.
+  - Public customer portal route (`/invoices/p/{token}`) accessible via 64-char expiring token.
+  - 4-digit PIN security challenge with 3-attempt/60-min lockout (`/invoices/p/{token}/pdf-unlock`).
   - Bank wire transfer remittance details rendered on invoices and portal.
   - Dual payment gateway integration (Stripe & PayPal) with webhook handler in `WebhookController`.
   - Idempotent transaction ledger recording in `PaymentReconciliationService`.

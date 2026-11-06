@@ -73,7 +73,16 @@ class MembershipCheckout extends Component
 
     public function processCheckout()
     {
-        $workspace = Auth::user()->workspace;
+        $user = Auth::user();
+
+        // Email Verification check to prevent automated free-plan loops (Item 5)
+        if (!$user->hasVerifiedEmail()) {
+            $this->couponStatus = 'Email Verification Required: Please verify your account email address before applying promotional codes or upgrading plans.';
+            $this->isCouponValid = false;
+            return;
+        }
+
+        $workspace = $user->workspace;
         $plan = Plan::findOrFail($this->selectedPlanId);
 
         $finalPriceCents = max(0, $plan->price_cents - $this->discountCents);

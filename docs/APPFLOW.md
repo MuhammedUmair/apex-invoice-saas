@@ -117,15 +117,17 @@
 
 ## 7. Journey 6: Customer Portal & PDF PIN Security
 
-1. **Customer Access (`/invoices/{id}/portal`)**:
-   - Client clicks unique secure link received via email.
-   - Portal displays modern responsive invoice view with agency branding and status badge.
+1. **Customer Access (`/invoices/p/{token}`)**:
+   - Client clicks unique secure link received via email containing a 64-character unguessable cryptographic token.
+   - Token validity is enforced by `portal_token_expires_at` (returns HTTP 410 Gone once expired).
+   - Portal displays modern responsive invoice view with agency branding and status badge. Trial invoices render a prominent diagonal watermark.
 2. **Payment Remittance**:
    - Client views Agency Bank Details (IBAN, Swift, Account #) for direct wire transfer.
-   - If agency enabled Stripe/PayPal, client clicks **"Pay Now"** link to pay online.
-3. **PIN-Protected PDF Download**:
-   - Clicking **"Download Official PDF"** prompts for a 4-digit PIN verification.
-   - Entering correct PIN unlocks immediate vector PDF download.
+   - If agency enabled Stripe/PayPal, client clicks **"Pay Now"** link to pay online via idempotent ledger processing.
+3. **PIN-Protected PDF Download (`/invoices/p/{token}/pdf-unlock`)**:
+   - Clicking **"Download Official PDF"** prompts for PIN verification if enabled.
+   - Throttled per token: 3 incorrect PIN attempts triggers an automatic 60-minute lockout on the token (`pin_locked_until`).
+   - Entering correct PIN unlocks immediate vector PDF download at `/invoices/p/{token}/pdf`.
 
 ---
 

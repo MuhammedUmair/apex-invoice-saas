@@ -112,24 +112,31 @@ flowchart TD
 ## 5. Customer Portal & PIN Challenge Flow
 
 ```mermaid
-flowchart LR
-    ClientLink([Customer opens /invoices/{id}/portal]) --> CheckPIN{Invoice Has PIN?}
-    
-    CheckPIN -- No --> PortalView[Display Customer Portal Directly]
-    CheckPIN -- Yes --> AuthPIN{PIN Session Verified?}
+flowchart TD
+    ClientLink([Customer opens /invoices/p/token]) --> CheckExpire{Token Expired?}
+    CheckExpire -- Yes --> ExpiredView[Return HTTP 410 Gone]
+    CheckExpire -- No --> CheckLock{Token PIN Locked?}
 
-    AuthPIN -- Yes --> PortalView
-    AuthPIN -- No --> ChallengeView[Display 4-Digit Security PIN Challenge]
+    CheckLock -- Yes --> LockedView[Show 60-Min Lockout Screen]
+    CheckLock -- No --> PortalView[Display Customer Portal & Trial Watermark]
+
+    PortalView --> Action1[View Bank Remittance Wire Details]
+    PortalView --> Action2[Click 'Pay Online' via Idempotent Webhook]
+    PortalView --> Action3[Click 'Download PDF' /pdf-unlock]
+
+    Action3 --> CheckPIN{Invoice Has PIN?}
+    CheckPIN -- No --> DownloadStream[Download Vector PDF]
+    CheckPIN -- Yes --> AuthPIN{Session Valid?}
+    AuthPIN -- Yes --> DownloadStream
+    AuthPIN -- No --> ChallengeView[Show PIN Challenge Screen]
 
     ChallengeView --> InputPIN[Customer enters 4-digit PIN]
-    InputPIN --> VerifyPIN{Matches Hash?}
-    VerifyPIN -- No --> ShowErr[Show Invalid PIN Error]
-    VerifyPIN -- Yes --> SetSession[Store Verified PIN in Session]
-    SetSession --> PortalView
-
-    PortalView --> Action1[View Bank Details for Wire Transfer]
-    PortalView --> Action2[Click 'Pay Now' for Stripe/PayPal]
-    PortalView --> Action3[Download Official Vector PDF]
+    InputPIN --> VerifyPIN{Matches Bcrypt Hash?}
+    VerifyPIN -- Yes --> UnlockPDF[Reset Lockout Counter & Download PDF]
+    VerifyPIN -- No --> IncFail[Increment Failed Counter]
+    IncFail --> CheckMax{Attempts >= 3?}
+    CheckMax -- Yes --> LockToken[Lock Token for 60 Minutes]
+    CheckMax -- No --> ChallengeView
 ```
 
 ---

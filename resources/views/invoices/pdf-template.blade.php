@@ -33,6 +33,25 @@
         .badge-paid { background: #dcfce7; color: #166534; }
         .badge-due { background: #fee2e2; color: #991b1b; }
         .no-print { margin-bottom: 20px; }
+        .trial-watermark {
+            position: fixed;
+            top: 36%;
+            left: -15%;
+            width: 130%;
+            text-align: center;
+            transform: rotate(-32deg);
+            font-size: 44px;
+            font-weight: 900;
+            color: rgba(220, 38, 38, 0.20);
+            border-top: 4px dashed rgba(220, 38, 38, 0.25);
+            border-bottom: 4px dashed rgba(220, 38, 38, 0.25);
+            padding: 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+        }
         @media print {
             .no-print { display: none !important; }
             body { padding: 0; }
@@ -40,6 +59,11 @@
     </style>
 </head>
 <body>
+    @if($invoice->isTrialInvoice())
+        <div class="trial-watermark">
+            TRIAL VERSION &bull; NOT FOR OFFICIAL ACCOUNTING
+        </div>
+    @endif
     <div class="no-print" style="text-align: right;">
         <button onclick="window.print()" style="padding: 8px 18px; background: #dc2626; color: #ffffff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
             <svg width="14" height="14" viewBox="0 0 900 900" fill="#ffffff" style="vertical-align: middle;">
