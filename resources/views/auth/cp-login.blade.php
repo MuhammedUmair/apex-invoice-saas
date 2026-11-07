@@ -112,7 +112,7 @@
                     <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus
                            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                            data-lpignore="true" data-1p-ignore="true" data-form-type="other"
-                           placeholder="superadmin@redmaplestudio.com"
+                           placeholder="superadmin@redmapleagency.com"
                            readonly onfocus="this.removeAttribute('readonly');" onpointerdown="this.removeAttribute('readonly');"
                            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-white font-medium">
                 </div>

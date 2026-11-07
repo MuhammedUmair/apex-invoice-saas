@@ -64,9 +64,10 @@ class User extends Authenticatable
         }
 
         $superAdminEmails = [
+            'superadmin@redmapleagency.com',
             'superadmin@redmaplestudio.com',
-            'admin@redmaplestudio.com',
             'admin@redmapleagency.com',
+            'admin@redmaplestudio.com',
         ];
 
         return in_array(strtolower($this->email), array_map('strtolower', $superAdminEmails));

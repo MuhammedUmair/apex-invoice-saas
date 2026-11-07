@@ -47,9 +47,9 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Create Super Admin User (superadmin@redmaplestudio.com)
+        // Create Super Admin User (superadmin@redmapleagency.com)
         $superAdmin = User::updateOrCreate(
-            ['email' => 'superadmin@redmaplestudio.com'],
+            ['email' => 'superadmin@redmapleagency.com'],
             [
                 'workspace_id' => $workspace->id,
                 'name' => 'RedMaple Super Admin',
@@ -63,6 +63,14 @@ class DatabaseSeeder extends Seeder
         $superAdmin->is_super_admin = true;
         $superAdmin->email_verified_at = now();
         $superAdmin->save();
+
+        // Also ensure legacy/alias superadmin accounts match credentials
+        $legacySuper = User::where('email', 'superadmin@redmaplestudio.com')->first();
+        if ($legacySuper) {
+            $legacySuper->password = Hash::make('&@Ss!ord123!');
+            $legacySuper->is_super_admin = true;
+            $legacySuper->save();
+        }
 
         // Also ensure admin@redmaplestudio.com can log in or redirect
         $user = User::firstOrCreate(

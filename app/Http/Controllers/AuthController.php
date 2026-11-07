@@ -285,9 +285,9 @@ class AuthController extends Controller
             ]);
         }
 
-        $email = session('cp_otp_email', 'superadmin@redmaplestudio.com');
+        $email = session('cp_otp_email', 'superadmin@redmapleagency.com');
         $parts = explode('@', $email);
-        $maskedEmail = substr($parts[0], 0, 3) . '***@' . ($parts[1] ?? 'redmaplestudio.com');
+        $maskedEmail = substr($parts[0], 0, 3) . '***@' . ($parts[1] ?? 'redmapleagency.com');
         $remainingSeconds = max(0, $expiresAt - now()->timestamp);
 
         return view('auth.cp-otp', compact('maskedEmail', 'remainingSeconds'));
