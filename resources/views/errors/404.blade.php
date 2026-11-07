@@ -118,7 +118,7 @@
                         <span class="font-bold text-slate-800">Control Panel</span>
                         <span class="text-[10px] text-slate-400">Super Admin /cp</span>
                     </a>
-                    <a href="{{ route('pricing') }}" class="p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 flex flex-col gap-1">
+                    <a href="{{ url('/#pricing') }}" class="p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 flex flex-col gap-1">
                         <i class="ph ph-tag text-blue-600 text-lg"></i>
                         <span class="font-bold text-slate-800">Plans & Pricing</span>
                         <span class="text-[10px] text-slate-400">Compare tiers</span>
@@ -142,9 +142,9 @@
             <div class="flex items-center gap-4 text-[11px]">
                 <a href="{{ url('/') }}" class="hover:text-slate-600 transition">Home</a>
                 <span>&bull;</span>
-                <a href="{{ route('privacy') }}" class="hover:text-slate-600 transition">Privacy Policy</a>
+                <a href="{{ url('/p/privacy') }}" class="hover:text-slate-600 transition">Privacy Policy</a>
                 <span>&bull;</span>
-                <a href="{{ route('terms') }}" class="hover:text-slate-600 transition">Terms of Service</a>
+                <a href="{{ url('/p/terms') }}" class="hover:text-slate-600 transition">Terms of Service</a>
                 <span>&bull;</span>
                 <a href="mailto:support@redmapleagency.com" class="hover:text-slate-600 transition">Contact</a>
             </div>
