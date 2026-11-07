@@ -59,6 +59,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, Request $request) {
+            return response()->view('errors.404', [], 404);
+        });
+
         $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
             if ($request->is('logout') || $request->is('*/logout')) {
                 Auth::logout();

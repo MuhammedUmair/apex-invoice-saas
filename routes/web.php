@@ -236,3 +236,8 @@ Route::get('/invoices/track/{token}/open.gif', [InvoiceController::class, 'track
 */
 Route::post('/webhooks/stripe', [WebhookController::class, 'handleStripe'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/webhooks/paypal', [WebhookController::class, 'handlePayPal'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Custom 404 Fallback Handler
+Route::fallback(function () {
+    return response()->view('errors.404', [], 404);
+});
