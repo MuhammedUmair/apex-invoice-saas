@@ -47,13 +47,30 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Create Demo Admin User
+        // Create Super Admin User (superadmin@redmaplestudio.com)
+        $superAdmin = User::updateOrCreate(
+            ['email' => 'superadmin@redmaplestudio.com'],
+            [
+                'workspace_id' => $workspace->id,
+                'name' => 'RedMaple Super Admin',
+                'password' => Hash::make('&@Ss!ord123!'),
+                'role' => 'owner',
+                'is_super_admin' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+        $superAdmin->password = Hash::make('&@Ss!ord123!');
+        $superAdmin->is_super_admin = true;
+        $superAdmin->email_verified_at = now();
+        $superAdmin->save();
+
+        // Also ensure admin@redmaplestudio.com can log in or redirect
         $user = User::firstOrCreate(
             ['email' => 'admin@redmaplestudio.com'],
             [
                 'workspace_id' => $workspace->id,
                 'name' => 'RedMaple Admin',
-                'password' => Hash::make('Password123!'),
+                'password' => Hash::make('&@Ss!ord123!'),
                 'role' => 'owner',
                 'is_super_admin' => true,
                 'email_verified_at' => now(),

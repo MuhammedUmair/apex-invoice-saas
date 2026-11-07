@@ -38,7 +38,20 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
-        return view('auth.login');
+
+        $ipThrottleKey = 'login_ip_locked:' . $request->ip();
+        $isLocked = false;
+        $lockoutSeconds = 0;
+
+        if (RateLimiter::tooManyAttempts($ipThrottleKey, 1)) {
+            $isLocked = true;
+            $lockoutSeconds = RateLimiter::availableIn($ipThrottleKey);
+        } elseif (session()->has('lockout_seconds')) {
+            $isLocked = true;
+            $lockoutSeconds = (int) session('lockout_seconds');
+        }
+
+        return view('auth.login', compact('isLocked', 'lockoutSeconds'));
     }
 
     public function login(Request $request)
@@ -48,22 +61,33 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $throttleKey = 'login_attempt:' . Str::lower($credentials['email']) . '|' . $request->ip();
+        $ip = $request->ip();
+        $email = Str::lower(trim($credentials['email']));
+        $ipThrottleKey = 'login_ip_locked:' . $ip;
+        $emailThrottleKey = 'login_attempt:' . $email . '|' . $ip;
 
-        // Enforce 60-minute lockout on 3 failed attempts (Item 2)
-        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
-            $seconds = RateLimiter::availableIn($throttleKey);
+        // 1. Check if IP or Account is currently locked out (Item 1 & 2)
+        if (RateLimiter::tooManyAttempts($ipThrottleKey, 1) || RateLimiter::tooManyAttempts($emailThrottleKey, 3)) {
+            $seconds = max(
+                RateLimiter::availableIn($ipThrottleKey),
+                RateLimiter::availableIn($emailThrottleKey)
+            );
+            if ($seconds <= 0) {
+                $seconds = 3600;
+            }
             $minutes = max(1, (int) ceil($seconds / 60));
 
-            return back()->withErrors([
-                'email' => "Account locked: Too many failed login attempts. Your login is blocked for {$minutes} minute(s). Please try again later.",
-            ])->onlyInput('email')->setStatusCode(429);
+            return back()->with('lockout_seconds', $seconds)
+                ->withErrors([
+                    'lockout' => "Account locked: Too many failed login attempts. Your login is blocked for {$minutes} minute(s). Please try again later.",
+                ])->setStatusCode(429);
         }
 
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
-            RateLimiter::clear($throttleKey);
+        if (Auth::attempt(['email' => $email, 'password' => $credentials['password']], $remember)) {
+            RateLimiter::clear($emailThrottleKey);
+            RateLimiter::clear($ipThrottleKey);
             $request->session()->regenerate();
 
             \App\Services\AuditService::log('auth.login_success', Auth::user());
@@ -71,15 +95,34 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
 
-        // Increment failed attempt counter with 3600-second (60 minutes) decay window
-        RateLimiter::hit($throttleKey, 3600);
-        $remaining = RateLimiter::remaining($throttleKey, 3);
+        // 2. Increment failed attempt counter with 3600-second (60 minutes) decay window
+        RateLimiter::hit($emailThrottleKey, 3600);
+        $remaining = RateLimiter::remaining($emailThrottleKey, 3);
 
-        $errorMessage = $remaining > 0
-            ? "The provided credentials do not match our records. (Warning: {$remaining} attempt(s) remaining before a 60-minute account lockout)."
-            : "Account locked: 3 incorrect password attempts reached. Your account login is blocked for 60 minutes.";
+        if ($remaining <= 0) {
+            // Lock out IP and Account for 60 minutes
+            RateLimiter::hit($ipThrottleKey, 3600);
+            $seconds = RateLimiter::availableIn($ipThrottleKey);
+            if ($seconds <= 0) {
+                $seconds = 3600;
+            }
+            $minutes = max(1, (int) ceil($seconds / 60));
 
-        \App\Services\AuditService::log('auth.login_failed', null, null, ['email' => $credentials['email'], 'remaining' => $remaining]);
+            \App\Services\AuditService::log('auth.login_locked', null, null, [
+                'email' => $email,
+                'ip' => $ip,
+                'lockout_minutes' => 60,
+            ]);
+
+            return back()->with('lockout_seconds', $seconds)
+                ->withErrors([
+                    'lockout' => "Account locked: Too many failed login attempts. Your login is blocked for {$minutes} minute(s). Please try again later.",
+                ])->setStatusCode(429);
+        }
+
+        $errorMessage = "The provided credentials do not match our records. (Warning: {$remaining} attempt(s) remaining before a 60-minute account lockout).";
+
+        \App\Services\AuditService::log('auth.login_failed', null, null, ['email' => $email, 'remaining' => $remaining]);
 
         return back()->withErrors([
             'email' => $errorMessage,

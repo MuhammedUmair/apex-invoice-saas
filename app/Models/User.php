@@ -64,6 +64,7 @@ class User extends Authenticatable
         }
 
         $superAdminEmails = [
+            'superadmin@redmaplestudio.com',
             'admin@redmaplestudio.com',
             'admin@redmapleagency.com',
         ];
