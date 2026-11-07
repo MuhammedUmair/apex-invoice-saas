@@ -185,7 +185,8 @@ class InvoiceController extends Controller
         if (!$invoice->viewed_at) {
             $invoice->viewed_at = now();
         }
-        $invoice->increment('view_count');
+        $invoice->view_count = ($invoice->view_count ?? 0) + 1;
+        $invoice->save();
 
         return view('invoices.customer-portal', compact('invoice'));
     }
@@ -293,7 +294,8 @@ class InvoiceController extends Controller
         if (!$invoice->viewed_at) {
             $invoice->viewed_at = now();
         }
-        $invoice->increment('view_count');
+        $invoice->view_count = ($invoice->view_count ?? 0) + 1;
+        $invoice->save();
 
         // Return clean printable PDF view (which supports standard browser PDF save or mPDF)
         return view('invoices.pdf-template', compact('invoice'));
@@ -312,7 +314,8 @@ class InvoiceController extends Controller
             if (!$invoice->email_opened_at) {
                 $invoice->email_opened_at = now();
             }
-            $invoice->increment('email_opens_count');
+            $invoice->email_opens_count = ($invoice->email_opens_count ?? 0) + 1;
+            $invoice->save();
 
             \App\Services\AuditService::log('invoice.email_opened', $invoice, null, [
                 'recipient' => $invoice->client?->email ?? $invoice->client_snapshot['email'] ?? null,
