@@ -129,6 +129,126 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
+    /**
+     * Dedicated Control Panel Login for Platform Super Administrators (/cp).
+     */
+    public function showCpLogin(Request $request)
+    {
+        if ($redirect = $this->ensureInvoicySubdomain($request)) {
+            return $redirect;
+        }
+
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
+        $ipThrottleKey = 'cp_ip_locked:' . $request->ip();
+        $isLocked = false;
+        $lockoutSeconds = 0;
+
+        if (RateLimiter::tooManyAttempts($ipThrottleKey, 1)) {
+            $isLocked = true;
+            $lockoutSeconds = RateLimiter::availableIn($ipThrottleKey);
+        } elseif (session()->has('lockout_seconds')) {
+            $isLocked = true;
+            $lockoutSeconds = (int) session('lockout_seconds');
+        }
+
+        return view('auth.cp-login', compact('isLocked', 'lockoutSeconds'));
+    }
+
+    /**
+     * Authenticate Super Admin via Control Panel (/cp).
+     */
+    public function cpLogin(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $ip = $request->ip();
+        $email = Str::lower(trim($credentials['email']));
+        $ipThrottleKey = 'cp_ip_locked:' . $ip;
+        $emailThrottleKey = 'cp_attempt:' . $email . '|' . $ip;
+
+        // Enforce 60-minute lockout on 3 failed attempts
+        if (RateLimiter::tooManyAttempts($ipThrottleKey, 1) || RateLimiter::tooManyAttempts($emailThrottleKey, 3)) {
+            $seconds = max(
+                RateLimiter::availableIn($ipThrottleKey),
+                RateLimiter::availableIn($emailThrottleKey)
+            );
+            if ($seconds <= 0) {
+                $seconds = 3600;
+            }
+            $minutes = max(1, (int) ceil($seconds / 60));
+
+            return back()->with('lockout_seconds', $seconds)
+                ->withErrors([
+                    'lockout' => "Account locked: Too many failed login attempts. Your login is blocked for {$minutes} minute(s). Please try again later.",
+                ])->setStatusCode(429);
+        }
+
+        $remember = $request->boolean('remember');
+
+        if (Auth::attempt(['email' => $email, 'password' => $credentials['password']], $remember)) {
+            $user = Auth::user();
+
+            if (!$user->isSuperAdmin()) {
+                Auth::logout();
+                RateLimiter::hit($emailThrottleKey, 3600);
+                \App\Services\AuditService::log('auth.cp_unauthorized_attempt', null, null, [
+                    'email' => $email,
+                    'ip' => $ip,
+                ]);
+
+                return back()->withErrors([
+                    'email' => 'Access Denied: This Control Panel is restricted exclusively to Platform Super Administrators.',
+                ])->onlyInput('email');
+            }
+
+            RateLimiter::clear($emailThrottleKey);
+            RateLimiter::clear($ipThrottleKey);
+            $request->session()->regenerate();
+
+            \App\Services\AuditService::log('auth.cp_login_success', $user);
+
+            return redirect()->intended(route('dashboard'));
+        }
+
+        // Increment failed attempt counter with 3600-second (60 minutes) decay window
+        RateLimiter::hit($emailThrottleKey, 3600);
+        $remaining = RateLimiter::remaining($emailThrottleKey, 3);
+
+        if ($remaining <= 0) {
+            RateLimiter::hit($ipThrottleKey, 3600);
+            $seconds = RateLimiter::availableIn($ipThrottleKey);
+            if ($seconds <= 0) {
+                $seconds = 3600;
+            }
+            $minutes = max(1, (int) ceil($seconds / 60));
+
+            \App\Services\AuditService::log('auth.cp_login_locked', null, null, [
+                'email' => $email,
+                'ip' => $ip,
+                'lockout_minutes' => 60,
+            ]);
+
+            return back()->with('lockout_seconds', $seconds)
+                ->withErrors([
+                    'lockout' => "Account locked: Too many failed login attempts. Your login is blocked for {$minutes} minute(s). Please try again later.",
+                ])->setStatusCode(429);
+        }
+
+        $errorMessage = "The provided Super Admin credentials do not match our records. (Warning: {$remaining} attempt(s) remaining before a 60-minute account lockout).";
+
+        \App\Services\AuditService::log('auth.cp_login_failed', null, null, ['email' => $email, 'remaining' => $remaining]);
+
+        return back()->withErrors([
+            'email' => $errorMessage,
+        ])->onlyInput('email');
+    }
+
     public function showRegister(Request $request)
     {
         if ($redirect = $this->ensureInvoicySubdomain($request)) {
