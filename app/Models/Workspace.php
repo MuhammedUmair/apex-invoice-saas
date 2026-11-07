@@ -132,6 +132,22 @@ class Workspace extends Model
     }
 
     /**
+     * Check if workspace has properly configured custom outgoing SMTP credentials.
+     */
+    public function hasConfiguredSmtp(): bool
+    {
+        $smtp = $this->smtp_settings_encrypted;
+        if (empty($smtp) || !is_array($smtp)) {
+            return false;
+        }
+
+        return !empty($smtp['host']) &&
+               !empty($smtp['username']) &&
+               !empty($smtp['password']) &&
+               !empty($smtp['from_address']);
+    }
+
+    /**
      * Return daily email send quota based on plan tier.
      */
     public function dailyEmailCap(): int

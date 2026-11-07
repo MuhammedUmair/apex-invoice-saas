@@ -491,6 +491,9 @@
         <!-- Card 5: SMTP Outgoing Email Delivery Configuration -->
         @php
             $smtp = $workspace->smtp_settings_encrypted ?? [];
+            $isTrialUser = (!auth()->user()->isSuperAdmin() && $workspace->isTrial());
+            $isSubscribedUser = (!auth()->user()->isSuperAdmin() && !$workspace->isTrial());
+            $hasSmtpConfigured = $workspace->hasConfiguredSmtp();
         @endphp
         <div id="smtp" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
@@ -498,56 +501,114 @@
                     <i class="ph ph-envelope-simple"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Outgoing SMTP Mail Server (Hostinger / Custom)</h3>
-                    <p class="text-xs text-slate-500">Configure email delivery credentials for customer invoices and milestone reminders</p>
+                    <h3 class="font-bold text-slate-900 text-base flex items-center gap-2 flex-wrap">
+                        <span>Outgoing SMTP Mail Server (Hostinger / Custom)</span>
+                        @if(auth()->user() && auth()->user()->isSuperAdmin())
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <i class="ph ph-shield-check"></i> Super Admin Direct Access
+                            </span>
+                        @elseif($isTrialUser)
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <i class="ph ph-lock-key"></i> Disabled in Free Trial
+                            </span>
+                        @elseif($hasSmtpConfigured)
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <i class="ph ph-check-circle"></i> SMTP Active & Verified
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+                                <i class="ph ph-warning-circle"></i> Mandatory Setup Required
+                            </span>
+                        @endif
+                    </h3>
+                    <p class="text-xs text-slate-500">
+                        Configure email delivery credentials for customer invoices and milestone reminders
+                        @if($isSubscribedUser && !$hasSmtpConfigured)
+                            <span class="text-rose-600 font-bold block mt-0.5"><i class="ph ph-shield-warning"></i> Mandatory Requirement: Subscribed agencies are required to enter authentic Outgoing SMTP credentials before client invoices can be dispatched.</span>
+                        @endif
+                    </p>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Host</label>
-                    <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? 'smtp.hostinger.com') }}" placeholder="smtp.hostinger.com"
-                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+            @if($isTrialUser)
+                <div class="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                    <div class="flex items-start gap-3">
+                        <i class="ph ph-lock-key text-2xl text-amber-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <div class="font-bold text-sm">Outgoing SMTP Disabled &bull; Free Trial Evaluation</div>
+                            <div class="text-xs text-amber-800 mt-0.5">
+                                Custom outgoing mail server configuration is locked during the Free Trial evaluation period. In trial mode, evaluation emails are dispatched via Invoicy default sandbox routing. To connect your agency's private domain mailbox (Hostinger, Google Workspace, Microsoft 365), please upgrade to a paid agency subscription plan.
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{{ route('membership.index') }}" class="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 whitespace-nowrap">
+                        <i class="ph ph-sparkle"></i>
+                        <span>Upgrade to Unlock</span>
+                    </a>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Port</label>
-                    <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 465) }}" placeholder="465 / 587"
-                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Encryption</label>
-                    <select name="smtp_encryption" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                        <option value="ssl" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'ssl' ? 'selected' : '' }}>SSL (Port 465)</option>
-                        <option value="tls" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'tls' ? 'selected' : '' }}>TLS (Port 587)</option>
-                    </select>
-                </div>
-            </div>
+            @endif
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Username / Mailbox Email</label>
-                    <input type="email" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? 'billing@redmapleagency.com') }}" placeholder="billing@redmapleagency.com"
-                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+            <fieldset {{ $isTrialUser ? 'disabled' : '' }} class="{{ $isTrialUser ? 'opacity-50 pointer-events-none select-none' : '' }} space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SMTP Host @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? 'smtp.hostinger.com') }}" placeholder="smtp.hostinger.com"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SMTP Port @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 465) }}" placeholder="465 / 587"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Encryption @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <select name="smtp_encryption" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
+                            <option value="ssl" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'ssl' ? 'selected' : '' }}>SSL (Port 465)</option>
+                            <option value="tls" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'tls' ? 'selected' : '' }}>TLS (Port 587)</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">SMTP Mailbox Password</label>
-                    <input type="password" name="smtp_password" value="{{ old('smtp_password', $smtp['password'] ?? '') }}" placeholder="Enter mailbox password..."
-                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                </div>
-            </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">From Address</label>
-                    <input type="email" name="smtp_from_address" value="{{ old('smtp_from_address', $smtp['from_address'] ?? 'billing@redmapleagency.com') }}"
-                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SMTP Username / Mailbox Email @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <input type="email" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? '') }}" placeholder="billing@youragency.com"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SMTP Mailbox Password @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <input type="password" name="smtp_password" value="{{ old('smtp_password', $smtp['password'] ?? '') }}" placeholder="Enter mailbox password..."
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">From Display Name</label>
-                    <input type="text" name="smtp_from_name" value="{{ old('smtp_from_name', $smtp['from_name'] ?? 'Invoicy by RedMaple') }}"
-                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            From Address @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <input type="email" name="smtp_from_address" value="{{ old('smtp_from_address', $smtp['from_address'] ?? '') }}" placeholder="billing@youragency.com"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            From Display Name @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                        </label>
+                        <input type="text" name="smtp_from_name" value="{{ old('smtp_from_name', $smtp['from_name'] ?? $workspace->name) }}" placeholder="{{ $workspace->name }}"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    </div>
                 </div>
-            </div>
+            </fieldset>
         </div>
 
         <!-- Submit Button -->
@@ -562,17 +623,30 @@
     <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 sm:p-8">
         <h4 class="text-sm font-bold text-slate-900 mb-1 flex items-center gap-2">
             <i class="ph ph-paper-plane-tilt text-red-600"></i> Test Live SMTP Email Delivery
+            @if($isTrialUser)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    <i class="ph ph-lock-key"></i> Disabled in Free Trial
+                </span>
+            @endif
         </h4>
         <p class="text-xs text-slate-500 mb-4">Send an immediate test message to verify your SMTP server authentication</p>
         
-        <form method="POST" action="{{ route('settings.smtp.test') }}" class="flex flex-col sm:flex-row items-center gap-3">
-            @csrf
-            <input type="email" name="test_email" value="{{ auth()->user()->email }}" required placeholder="recipient@example.com"
-                   class="w-full sm:max-w-md px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500 bg-white">
-            <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow transition whitespace-nowrap">
-                Send Live Test Email
-            </button>
-        </form>
+        @if($isTrialUser)
+            <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2.5">
+                <i class="ph ph-lock-key text-base text-amber-600 shrink-0"></i>
+                <span>Live SMTP delivery testing is disabled in Free Trial evaluation. Upgrade to a paid subscription plan to connect and verify your private domain SMTP server.</span>
+            </div>
+        @else
+            <form method="POST" action="{{ route('settings.smtp.test') }}" class="flex flex-col sm:flex-row items-center gap-3">
+                @csrf
+                <input type="email" name="test_email" value="{{ auth()->user()->email }}" required placeholder="recipient@example.com"
+                       class="w-full sm:max-w-md px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500 bg-white">
+                <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow transition whitespace-nowrap">
+                    Send Live Test Email
+                </button>
+            </form>
+        @endif
+    </div>
     </div>
 
     <!-- Card 6: Account Security & Change Password -->

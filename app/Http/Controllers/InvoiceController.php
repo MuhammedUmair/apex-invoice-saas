@@ -85,6 +85,13 @@ class InvoiceController extends Controller
             }
         }
 
+        // 4. Subscribed Accounts Mandatory SMTP Configuration
+        if (!$invoice->workspace->isTrial() && !Auth::user()->isSuperAdmin()) {
+            if (!$invoice->workspace->hasConfiguredSmtp()) {
+                return back()->with('error', 'Dispatch Blocked: Subscribed agencies are required to configure their authenticated Outgoing SMTP mail server in Agency Settings before dispatching invoices to clients.');
+            }
+        }
+
         if (!$invoice->client || empty($invoice->client->email)) {
             return back()->with('error', 'This client does not have a registered email address in CRM.');
         }
@@ -380,6 +387,13 @@ class InvoiceController extends Controller
         } elseif ($action === 'send_emails') {
             if (!Auth::user()->hasVerifiedEmail()) {
                 return back()->with('warning', 'You must verify your account email address before dispatching invoices to clients.');
+            }
+
+            $currentWorkspace = Auth::user()->workspace;
+            if ($currentWorkspace && !$currentWorkspace->isTrial() && !Auth::user()->isSuperAdmin()) {
+                if (!$currentWorkspace->hasConfiguredSmtp()) {
+                    return back()->with('error', 'Dispatch Blocked: Subscribed agencies are required to configure their authenticated Outgoing SMTP mail server in Agency Settings before dispatching invoices to clients.');
+                }
             }
 
             $successCount = 0;

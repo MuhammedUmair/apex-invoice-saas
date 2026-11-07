@@ -152,17 +152,41 @@ class SettingsController extends Controller
             }
         }
 
-        // Save Custom SMTP settings if provided
-        if ($request->has('smtp_host')) {
-            $workspace->smtp_settings_encrypted = [
-                'host' => $request->input('smtp_host', 'smtp.hostinger.com'),
-                'port' => (int) $request->input('smtp_port', 465),
-                'username' => $request->input('smtp_username', 'billing@redmapleagency.com'),
-                'password' => $request->input('smtp_password', ''),
-                'encryption' => $request->input('smtp_encryption', 'ssl'),
-                'from_address' => $request->input('smtp_from_address', 'billing@redmapleagency.com'),
-                'from_name' => $request->input('smtp_from_name', 'Invoicy by RedMaple'),
-            ];
+        // Save Custom SMTP settings (locked in trial mode, mandatory for active paid subscribed agencies)
+        if ($user->isSuperAdmin() || !$workspace->isTrial()) {
+            if ($request->has('smtp_host')) {
+                $existingSmtp = $workspace->smtp_settings_encrypted ?? [];
+                $password = $request->input('smtp_password');
+                if (empty($password) && !empty($existingSmtp['password'])) {
+                    $password = $existingSmtp['password'];
+                }
+
+                // For subscribed agencies, SMTP setup is strictly mandatory
+                if (!$workspace->isTrial() && !$user->isSuperAdmin()) {
+                    $request->validate([
+                        'smtp_host' => 'required|string|max:255',
+                        'smtp_port' => 'required|integer|min:1|max:65535',
+                        'smtp_username' => 'required|string|max:255',
+                        'smtp_encryption' => 'required|string|in:ssl,tls',
+                        'smtp_from_address' => 'required|email|max:255',
+                        'smtp_from_name' => 'required|string|max:255',
+                    ]);
+
+                    if (empty($password)) {
+                        return back()->withErrors(['smtp_password' => 'SMTP Mailbox Password is mandatory for subscribed agencies.'])->withInput();
+                    }
+                }
+
+                $workspace->smtp_settings_encrypted = [
+                    'host' => trim($request->input('smtp_host', 'smtp.hostinger.com')),
+                    'port' => (int) $request->input('smtp_port', 465),
+                    'username' => trim($request->input('smtp_username', '')),
+                    'password' => $password ?? '',
+                    'encryption' => $request->input('smtp_encryption', 'ssl'),
+                    'from_address' => trim($request->input('smtp_from_address', '')),
+                    'from_name' => trim($request->input('smtp_from_name', '')),
+                ];
+            }
         }
 
         $workspace->save();
@@ -252,8 +276,14 @@ class SettingsController extends Controller
 
     public function testSmtp(Request $request)
     {
-        if (Auth::user()->isStaff()) {
+        $user = Auth::user();
+        if ($user->isStaff()) {
             return back()->with('smtp_error', 'Access Denied: Staff accounts cannot test SMTP configuration.');
+        }
+
+        $workspace = $user->workspace;
+        if (!$user->isSuperAdmin() && $workspace->isTrial()) {
+            return back()->with('smtp_error', 'SMTP Live Testing is disabled during the Free Trial evaluation period. Please upgrade to a paid agency subscription plan to connect and test your private domain SMTP server.');
         }
 
         $request->validate([
@@ -263,6 +293,21 @@ class SettingsController extends Controller
         $targetEmail = $request->input('test_email');
 
         try {
+            if ($workspace && !empty($workspace->smtp_settings_encrypted)) {
+                $smtp = $workspace->smtp_settings_encrypted;
+                if (!empty($smtp['host']) && !empty($smtp['username'])) {
+                    config([
+                        'mail.mailers.smtp.host' => $smtp['host'],
+                        'mail.mailers.smtp.port' => $smtp['port'] ?? 465,
+                        'mail.mailers.smtp.encryption' => $smtp['encryption'] ?? 'ssl',
+                        'mail.mailers.smtp.username' => $smtp['username'],
+                        'mail.mailers.smtp.password' => $smtp['password'] ?? '',
+                        'mail.from.address' => $smtp['from_address'] ?? $smtp['username'],
+                        'mail.from.name' => $smtp['from_name'] ?? ($workspace->name ?: 'Invoicy by RedMaple'),
+                    ]);
+                }
+            }
+
             \Illuminate\Support\Facades\Mail::raw("This is a live test email from your Invoicy by RedMaple system confirming your SMTP connection is operating with 100% success!", function ($message) use ($targetEmail) {
                 $message->to($targetEmail)->subject('Invoicy by RedMaple - Live SMTP Test Successful');
             });

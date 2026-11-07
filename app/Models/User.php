@@ -88,4 +88,13 @@ class User extends Authenticatable
     {
         return !empty($this->two_factor_secret) && $this->two_factor_confirmed_at !== null;
     }
+
+    public function isTrial(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return false;
+        }
+
+        return $this->workspace ? $this->workspace->isTrial() : true;
+    }
 }

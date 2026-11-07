@@ -460,6 +460,25 @@
 
             <!-- Notifications & Alert Banners -->
             <div class="px-8 pt-4 space-y-3">
+                @if(auth()->check() && !auth()->user()->isSuperAdmin() && !auth()->user()->isTrial() && !auth()->user()->workspace?->hasConfiguredSmtp() && !request()->routeIs('settings.*'))
+                    <div class="p-4 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-950 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                                <i class="ph ph-warning-diamond"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-amber-950 block text-xs sm:text-sm">{{ __('Mandatory Action Required: Configure Outgoing SMTP Mail Server') }}</span>
+                                <span class="text-amber-900 text-xs">{{ __('As a subscribed agency, you are required to configure your own authenticated Outgoing SMTP mail server before dispatching invoices to clients.') }}</span>
+                            </div>
+                        </div>
+                        @if(!auth()->user()->isStaff())
+                            <a href="{{ route('settings.index') }}#smtp" class="shrink-0 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg transition shadow-xs flex items-center gap-1.5 whitespace-nowrap">
+                                <i class="ph ph-gear"></i> {{ __('Configure SMTP Now') }}
+                            </a>
+                        @endif
+                    </div>
+                @endif
+
                 @if(auth()->check() && !auth()->user()->hasVerifiedEmail() && !auth()->user()->is_super_admin)
                     <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
                         <div class="flex items-center gap-2.5">

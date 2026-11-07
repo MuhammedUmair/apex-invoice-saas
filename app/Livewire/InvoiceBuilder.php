@@ -827,6 +827,8 @@ class InvoiceBuilder extends Component
             // 1. Phishing & Spam Relay Prevention: Require Verified Email
             if ($currentUser && !$currentUser->hasVerifiedEmail()) {
                 session()->flash('warning', 'Email Verification Required: Invoice #' . $invoice->invoice_number . ' was created, but customer email dispatch to ' . $client->email . ' was blocked because your account email (' . $currentUser->email . ') is unverified.');
+            } elseif (!$workspace->isTrial() && (!$currentUser || !$currentUser->isSuperAdmin()) && !$workspace->hasConfiguredSmtp()) {
+                session()->flash('warning', "Invoice #{$invoice->invoice_number} created, but email dispatch paused: Subscribed agencies are required to configure their authenticated Outgoing SMTP server in Agency Settings before emailing clients.");
             } elseif ($workspace->hasReachedDailyEmailCap()) {
                 $cap = $workspace->dailyEmailCap();
                 session()->flash('warning', "Daily Send Cap Reached: Invoice #{$invoice->invoice_number} was created, but email dispatch was blocked because your workspace reached its daily limit of {$cap} outbound emails.");
