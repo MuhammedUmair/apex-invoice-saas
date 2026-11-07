@@ -54,19 +54,43 @@
 
             <div>
                 <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-                <input id="email" type="email" name="email" value="" required autofocus autocomplete="off" placeholder="name@company.com"
-                       class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
+                <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus
+                       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                       data-lpignore="true" data-1p-ignore="true" data-form-type="other"
+                       placeholder="name@company.com"
+                       readonly onfocus="this.removeAttribute('readonly');" onpointerdown="this.removeAttribute('readonly');"
+                       class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
             </div>
 
-            <div>
+            <div x-data="{ showPass: false }">
                 <div class="flex items-center justify-between mb-2">
                     <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Password</label>
                     <a href="{{ route('password.request') }}" class="text-xs text-red-600 hover:underline font-semibold">
                         Forgot Password?
                     </a>
                 </div>
-                <input id="password" type="password" name="password" value="" required autocomplete="new-password" placeholder="Enter your password"
-                       class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
+                <div class="relative">
+                    <input id="password" 
+                           type="text" 
+                           name="password" 
+                           value="" 
+                           required 
+                           autocomplete="off" 
+                           autocorrect="off" 
+                           autocapitalize="off" 
+                           spellcheck="false" 
+                           data-lpignore="true" 
+                           data-1p-ignore="true" 
+                           data-form-type="other"
+                           readonly onfocus="this.removeAttribute('readonly');" onpointerdown="this.removeAttribute('readonly');"
+                           :style="showPass ? '-webkit-text-security: none; text-security: none;' : '-webkit-text-security: disc; text-security: disc;'"
+                           style="-webkit-text-security: disc; text-security: disc;"
+                           placeholder="Enter your password"
+                           class="w-full pl-4 pr-11 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
+                    <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1" title="Toggle password visibility">
+                        <i class="ph text-base" :class="showPass ? 'ph-eye-slash' : 'ph-eye'"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="flex items-center justify-between text-sm">

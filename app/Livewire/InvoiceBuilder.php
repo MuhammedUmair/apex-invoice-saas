@@ -822,14 +822,45 @@ class InvoiceBuilder extends Component
 
         // Option 13: Direct Email Dispatch to registered client on publish
         if ($status !== 'draft' && !$this->isScheduled && $this->sendEmailToClient && !empty($client->email)) {
-            try {
-                Mail::to($client->email)->send(new InvoiceMailable($invoice));
-                $invoice->update([
-                    'status' => 'sent',
-                    'sent_at' => now(),
-                ]);
-            } catch (\Exception $e) {
-                Log::error("Failed to email invoice {$invoice->id}: " . $e->getMessage());
+            $currentUser = Auth::user();
+
+            // 1. Phishing & Spam Relay Prevention: Require Verified Email
+            if ($currentUser && !$currentUser->hasVerifiedEmail()) {
+                session()->flash('warning', 'Email Verification Required: Invoice #' . $invoice->invoice_number . ' was created, but customer email dispatch to ' . $client->email . ' was blocked because your account email (' . $currentUser->email . ') is unverified.');
+            } elseif ($workspace->hasReachedDailyEmailCap()) {
+                $cap = $workspace->dailyEmailCap();
+                session()->flash('warning', "Daily Send Cap Reached: Invoice #{$invoice->invoice_number} was created, but email dispatch was blocked because your workspace reached its daily limit of {$cap} outbound emails.");
+            } else {
+                try {
+                    if (!empty($workspace->smtp_settings_encrypted)) {
+                        $smtp = $workspace->smtp_settings_encrypted;
+                        if (!empty($smtp['host']) && !empty($smtp['username'])) {
+                            config([
+                                'mail.mailers.smtp.host' => $smtp['host'],
+                                'mail.mailers.smtp.port' => $smtp['port'] ?? 465,
+                                'mail.mailers.smtp.encryption' => $smtp['encryption'] ?? 'ssl',
+                                'mail.mailers.smtp.username' => $smtp['username'],
+                                'mail.mailers.smtp.password' => $smtp['password'] ?? '',
+                                'mail.from.address' => $smtp['from_address'] ?? $smtp['username'],
+                                'mail.from.name' => $smtp['from_name'] ?? ($workspace->name ?: 'Invoicy by RedMaple'),
+                            ]);
+                        }
+                    }
+
+                    Mail::to($client->email)->send(new InvoiceMailable($invoice));
+                    $invoice->update([
+                        'status' => 'sent',
+                        'sent_at' => now(),
+                    ]);
+                    $workspace->incrementDailyEmailCount();
+
+                    \App\Services\AuditService::log('invoice.dispatched_email', $invoice, null, [
+                        'recipient' => $client->email,
+                        'invoice_number' => $invoice->invoice_number,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error("Failed to email invoice {$invoice->id}: " . $e->getMessage());
+                }
             }
         }
 

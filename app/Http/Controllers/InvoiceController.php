@@ -68,7 +68,7 @@ class InvoiceController extends Controller
 
         // 1. Phishing & Spam Relay Prevention: Require Verified Email (Item 4)
         if (!Auth::user()->hasVerifiedEmail()) {
-            return back()->with('error', 'Email Verification Required: You must verify your account email address before dispatching invoices to clients.');
+            return back()->with('warning', 'You must verify your account email address before dispatching invoices to clients. Please check your inbox or click resend.');
         }
 
         // 2. Anti-Abuse Send Cap per Workspace (Item 4)
@@ -131,7 +131,7 @@ class InvoiceController extends Controller
     {
         // Require verified email and check send cap for manual reminders too
         if (!Auth::user()->hasVerifiedEmail()) {
-            return back()->with('error', 'Email Verification Required: You must verify your account email address before sending payment reminders.');
+            return back()->with('warning', 'You must verify your account email address before sending payment reminders. Please check your inbox or click resend.');
         }
 
         if ($invoice->workspace->hasReachedDailyEmailCap()) {
@@ -261,7 +261,8 @@ class InvoiceController extends Controller
         if ($invoice->is_pdf_password_protected) {
             // Check if token is currently locked out from too many failed PIN attempts (Item 6)
             if ($invoice->isPinLocked()) {
-                $rem = max(1, (int) ceil(now()->diffInSeconds($invoice->pin_locked_until) / 60));
+                $lockedUntil = is_string($invoice->pin_locked_until) ? \Carbon\Carbon::parse($invoice->pin_locked_until) : $invoice->pin_locked_until;
+                $rem = max(1, (int) ceil(now()->diffInSeconds($lockedUntil) / 60));
                 return redirect()->route('invoices.pdf.challenge', $token)
                     ->withErrors(['password' => "Access locked: Maximum PIN attempts exceeded. Document download is blocked for {$rem} minute(s)."]);
             }

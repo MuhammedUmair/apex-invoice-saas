@@ -423,16 +423,59 @@
             </header>
 
             <!-- Notifications & Alert Banners -->
-            <div class="px-8 pt-4">
+            <div class="px-8 pt-4 space-y-3">
+                @if(auth()->check() && !auth()->user()->hasVerifiedEmail() && !auth()->user()->is_super_admin)
+                    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                        <div class="flex items-center gap-2.5">
+                            <i class="ph ph-envelope-simple-warning text-xl text-amber-600 shrink-0"></i>
+                            <div>
+                                <span class="font-bold text-amber-800">{{ __('Email Verification Required:') }}</span>
+                                <span>{{ __('You must verify your account email address') }} (<span class="font-semibold text-slate-800">{{ auth()->user()->email }}</span>) {{ __('before dispatching invoices or payment reminders to clients.') }}</span>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
+                            @csrf
+                            <button type="submit" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg transition shadow-xs flex items-center gap-1.5">
+                                <i class="ph ph-paper-plane-tilt"></i> {{ __('Resend Verification Email') }}
+                            </button>
+                        </form>
+                    </div>
+                @endif
+
                 @if(session('success'))
-                    <div class="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3">
-                        <i class="ph ph-check-circle text-lg text-emerald-600"></i>
+                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-3 shadow-2xs">
+                        <i class="ph ph-check-circle text-lg text-emerald-600 shrink-0"></i>
                         <span>{{ session('success') }}</span>
                     </div>
                 @endif
+                @if(session('warning'))
+                    <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                        <div class="flex items-center gap-3">
+                            <i class="ph ph-warning-circle text-lg text-amber-600 shrink-0"></i>
+                            <div>
+                                <span class="font-bold text-amber-800">{{ __('Notice:') }}</span>
+                                <span>{{ session('warning') }}</span>
+                            </div>
+                        </div>
+                        @if(auth()->check() && !auth()->user()->hasVerifiedEmail() && !auth()->user()->is_super_admin)
+                            <form method="POST" action="{{ route('verification.send') }}" class="shrink-0">
+                                @csrf
+                                <button type="submit" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg transition shadow-xs flex items-center gap-1.5">
+                                    <i class="ph ph-paper-plane-tilt"></i> {{ __('Resend Email') }}
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+                @if(session('message'))
+                    <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-xs sm:text-sm flex items-center gap-3 shadow-2xs">
+                        <i class="ph ph-info text-lg text-sky-600 shrink-0"></i>
+                        <span>{{ session('message') }}</span>
+                    </div>
+                @endif
                 @if(session('error'))
-                    <div class="p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3">
-                        <i class="ph ph-warning-circle text-lg text-rose-600"></i>
+                    <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex items-center gap-3 shadow-2xs">
+                        <i class="ph ph-warning-circle text-lg text-rose-600 shrink-0"></i>
                         <span>{{ session('error') }}</span>
                     </div>
                 @endif

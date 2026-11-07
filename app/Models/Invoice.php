@@ -75,6 +75,9 @@ class Invoice extends Model
         'tax_rate' => 'decimal:2',
         'sent_at' => 'datetime',
         'paid_at' => 'datetime',
+        'portal_token_expires_at' => 'datetime',
+        'pin_locked_until' => 'datetime',
+        'failed_pin_attempts' => 'integer',
     ];
 
     protected static function boot()
@@ -104,7 +107,15 @@ class Invoice extends Model
      */
     public function isTokenExpired(): bool
     {
-        return $this->portal_token_expires_at && $this->portal_token_expires_at->isPast();
+        if (empty($this->portal_token_expires_at)) {
+            return false;
+        }
+
+        $expiresAt = is_string($this->portal_token_expires_at)
+            ? \Carbon\Carbon::parse($this->portal_token_expires_at)
+            : $this->portal_token_expires_at;
+
+        return $expiresAt->isPast();
     }
 
     /**
@@ -112,7 +123,15 @@ class Invoice extends Model
      */
     public function isPinLocked(): bool
     {
-        return $this->pin_locked_until && $this->pin_locked_until->isFuture();
+        if (empty($this->pin_locked_until)) {
+            return false;
+        }
+
+        $lockedUntil = is_string($this->pin_locked_until)
+            ? \Carbon\Carbon::parse($this->pin_locked_until)
+            : $this->pin_locked_until;
+
+        return $lockedUntil->isFuture();
     }
 
     /**

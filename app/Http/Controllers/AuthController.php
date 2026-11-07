@@ -296,4 +296,71 @@ class AuthController extends Controller
 
         return redirect()->route('login')->with('success', 'Your password has been successfully reset. Please log in with your new password.');
     }
+
+    /**
+     * Resend the account email verification link to authenticated user.
+     */
+    public function resendVerificationEmail(Request $request)
+    {
+        $user = $request->user();
+        if ($user->hasVerifiedEmail()) {
+            return back()->with('message', 'Your account email address is already verified.');
+        }
+
+        $verifyUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
+
+        try {
+            $ws = $user->workspace;
+            if ($ws && !empty($ws->smtp_settings_encrypted)) {
+                $smtp = $ws->smtp_settings_encrypted;
+                if (!empty($smtp['host']) && !empty($smtp['username'])) {
+                    config([
+                        'mail.mailers.smtp.host' => $smtp['host'],
+                        'mail.mailers.smtp.port' => $smtp['port'] ?? 465,
+                        'mail.mailers.smtp.encryption' => $smtp['encryption'] ?? 'ssl',
+                        'mail.mailers.smtp.username' => $smtp['username'],
+                        'mail.mailers.smtp.password' => $smtp['password'] ?? '',
+                        'mail.from.address' => $smtp['from_address'] ?? $smtp['username'],
+                        'mail.from.name' => $smtp['from_name'] ?? 'Invoicy by RedMaple',
+                    ]);
+                }
+            }
+
+            Mail::raw(
+                "Hello {$user->name},\n\nPlease click the secure link below to verify your email address on RedMaple Invoicy:\n\n{$verifyUrl}\n\nThis verification link expires in 60 minutes.\n\nThank you,\nRedMaple Invoicy Team",
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                        ->subject('Verify Your Invoicy Account Email Address');
+                }
+            );
+
+            return back()->with('success', 'A verification link has been sent to ' . $user->email . '. Please check your inbox.');
+        } catch (\Throwable $e) {
+            \Log::error("Failed to send verification email: " . $e->getMessage());
+            return back()->with('warning', 'Could not send verification email: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Mark the user's email address as verified from signed URL.
+     */
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = User::findOrFail($id);
+
+        if (!hash_equals((string) $hash, sha1($user->email))) {
+            abort(403, 'Invalid or expired email verification signature.');
+        }
+
+        if (!$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            \App\Services\AuditService::log('user.email_verified', $user, null, ['email' => $user->email]);
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Your account email address has been successfully verified! You can now dispatch invoices and manage team accounts.');
+    }
 }

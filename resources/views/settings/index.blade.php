@@ -9,10 +9,17 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage your agency profile, wire transfer details, brand styling, SMTP email, and security</p>
         </div>
         <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-                <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                Tenant: {{ $workspace->slug }}
-            </span>
+            @if(auth()->user() && auth()->user()->is_super_admin)
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs">
+                    <i class="ph ph-shield-check text-amber-600 text-sm"></i>
+                    Platform Super Admin
+                </span>
+            @else
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                    <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                    Tenant: {{ $workspace->slug }}
+                </span>
+            @endif
         </div>
     </div>
 
@@ -59,15 +66,19 @@
         </div>
     @endif
 
-    <!-- Card 0: Owner Contact & Personal Profile -->
+    <!-- Card 0: Owner / Super Admin Contact & Personal Profile -->
     <div id="profile" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
         <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
             <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
                 <i class="ph ph-user-circle"></i>
             </div>
             <div>
-                <h3 class="font-bold text-slate-900 text-base">Owner Profile & Account Contact</h3>
-                <p class="text-xs text-slate-500">Update your personal contact name and email displayed in the bottom sidebar and account communications</p>
+                <h3 class="font-bold text-slate-900 text-base">
+                    {{ (auth()->user() && auth()->user()->is_super_admin) ? 'Super Admin Profile & Account Contact' : 'Owner Profile & Account Contact' }}
+                </h3>
+                <p class="text-xs text-slate-500">
+                    {{ (auth()->user() && auth()->user()->is_super_admin) ? 'Update your platform super administrator profile name and login email' : 'Update your personal contact name and email displayed in the bottom sidebar and account communications' }}
+                </p>
             </div>
         </div>
 
@@ -75,14 +86,18 @@
             @csrf
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Owner Full Name *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        {{ (auth()->user() && auth()->user()->is_super_admin) ? 'Super Admin Full Name *' : 'Owner Full Name *' }}
+                    </label>
                     <input type="text" name="name" value="{{ old('name', auth()->user()->name) }}" required
                            placeholder="e.g. Alex Rivera"
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 font-semibold outline-none bg-white">
                     @error('name') <span class="text-rose-600 text-xs">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Owner Account Email (Login & Contact) *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        {{ (auth()->user() && auth()->user()->is_super_admin) ? 'Super Admin Account Email (Login & Contact) *' : 'Owner Account Email (Login & Contact) *' }}
+                    </label>
                     <input type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required
                            placeholder="owner@domain.com"
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 font-semibold outline-none bg-white">
@@ -92,7 +107,8 @@
 
             <div class="flex justify-end pt-2">
                 <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
-                    <i class="ph ph-floppy-disk text-base"></i> Update Owner Profile
+                    <i class="ph ph-floppy-disk text-base"></i>
+                    {{ (auth()->user() && auth()->user()->is_super_admin) ? 'Update Super Admin Profile' : 'Update Owner Profile' }}
                 </button>
             </div>
         </form>
@@ -602,7 +618,11 @@
                                 </div>
                             </td>
                             <td class="py-3 px-4">
-                                @if($member->role === 'owner')
+                                @if($member->is_super_admin)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                                        <i class="ph ph-shield-check text-xs"></i> Super Admin
+                                    </span>
+                                @elseif($member->role === 'owner')
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
                                         <i class="ph ph-crown text-xs"></i> Owner
                                     </span>
@@ -620,7 +640,9 @@
                                 {{ $member->created_at ? $member->created_at->format('M d, Y') : 'N/A' }}
                             </td>
                             <td class="py-3 px-4 text-right">
-                                @if($member->role === 'owner')
+                                @if($member->is_super_admin)
+                                    <span class="text-amber-600 text-[11px] font-bold">Platform Super Admin (Protected)</span>
+                                @elseif($member->role === 'owner')
                                     <span class="text-slate-400 text-[11px] italic">Owner (Protected)</span>
                                 @elseif($member->id === auth()->id())
                                     <span class="text-slate-400 text-[11px] italic">Active Account</span>

@@ -120,11 +120,15 @@ class RecurringInvoiceController extends Controller
             ]);
         }
 
-        // Send email to customer
-        try {
-            Mail::to($client->email)->send(new InvoiceMailable($invoice));
-        } catch (\Throwable $e) {
-            Log::error("Failed to email recurring invoice: " . $e->getMessage());
+        // Send email to customer (Anti-Abuse & Verified Email Gate)
+        $owner = $recurring->workspace->owner;
+        if ($owner && $owner->hasVerifiedEmail() && !$recurring->workspace->hasReachedDailyEmailCap()) {
+            try {
+                Mail::to($client->email)->send(new InvoiceMailable($invoice));
+                $recurring->workspace->incrementDailyEmailCount();
+            } catch (\Throwable $e) {
+                Log::error("Failed to email recurring invoice: " . $e->getMessage());
+            }
         }
 
         // Advance next run date

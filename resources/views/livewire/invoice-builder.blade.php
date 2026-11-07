@@ -385,14 +385,24 @@
                     <!-- 3-Column Feature Cards Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <!-- Option 1: Direct Email -->
-                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/40 relative">
+                        <div class="border border-slate-200 rounded-xl p-4 {{ !auth()->user()->hasVerifiedEmail() ? 'bg-amber-50/40 border-amber-200' : 'bg-slate-50/40' }} relative">
                             <div class="flex items-start justify-between">
                                 <i class="ph ph-envelope-simple text-slate-700 text-lg"></i>
-                                <input type="checkbox" wire:model.live="sendEmailToClient" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
+                                @if(!auth()->user()->hasVerifiedEmail())
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                        <i class="ph ph-warning-circle"></i> Verification Required
+                                    </span>
+                                @else
+                                    <input type="checkbox" wire:model.live="sendEmailToClient" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
+                                @endif
                             </div>
                             <h4 class="font-bold text-slate-900 text-xs mt-3">{{ __('Email Invoice to Customer on Publish') }}</h4>
                             <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                                {{ __('Automatically dispatches the invoice with direct portal & PDF download link to the client\'s registered email address in CRM.') }}
+                                @if(!auth()->user()->hasVerifiedEmail())
+                                    <span class="text-amber-800 font-semibold">{{ __('Account email verification is required before sending invoices directly to client inboxes.') }}</span>
+                                @else
+                                    {{ __('Automatically dispatches the invoice with direct portal & PDF download link to the client\'s registered email address in CRM.') }}
+                                @endif
                             </p>
                         </div>
 

@@ -52,11 +52,18 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@redmaplestudio.com'],
             [
                 'workspace_id' => $workspace->id,
-                'name' => 'Alex Rivera',
+                'name' => 'RedMaple Admin',
                 'password' => Hash::make('Password123!'),
                 'role' => 'owner',
+                'is_super_admin' => true,
+                'email_verified_at' => now(),
             ]
         );
+        $user->is_super_admin = true;
+        if (!$user->email_verified_at) {
+            $user->email_verified_at = now();
+        }
+        $user->save();
 
         // Assign Pro Plan Subscription
         $proPlan = Plan::where('code', 'pro')->first();

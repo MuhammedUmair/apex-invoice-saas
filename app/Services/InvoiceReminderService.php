@@ -124,10 +124,14 @@ class InvoiceReminderService
                 $invoice->is_scheduled = false;
                 $invoice->status = 'issued';
 
-                if ($invoice->scheduled_send_email && $invoice->client && $invoice->client->email) {
+                $owner = $invoice->workspace?->owner;
+                $canSendEmail = $owner && $owner->hasVerifiedEmail() && !$invoice->workspace->hasReachedDailyEmailCap();
+
+                if ($invoice->scheduled_send_email && $invoice->client && $invoice->client->email && $canSendEmail) {
                     Mail::to($invoice->client->email)->send(new InvoiceMailable($invoice));
                     $invoice->status = 'sent';
                     $invoice->sent_at = now();
+                    $invoice->workspace->incrementDailyEmailCount();
                     $results['emails_sent']++;
                 }
 
