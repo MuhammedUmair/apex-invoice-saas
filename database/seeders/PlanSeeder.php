@@ -21,7 +21,7 @@ class PlanSeeder extends Seeder
                 'has_whitelabel' => false,
                 'has_client_portal' => true,
                 'has_recurring' => false,
-                'team_seats' => 1,
+                'team_seats' => 3,
                 'features_json' => [
                     '14-Day Full Access Trial',
                     'Up to 15 Invoices',

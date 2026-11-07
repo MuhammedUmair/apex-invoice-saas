@@ -15,6 +15,7 @@ class User extends Authenticatable
         'workspace_id',
         'name',
         'email',
+        'email_verified_at',
         'password',
         'role',
         'is_super_admin',
@@ -49,7 +50,17 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['owner', 'admin']);
+        return in_array($this->role, ['owner', 'admin']) || $this->isSuperAdmin();
+    }
+
+    public function getEmailForVerification(): string
+    {
+        return $this->email;
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return !empty($this->email_verified_at);
     }
 
     public function isStaff(): bool

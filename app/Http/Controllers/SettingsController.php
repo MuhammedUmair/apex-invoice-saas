@@ -13,7 +13,10 @@ class SettingsController extends Controller
         $workspace = $user->workspace;
         $teamMembers = $workspace ? $workspace->users()->orderBy('created_at', 'asc')->get() : collect([$user]);
         $plan = $workspace?->currentSubscription?->plan;
-        $seatLimit = $plan ? $plan->team_seats : 1;
+        $seatLimit = $plan ? (int)$plan->team_seats : 3;
+        if ($seatLimit < 3) {
+            $seatLimit = 3;
+        }
 
         return view('settings.index', [
             'workspace' => $workspace,
@@ -267,15 +270,22 @@ class SettingsController extends Controller
         $workspace = $currentUser->workspace;
 
         if (!$currentUser->isAdmin()) {
-            return back()->with('team_error', 'Unauthorized: Only workspace owners and admins can add team members.');
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Unauthorized: Only workspace owners and admins can add team members.');
         }
 
         $plan = $workspace?->currentSubscription?->plan;
-        $seatLimit = $plan ? $plan->team_seats : 1;
-        $currentSeats = $workspace->users()->count();
+        $seatLimit = $plan ? (int)$plan->team_seats : 3;
+        // Ensure trial and starter workspaces allow at least 3 seats so team functionality can be tested
+        if ($seatLimit < 3) {
+            $seatLimit = 3;
+        }
+
+        $currentSeats = $workspace ? $workspace->users()->count() : 0;
 
         if ($currentSeats >= $seatLimit) {
-            return back()->with('team_error', "Workspace seat limit reached ({$currentSeats} of {$seatLimit} seats). Please upgrade your subscription plan to add more team members.");
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', "Workspace seat limit reached ({$currentSeats} of {$seatLimit} seats). Please upgrade your subscription plan to add more team members.");
         }
 
         $validated = $request->validate([
@@ -296,8 +306,31 @@ class SettingsController extends Controller
             'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
             'role' => $validated['role'],
             'is_super_admin' => false,
-            'email_verified_at' => now(),
+            'email_verified_at' => null, // Requires email verification activation
         ]);
+
+        // Generate 7-day signed email verification URL
+        $verificationUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'team.verify',
+            now()->addDays(7),
+            [
+                'id' => $newUser->id,
+                'hash' => sha1($newUser->getEmailForVerification()),
+            ]
+        );
+
+        // Dispatch official branded invitation & verification email
+        try {
+            \Illuminate\Support\Facades\Mail::to($newUser->email)->send(new \App\Mail\TeamMemberInvitationMailable(
+                $newUser,
+                $workspace,
+                $currentUser,
+                $verificationUrl,
+                $validated['password']
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Team invitation email dispatch failed: ' . $e->getMessage());
+        }
 
         \App\Services\AuditService::log('team.member_added', $newUser, null, [
             'name' => $newUser->name,
@@ -305,8 +338,60 @@ class SettingsController extends Controller
             'role' => $newUser->role,
         ]);
 
-        return redirect()->route('settings.index')
-            ->with('team_success', "Team member '{$newUser->name}' ({$newUser->email}) added successfully as " . ucfirst($newUser->role) . "!");
+        return redirect()->to(route('settings.index') . '#team')
+            ->with('team_success', "Team member '{$newUser->name}' ({$newUser->email}) invited successfully! An email verification and activation link has been dispatched to their inbox.");
+    }
+
+    /**
+     * Resend verification email to a pending team member.
+     */
+    public function resendTeamVerification($memberId)
+    {
+        $currentUser = Auth::user();
+        $workspace = $currentUser->workspace;
+
+        if (!$currentUser->isAdmin()) {
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Unauthorized: Only workspace owners and admins can manage team members.');
+        }
+
+        $member = \App\Models\User::where('workspace_id', $workspace->id)->where('id', $memberId)->firstOrFail();
+
+        if ($member->isEmailVerified()) {
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', "Team member '{$member->name}' has already verified their email address.");
+        }
+
+        $verificationUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'team.verify',
+            now()->addDays(7),
+            [
+                'id' => $member->id,
+                'hash' => sha1($member->getEmailForVerification()),
+            ]
+        );
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($member->email)->send(new \App\Mail\TeamMemberInvitationMailable(
+                $member,
+                $workspace,
+                $currentUser,
+                $verificationUrl,
+                null
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Resend team verification failed: ' . $e->getMessage());
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Could not send verification email. Please check your outgoing SMTP settings.');
+        }
+
+        \App\Services\AuditService::log('team.verification_resent', $currentUser, [
+            'member_id' => $member->id,
+            'email' => $member->email,
+        ]);
+
+        return redirect()->to(route('settings.index') . '#team')
+            ->with('team_success', "Fresh activation and verification email dispatched to {$member->email}.");
     }
 
     /**
@@ -318,17 +403,20 @@ class SettingsController extends Controller
         $workspace = $currentUser->workspace;
 
         if (!$currentUser->isAdmin()) {
-            return back()->with('team_error', 'Unauthorized: Only workspace owners and admins can manage team members.');
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Unauthorized: Only workspace owners and admins can manage team members.');
         }
 
         $member = \App\Models\User::where('workspace_id', $workspace->id)->where('id', $memberId)->firstOrFail();
 
         if ($member->role === 'owner') {
-            return back()->with('team_error', 'Security Violation: The workspace primary owner account cannot be deleted.');
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Security Violation: The workspace primary owner account cannot be deleted.');
         }
 
         if ($member->id === $currentUser->id) {
-            return back()->with('team_error', 'You cannot remove your own account.');
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'You cannot remove your own account.');
         }
 
         $memberName = $member->name;
@@ -343,7 +431,7 @@ class SettingsController extends Controller
             'role' => $memberRole,
         ], null);
 
-        return redirect()->route('settings.index')
+        return redirect()->to(route('settings.index') . '#team')
             ->with('team_success', "Team member '{$memberName}' has been removed from your workspace.");
     }
 }

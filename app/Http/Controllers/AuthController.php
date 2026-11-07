@@ -86,11 +86,28 @@ class AuthController extends Controller
         $remember = $request->boolean('remember');
 
         if (Auth::attempt(['email' => $email, 'password' => $credentials['password']], $remember)) {
+            $user = Auth::user();
+
+            // Enforce email verification for team members
+            if (!$user->isSuperAdmin() && empty($user->email_verified_at)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Your email address is pending verification. Please click the activation link sent to your email, or ask your administrator to resend it.',
+                ])->onlyInput('email');
+            }
+
             RateLimiter::clear($emailThrottleKey);
             RateLimiter::clear($ipThrottleKey);
             $request->session()->regenerate();
 
             \App\Services\AuditService::log('auth.login_success', Auth::user());
+
+            if ($user->isSuperAdmin()) {
+                return redirect()->intended(route('admin.subscriptions.index'));
+            }
 
             return redirect()->intended(route('dashboard'));
         }
@@ -373,7 +390,39 @@ class AuthController extends Controller
             'ip' => $ip,
         ]);
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route('admin.subscriptions.index'));
+    }
+
+    /**
+     * Verify Team Member email address via temporary signed URL.
+     */
+    public function verifyTeamEmail(Request $request, $id, $hash)
+    {
+        if (!$request->hasValidSignature()) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'The verification link has expired or is invalid. Please request a new activation link from your agency administrator.',
+            ]);
+        }
+
+        $user = User::findOrFail($id);
+
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Invalid email verification token.',
+            ]);
+        }
+
+        if (empty($user->email_verified_at)) {
+            $user->email_verified_at = now();
+            $user->save();
+            \App\Services\AuditService::log('team.email_verified', $user);
+        }
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Email verified successfully! Welcome to your agency workspace team.');
     }
 
     /**
@@ -685,11 +734,17 @@ class AuthController extends Controller
             abort(403, 'Invalid or expired email verification signature.');
         }
 
-        if (!$user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
+        if (empty($user->email_verified_at)) {
+            $user->email_verified_at = now();
+            $user->save();
             \App\Services\AuditService::log('user.email_verified', $user, null, ['email' => $user->email]);
         }
 
-        return redirect()->route('dashboard')->with('success', 'Your account email address has been successfully verified! You can now dispatch invoices and manage team accounts.');
+        if (!Auth::check() || Auth::id() !== $user->id) {
+            Auth::login($user);
+            $request->session()->regenerate();
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Your account email address has been successfully verified! Welcome to your agency workspace.');
     }
 }

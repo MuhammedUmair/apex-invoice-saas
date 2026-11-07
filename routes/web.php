@@ -77,6 +77,8 @@ Route::post('/email/verification-notification', [AuthController::class, 'resendV
     ->name('verification.send');
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
     ->name('verification.verify');
+Route::get('/team/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->name('team.verify');
 
 /*
 |--------------------------------------------------------------------------
@@ -143,6 +145,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->middleware('throttle:6,1')->name('settings.smtp.test');
     Route::post('/settings/team', [SettingsController::class, 'addTeamMember'])->name('settings.team.add');
+    Route::post('/settings/team/{member}/resend-verification', [SettingsController::class, 'resendTeamVerification'])->name('settings.team.resend_verification');
     Route::delete('/settings/team/{member}', [SettingsController::class, 'removeTeamMember'])->name('settings.team.remove');
 
     // Monthly Recurring Invoicing & Retainers (Item 18)

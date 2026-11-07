@@ -9,10 +9,10 @@
             <p class="text-xs text-slate-500 mt-0.5">Manage your agency profile, wire transfer details, brand styling, SMTP email, and security</p>
         </div>
         <div class="flex items-center gap-2">
-            @if(auth()->user() && auth()->user()->is_super_admin)
+            @if(auth()->user() && auth()->user()->isSuperAdmin())
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs">
                     <i class="ph ph-shield-check text-amber-600 text-sm"></i>
-                    Platform Super Admin
+                    Platform Super Administrator
                 </span>
             @else
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
@@ -628,6 +628,32 @@
             </div>
         </div>
 
+        @if (session('team_success'))
+            <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-xs">
+                <i class="ph ph-check-circle text-base text-emerald-600 shrink-0"></i>
+                <span>{{ session('team_success') }}</span>
+            </div>
+        @endif
+        @if (session('team_error'))
+            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2 shadow-xs">
+                <i class="ph ph-warning-circle text-base text-rose-600 shrink-0"></i>
+                <span>{{ session('team_error') }}</span>
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1 shadow-xs">
+                <div class="font-bold flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-base text-rose-600 shrink-0"></i>
+                    <span>Please correct the errors below:</span>
+                </div>
+                <ul class="list-disc list-inside pl-4 text-[11px] font-normal space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- Role Privileges Guide Matrix -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
             <div class="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
@@ -666,6 +692,7 @@
                     <tr class="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                         <th class="py-3 px-4">Member</th>
                         <th class="py-3 px-4">Role Privileges</th>
+                        <th class="py-3 px-4">Email Verification</th>
                         <th class="py-3 px-4">Joined Date</th>
                         <th class="py-3 px-4 text-right">Actions</th>
                     </tr>
@@ -706,6 +733,17 @@
                                     </span>
                                 @endif
                             </td>
+                            <td class="py-3 px-4">
+                                @if($member->email_verified_at)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Verified on {{ $member->email_verified_at->format('M d, Y H:i') }}">
+                                        <i class="ph ph-check-circle text-xs text-emerald-600"></i> Verified
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300" title="Invitation sent, awaiting email activation">
+                                        <i class="ph ph-clock text-xs text-amber-600"></i> Pending Activation
+                                    </span>
+                                @endif
+                            </td>
                             <td class="py-3 px-4 text-slate-500 text-[11px]">
                                 {{ $member->created_at ? $member->created_at->format('M d, Y') : 'N/A' }}
                             </td>
@@ -717,13 +755,23 @@
                                 @elseif($member->id === auth()->id())
                                     <span class="text-slate-400 text-[11px] italic">Active Account</span>
                                 @else
-                                    <form method="POST" action="{{ route('settings.team.remove', $member->id) }}" onsubmit="return confirm('Are you sure you want to revoke access and delete user {{ $member->name }}?');" class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Remove Team Member">
-                                            <i class="ph ph-trash text-base"></i>
-                                        </button>
-                                    </form>
+                                    <div class="inline-flex items-center gap-1">
+                                        @if(!$member->email_verified_at)
+                                            <form method="POST" action="{{ route('settings.team.resend_verification', $member->id) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" class="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition" title="Resend Email Verification Link">
+                                                    <i class="ph ph-paper-plane-tilt text-base"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                        <form method="POST" action="{{ route('settings.team.remove', $member->id) }}" onsubmit="return confirm('Are you sure you want to revoke access and delete user {{ $member->name }}?');" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Remove Team Member">
+                                                <i class="ph ph-trash text-base"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 @endif
                             </td>
                         </tr>
@@ -737,7 +785,7 @@
             <div class="pt-6 border-t border-slate-100">
                 <div class="mb-4">
                     <h4 class="font-bold text-slate-900 text-sm">Add New Team Member Account</h4>
-                    <p class="text-xs text-slate-500">Create an employee account under your workspace within your {{ $seatLimit }}-seat limit.</p>
+                    <p class="text-xs text-slate-500">Create an employee account under your workspace within your {{ $seatLimit }}-seat limit. An official email verification &amp; activation link will be automatically dispatched to their inbox.</p>
                 </div>
 
                 <form method="POST" action="{{ route('settings.team.add') }}" class="space-y-4" autocomplete="off">
