@@ -148,12 +148,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between text-sm">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="remember" class="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500">
-                        <span class="text-slate-600 text-xs font-medium">Remember terminal session</span>
-                    </label>
-                </div>
+
 
                 <button type="submit" class="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 border border-slate-800 group">
                     <i class="ph ph-shield-check text-lg text-amber-400 group-hover:scale-110 transition-transform"></i>

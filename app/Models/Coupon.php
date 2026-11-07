@@ -75,10 +75,22 @@ class Coupon extends Model
             return ['valid' => false, 'message' => "Minimum purchase of {$currency} {$minFormatted} required."];
         }
 
-        // Check if workspace already redeemed this coupon
-        $alreadyRedeemed = $this->redemptions()->where('workspace_id', $workspace->id)->exists();
-        if ($alreadyRedeemed) {
-            return ['valid' => false, 'message' => 'Your workspace has already redeemed this coupon.'];
+        // Check if workspace or user email has already redeemed this coupon (Item 5)
+        $alreadyRedeemedWorkspace = $this->redemptions()->withoutGlobalScopes()->where('workspace_id', $workspace->id)->exists();
+        if ($alreadyRedeemedWorkspace) {
+            return ['valid' => false, 'message' => 'Your workspace has already redeemed this promo code.'];
+        }
+
+        $userId = auth()->id() ?? $workspace->users()->first()?->id;
+        $userEmail = auth()->user()?->email ?? $workspace->users()->first()?->email;
+        if ($userEmail) {
+            $matchingUserIds = \App\Models\User::whereRaw('LOWER(email) = ?', [strtolower(trim($userEmail))])->pluck('id')->toArray();
+            if (!empty($matchingUserIds) && $this->redemptions()->withoutGlobalScopes()->whereIn('user_id', $matchingUserIds)->exists()) {
+                return ['valid' => false, 'message' => 'This promo code has already been applied to your email address / account.'];
+            }
+        }
+        if ($userId && $this->redemptions()->withoutGlobalScopes()->where('user_id', $userId)->exists()) {
+            return ['valid' => false, 'message' => 'This promo code has already been redeemed on your account.'];
         }
 
         return ['valid' => true, 'message' => 'Coupon applied successfully.'];

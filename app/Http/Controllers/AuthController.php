@@ -158,7 +158,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Authenticate Super Admin via Control Panel (/cp).
+     * Authenticate Super Admin via Control Panel (/cp) and dispatch Email OTP.
      */
     public function cpLogin(Request $request)
     {
@@ -189,13 +189,10 @@ class AuthController extends Controller
                 ])->setStatusCode(429);
         }
 
-        $remember = $request->boolean('remember');
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-        if (Auth::attempt(['email' => $email, 'password' => $credentials['password']], $remember)) {
-            $user = Auth::user();
-
+        if ($user && Hash::check($credentials['password'], $user->password)) {
             if (!$user->isSuperAdmin()) {
-                Auth::logout();
                 RateLimiter::hit($emailThrottleKey, 3600);
                 \App\Services\AuditService::log('auth.cp_unauthorized_attempt', null, null, [
                     'email' => $email,
@@ -207,13 +204,29 @@ class AuthController extends Controller
                 ])->onlyInput('email');
             }
 
-            RateLimiter::clear($emailThrottleKey);
-            RateLimiter::clear($ipThrottleKey);
-            $request->session()->regenerate();
+            // Generate 6-digit OTP passcode
+            $otp = (string) random_int(100000, 999999);
 
-            \App\Services\AuditService::log('auth.cp_login_success', $user);
+            // Store in session (expires in 10 minutes)
+            $request->session()->put('cp_otp_user_id', $user->id);
+            $request->session()->put('cp_otp_hash', Hash::make($otp));
+            $request->session()->put('cp_otp_expires_at', now()->addMinutes(10)->timestamp);
+            $request->session()->put('cp_otp_email', $user->email);
+            $request->session()->put('cp_otp_attempts', 0);
 
-            return redirect()->intended(route('dashboard'));
+            // Dispatch OTP email
+            try {
+                Mail::to($user->email)->send(new \App\Mail\SuperAdminOtpMailable($otp, $user));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('SuperAdmin OTP email dispatch failed: ' . $e->getMessage());
+            }
+
+            \App\Services\AuditService::log('auth.cp_otp_dispatched', $user, null, [
+                'email' => $user->email,
+                'ip' => $ip,
+            ]);
+
+            return redirect()->route('cp.otp');
         }
 
         // Increment failed attempt counter with 3600-second (60 minutes) decay window
@@ -247,6 +260,142 @@ class AuthController extends Controller
         return back()->withErrors([
             'email' => $errorMessage,
         ])->onlyInput('email');
+    }
+
+    /**
+     * Show Super Admin OTP Verification Screen (/cp/otp).
+     */
+    public function showCpOtp(Request $request)
+    {
+        if ($redirect = $this->ensureInvoicySubdomain($request)) {
+            return $redirect;
+        }
+
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
+        $userId = session('cp_otp_user_id');
+        $expiresAt = (int) session('cp_otp_expires_at', 0);
+
+        if (!$userId || now()->timestamp > $expiresAt) {
+            $request->session()->forget(['cp_otp_user_id', 'cp_otp_hash', 'cp_otp_expires_at', 'cp_otp_email', 'cp_otp_attempts']);
+            return redirect()->route('cp.login')->withErrors([
+                'email' => 'Your verification session has expired. Please sign in again.',
+            ]);
+        }
+
+        $email = session('cp_otp_email', 'superadmin@redmaplestudio.com');
+        $parts = explode('@', $email);
+        $maskedEmail = substr($parts[0], 0, 3) . '***@' . ($parts[1] ?? 'redmaplestudio.com');
+        $remainingSeconds = max(0, $expiresAt - now()->timestamp);
+
+        return view('auth.cp-otp', compact('maskedEmail', 'remainingSeconds'));
+    }
+
+    /**
+     * Verify Super Admin 6-digit OTP passcode.
+     */
+    public function verifyCpOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|digits:6',
+        ]);
+
+        $userId = session('cp_otp_user_id');
+        $otpHash = session('cp_otp_hash');
+        $expiresAt = (int) session('cp_otp_expires_at', 0);
+
+        if (!$userId || !$otpHash || now()->timestamp > $expiresAt) {
+            $request->session()->forget(['cp_otp_user_id', 'cp_otp_hash', 'cp_otp_expires_at', 'cp_otp_email', 'cp_otp_attempts']);
+            return redirect()->route('cp.login')->withErrors([
+                'email' => 'Your verification session has expired. Please sign in again.',
+            ]);
+        }
+
+        $attempts = (int) session('cp_otp_attempts', 0) + 1;
+        session(['cp_otp_attempts' => $attempts]);
+
+        if ($attempts > 5) {
+            $request->session()->forget(['cp_otp_user_id', 'cp_otp_hash', 'cp_otp_expires_at', 'cp_otp_email', 'cp_otp_attempts']);
+            return redirect()->route('cp.login')->withErrors([
+                'email' => 'Too many invalid verification attempts. Security session terminated.',
+            ]);
+        }
+
+        if (!Hash::check($request->otp, $otpHash)) {
+            $rem = 5 - $attempts;
+            return back()->withErrors([
+                'otp' => "Invalid verification passcode. ($rem attempt(s) remaining before session reset)",
+            ]);
+        }
+
+        $user = User::findOrFail($userId);
+        if (!$user->isSuperAdmin()) {
+            $request->session()->forget(['cp_otp_user_id', 'cp_otp_hash', 'cp_otp_expires_at', 'cp_otp_email', 'cp_otp_attempts']);
+            return redirect()->route('cp.login')->withErrors([
+                'email' => 'Access Denied: Account is not authorized for Control Panel.',
+            ]);
+        }
+
+        // Clean OTP session state
+        $request->session()->forget(['cp_otp_user_id', 'cp_otp_hash', 'cp_otp_expires_at', 'cp_otp_email', 'cp_otp_attempts']);
+
+        // Clear IP & email rate limiters
+        $ip = $request->ip();
+        $email = Str::lower(trim($user->email));
+        RateLimiter::clear('cp_ip_locked:' . $ip);
+        RateLimiter::clear('cp_attempt:' . $email . '|' . $ip);
+
+        // Authenticate Super Admin session
+        Auth::login($user, false);
+        $request->session()->regenerate();
+
+        \App\Services\AuditService::log('auth.cp_login_success', $user, null, [
+            'mfa' => 'email_otp',
+            'ip' => $ip,
+        ]);
+
+        return redirect()->intended(route('dashboard'));
+    }
+
+    /**
+     * Resend Super Admin OTP passcode.
+     */
+    public function resendCpOtp(Request $request)
+    {
+        $userId = session('cp_otp_user_id');
+        if (!$userId) {
+            return redirect()->route('cp.login');
+        }
+
+        $throttleKey = 'cp_otp_resend:' . $userId;
+        if (RateLimiter::tooManyAttempts($throttleKey, 1)) {
+            $sec = RateLimiter::availableIn($throttleKey);
+            return back()->withErrors([
+                'otp' => "Please wait {$sec} second(s) before requesting another code.",
+            ]);
+        }
+        RateLimiter::hit($throttleKey, 60);
+
+        $user = User::find($userId);
+        if (!$user) {
+            return redirect()->route('cp.login');
+        }
+
+        $otp = (string) random_int(100000, 999999);
+        $request->session()->put('cp_otp_hash', Hash::make($otp));
+        $request->session()->put('cp_otp_expires_at', now()->addMinutes(10)->timestamp);
+
+        try {
+            Mail::to($user->email)->send(new \App\Mail\SuperAdminOtpMailable($otp, $user));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SuperAdmin OTP resend failed: ' . $e->getMessage());
+        }
+
+        \App\Services\AuditService::log('auth.cp_otp_resent', $user);
+
+        return back()->with('status', 'A fresh verification code has been dispatched to your email.');
     }
 
     public function showRegister(Request $request)

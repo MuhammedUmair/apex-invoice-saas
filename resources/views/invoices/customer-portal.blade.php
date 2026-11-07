@@ -104,40 +104,58 @@
         </div>
     @endif
 
-    <!-- Dual Payment Gateways (Stripe & PayPal) -->
+    <!-- Dual Payment Gateways (Stripe & PayPal) or Trial Notice -->
     @if($invoice->due_cents > 0)
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">
-            <h3 class="font-bold text-slate-900 text-base">Select Online Payment Method</h3>
-            <p class="text-xs text-slate-500">Pay securely online using credit card, debit card, or PayPal account.</p>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <!-- Stripe Option -->
-                <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
-                    @csrf
-                    <input type="hidden" name="gateway" value="stripe">
-                    <button type="submit" class="w-full p-4 rounded-xl border-2 border-blue-600 bg-blue-50/50 hover:bg-blue-50 text-blue-900 flex items-center justify-between transition group shadow-sm hover:shadow">
-                        <div class="text-left">
-                            <span class="block font-bold text-sm">Pay with Credit Card</span>
-                            <span class="text-[11px] text-blue-700">Visa, Mastercard, Amex via Stripe</span>
-                        </div>
-                        <i class="ph ph-credit-card text-2xl text-blue-600 group-hover:scale-110 transition-transform"></i>
-                    </button>
-                </form>
-
-                <!-- PayPal Option -->
-                <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
-                    @csrf
-                    <input type="hidden" name="gateway" value="paypal">
-                    <button type="submit" class="w-full p-4 rounded-xl border-2 border-amber-500 bg-amber-50/50 hover:bg-amber-50 text-amber-900 flex items-center justify-between transition group shadow-sm hover:shadow">
-                        <div class="text-left">
-                            <span class="block font-bold text-sm">Pay with PayPal</span>
-                            <span class="text-[11px] text-amber-700">PayPal balance or linked cards</span>
-                        </div>
-                        <i class="ph ph-wallet text-2xl text-amber-600 group-hover:scale-110 transition-transform"></i>
-                    </button>
-                </form>
+        @if($invoice->isTrialInvoice())
+            <div class="bg-amber-50 rounded-2xl border-2 border-dashed border-amber-300 shadow-sm p-6 sm:p-8 space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-shield-warning"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-amber-900 text-base">Online Payment Disabled &bull; Evaluation Free Trial</h3>
+                        <p class="text-xs text-amber-700">Online payment processing (Stripe & PayPal) is disabled during the Free Trial evaluation period.</p>
+                    </div>
+                </div>
+                <div class="p-3 bg-white/80 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+                    <i class="ph ph-info text-amber-600 text-base shrink-0"></i>
+                    <span>For settlement or official inquiries, please contact the issuing vendor directly using their registered agency contact details or remittance instructions below.</span>
+                </div>
             </div>
-        </div>
+        @else
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">
+                <h3 class="font-bold text-slate-900 text-base">Select Online Payment Method</h3>
+                <p class="text-xs text-slate-500">Pay securely online using credit card, debit card, or PayPal account.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <!-- Stripe Option -->
+                    <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
+                        @csrf
+                        <input type="hidden" name="gateway" value="stripe">
+                        <button type="submit" class="w-full p-4 rounded-xl border-2 border-blue-600 bg-blue-50/50 hover:bg-blue-50 text-blue-900 flex items-center justify-between transition group shadow-sm hover:shadow">
+                            <div class="text-left">
+                                <span class="block font-bold text-sm">Pay with Credit Card</span>
+                                <span class="text-[11px] text-blue-700">Visa, Mastercard, Amex via Stripe</span>
+                            </div>
+                            <i class="ph ph-credit-card text-2xl text-blue-600 group-hover:scale-110 transition-transform"></i>
+                        </button>
+                    </form>
+
+                    <!-- PayPal Option -->
+                    <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
+                        @csrf
+                        <input type="hidden" name="gateway" value="paypal">
+                        <button type="submit" class="w-full p-4 rounded-xl border-2 border-amber-500 bg-amber-50/50 hover:bg-amber-50 text-amber-900 flex items-center justify-between transition group shadow-sm hover:shadow">
+                            <div class="text-left">
+                                <span class="block font-bold text-sm">Pay with PayPal</span>
+                                <span class="text-[11px] text-amber-700">PayPal balance or linked cards</span>
+                            </div>
+                            <i class="ph ph-wallet text-2xl text-amber-600 group-hover:scale-110 transition-transform"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
     @endif
 
     <!-- Invoice Details Sheet -->

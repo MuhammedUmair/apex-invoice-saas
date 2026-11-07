@@ -64,23 +64,28 @@
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
     <div class="min-h-screen flex" x-data="{ sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true' }">
         <!-- Sidebar Navigation (Expand/Collapse Supported) -->
-        <aside :class="sidebarCollapsed ? 'w-20' : 'w-64'" class="bg-slate-900 text-slate-200 flex flex-col shrink-0 transition-all duration-300 relative">
+        <aside :class="sidebarCollapsed ? 'w-20' : 'w-72'" class="bg-slate-900 text-slate-200 flex flex-col shrink-0 transition-all duration-300 relative">
             <!-- Brand Header -->
-            <div class="h-16 flex items-center px-4 border-b border-slate-800 justify-between gap-2 overflow-hidden">
-                <div class="flex items-center gap-3 overflow-hidden">
+            <div class="h-16 flex items-center border-b border-slate-800 transition-all duration-300 overflow-hidden"
+                 :class="sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4 gap-2'">
+                <div class="flex items-center gap-3 overflow-hidden" :class="sidebarCollapsed ? 'justify-center' : ''">
                     @if($customLogo)
-                        <div class="h-9 flex items-center shrink-0">
+                        <div class="h-10 flex items-center shrink-0 cursor-pointer"
+                             @click="if(sidebarCollapsed) { sidebarCollapsed = false; localStorage.setItem('sidebar_collapsed', false); }"
+                             :title="sidebarCollapsed ? 'Click to expand sidebar' : ''">
                             <img src="{{ $customLogo }}" alt="{{ $brandName }}" class="max-h-9 max-w-[130px] object-contain rounded-lg">
                         </div>
                     @else
-                        <div class="w-9 h-9 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm overflow-hidden">
+                        <div class="w-10 h-10 rounded-xl bg-red-600/10 border border-red-500/20 flex items-center justify-center p-1.5 shrink-0 shadow-sm overflow-hidden cursor-pointer hover:bg-red-600/20 transition"
+                             @click="if(sidebarCollapsed) { sidebarCollapsed = false; localStorage.setItem('sidebar_collapsed', false); }"
+                             :title="sidebarCollapsed ? 'Click to expand sidebar' : ''">
                             <!-- Red Maple Leaf Vector -->
                             <svg class="w-full h-full text-red-600 drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
                                 <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                             </svg>
                         </div>
                     @endif
-                    <div x-show="!sidebarCollapsed" x-transition.opacity.duration.200ms class="truncate">
+                    <div x-show="!sidebarCollapsed" x-transition.opacity.duration.200ms class="whitespace-nowrap min-w-0">
                         <h1 class="font-black text-white text-sm tracking-tight flex items-center gap-1">
                             {{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-500 font-bold">{{ $brandSub }}</span>
                         </h1>
@@ -89,11 +94,12 @@
                 </div>
 
                 <!-- Sidebar Collapse / Expand Toggle Button -->
-                <button @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebar_collapsed', sidebarCollapsed)"
+                <button x-show="!sidebarCollapsed"
+                        @click="sidebarCollapsed = !sidebarCollapsed; localStorage.setItem('sidebar_collapsed', sidebarCollapsed)"
                         type="button"
                         class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition shrink-0"
-                        :title="sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
-                    <i :class="sidebarCollapsed ? 'ph-caret-right' : 'ph-caret-left'" class="ph text-base font-bold"></i>
+                        title="Collapse Sidebar">
+                    <i class="ph ph-caret-left text-base font-bold"></i>
                 </button>
             </div>
 

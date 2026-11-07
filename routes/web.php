@@ -56,6 +56,9 @@ Route::middleware('guest')->group(function () {
     // Dedicated Platform Super Admin Control Panel Login (/cp)
     Route::get('/cp', [AuthController::class, 'showCpLogin'])->name('cp.login');
     Route::post('/cp', [AuthController::class, 'cpLogin'])->middleware('throttle:15,1')->name('cp.login.post');
+    Route::get('/cp/otp', [AuthController::class, 'showCpOtp'])->name('cp.otp');
+    Route::post('/cp/otp', [AuthController::class, 'verifyCpOtp'])->middleware('throttle:10,1')->name('cp.otp.verify');
+    Route::post('/cp/otp/resend', [AuthController::class, 'resendCpOtp'])->middleware('throttle:5,1')->name('cp.otp.resend');
 
     // Password Reset with brute-force / email-bomb throttling
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');

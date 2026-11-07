@@ -29,6 +29,12 @@ class PaymentController extends Controller
             ->where('public_secure_token', $token)
             ->firstOrFail();
 
+        // Enforce Trial Protection: Block online checkout for trial evaluation invoices (Item 7)
+        if ($invoice->isTrialInvoice()) {
+            return redirect()->route('invoices.portal', $token)
+                ->withErrors(['payment' => 'Online payment processing is disabled for invoices issued during the Free Trial evaluation period.']);
+        }
+
         $gateway = $request->input('gateway', 'stripe'); // stripe or paypal
         $amountCents = (int) $request->input('amount_cents', $invoice->due_cents);
 

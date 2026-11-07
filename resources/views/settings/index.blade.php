@@ -23,6 +23,56 @@
         </div>
     </div>
 
+    <!-- Settings Sub-Navigation Shortcuts Menu (Item 6) -->
+    <div class="bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-slate-200 shadow-xs sticky top-3 z-30">
+        <nav class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs font-bold">
+            <a href="#profile" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-user text-sm text-slate-400"></i>
+                <span>Profile</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#agency" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-buildings text-sm text-slate-400"></i>
+                <span>Agency</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#regional" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-globe text-sm text-slate-400"></i>
+                <span>Regional</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#wire" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-bank text-sm text-slate-400"></i>
+                <span>Wire Details</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#brand" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-palette text-sm text-slate-400"></i>
+                <span>Brand & Logo</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#gateways" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-credit-card text-sm text-slate-400"></i>
+                <span>Gateways</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#smtp" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-envelope-simple text-sm text-slate-400"></i>
+                <span>SMTP</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#security" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-shield-check text-sm text-slate-400"></i>
+                <span>Security</span>
+            </a>
+            <span class="text-slate-300 shrink-0">&bull;</span>
+            <a href="#team" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
+                <i class="ph ph-users-three text-sm text-slate-400"></i>
+                <span>Team Seats</span>
+            </a>
+        </nav>
+    </div>
+
     @if (session('success'))
         <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <i class="ph ph-check-circle text-base text-emerald-600"></i>
@@ -67,7 +117,7 @@
     @endif
 
     <!-- Card 0: Owner / Super Admin Contact & Personal Profile -->
-    <div id="profile" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+    <div id="profile" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
         <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
             <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
                 <i class="ph ph-user-circle"></i>
@@ -118,7 +168,7 @@
         @csrf
 
         <!-- Card 1: Agency Business Profile -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div id="agency" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-buildings"></i>
@@ -169,7 +219,7 @@
         </div>
 
         <!-- Card 2: Regional Defaults & Multi-Language -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div id="regional" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-globe"></i>
@@ -234,7 +284,7 @@
         @php
             $bank = is_array($workspace->bank_details) ? $workspace->bank_details : (json_decode($workspace->bank_details, true) ?? []);
         @endphp
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div id="wire" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-bank"></i>
@@ -273,7 +323,7 @@
         </div>
 
         <!-- Card 4: Brand Identity, Custom Logo & Colors -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div id="brand" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-palette"></i>
@@ -355,7 +405,7 @@
         </div>
 
         <!-- Card 5: Payment Gateway API Keys -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div id="gateways" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-key"></i>
@@ -407,7 +457,7 @@
         @php
             $smtp = $workspace->smtp_settings_encrypted ?? [];
         @endphp
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div id="smtp" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
             <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-envelope-simple"></i>
@@ -491,7 +541,7 @@
     </div>
 
     <!-- Card 6: Account Security & Change Password -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 pb-12">
+    <div id="security" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 pb-12 scroll-mt-20">
         <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
             <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
                 <i class="ph ph-shield-check"></i>
@@ -539,7 +589,7 @@
     </div>
 
     <!-- Card 7: Team Members & 5 Seat Access Control -->
-    <div id="team" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+    <div id="team" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
@@ -720,6 +770,25 @@
                 </a>
             </div>
         @endif
+    </div>
+
+    <!-- Floating Back to Top Button (Item 6) -->
+    <div x-data="{ showBackToTop: false }"
+         @scroll.window="showBackToTop = (window.pageYOffset > 250)"
+         class="fixed bottom-6 right-6 z-40">
+        <button x-show="showBackToTop"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-y-3"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 translate-y-3"
+                @click="window.scrollTo({ top: 0, behavior: 'smooth' })"
+                type="button"
+                class="p-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full shadow-2xl hover:shadow-red-600/20 border border-slate-700 transition hover:scale-105 active:scale-95 flex items-center justify-center group"
+                title="Back to Top">
+            <i class="ph ph-arrow-up text-lg font-bold group-hover:-translate-y-0.5 transition-transform"></i>
+        </button>
     </div>
 
 </div>

@@ -82,26 +82,34 @@ class CouponService
             ];
         }
 
-        // 3. Prevent Free-Plan Loop: User-Level Redemption Check Across Workspaces (Item 5)
-        $userId = Auth::id();
-        if ($userId) {
-            $alreadyUsedByUser = CouponRedemption::where('coupon_id', $coupon->id)
-                ->where('user_id', $userId)
+        // 3. Prevent Free-Plan Loop & Multi-Use: Check user account and registered email address (Item 5)
+        $user = Auth::user();
+        if ($user) {
+            $userEmail = strtolower(trim($user->email));
+            $matchingUserIds = \App\Models\User::whereRaw('LOWER(email) = ?', [$userEmail])->pluck('id')->toArray();
+            if (empty($matchingUserIds)) {
+                $matchingUserIds = [$user->id];
+            }
+
+            $alreadyUsedByUser = CouponRedemption::withoutGlobalScopes()
+                ->where('coupon_id', $coupon->id)
+                ->whereIn('user_id', $matchingUserIds)
                 ->exists();
 
             if ($alreadyUsedByUser) {
                 return [
                     'valid' => false,
-                    'message' => 'You have already redeemed this promotional coupon on your account.',
+                    'message' => 'This promo code has already been applied to your email address / account.',
                     'coupon' => $coupon,
                     'discount_cents' => 0,
                 ];
             }
         }
 
-        // 4. Workspace single-use check
+        // 4. Workspace single-use check and Owner email verification
         if ($workspace) {
-            $alreadyUsedByWorkspace = CouponRedemption::where('coupon_id', $coupon->id)
+            $alreadyUsedByWorkspace = CouponRedemption::withoutGlobalScopes()
+                ->where('coupon_id', $coupon->id)
                 ->where('workspace_id', $workspace->id)
                 ->exists();
 
@@ -112,6 +120,28 @@ class CouponService
                     'coupon' => $coupon,
                     'discount_cents' => 0,
                 ];
+            }
+
+            // Also check if workspace owner email has redeemed
+            $owner = $workspace->users()->first();
+            if ($owner) {
+                $ownerEmail = strtolower(trim($owner->email));
+                $ownerUserIds = \App\Models\User::whereRaw('LOWER(email) = ?', [$ownerEmail])->pluck('id')->toArray();
+                if (!empty($ownerUserIds)) {
+                    $alreadyUsedByOwner = CouponRedemption::withoutGlobalScopes()
+                        ->where('coupon_id', $coupon->id)
+                        ->whereIn('user_id', $ownerUserIds)
+                        ->exists();
+
+                    if ($alreadyUsedByOwner) {
+                        return [
+                            'valid' => false,
+                            'message' => 'This promo code has already been applied to this email address / account.',
+                            'coupon' => $coupon,
+                            'discount_cents' => 0,
+                        ];
+                    }
+                }
             }
         }
 
@@ -302,6 +332,7 @@ class CouponService
             return CouponRedemption::create([
                 'coupon_id' => $coupon->id,
                 'workspace_id' => $workspace->id,
+                'user_id' => Auth::id() ?? $workspace->users()->first()?->id,
                 'discount_applied_cents' => $discountCents,
                 'currency' => $currency,
                 'subscription_id' => $subscriptionId,
