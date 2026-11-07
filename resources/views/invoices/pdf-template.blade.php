@@ -1,8 +1,13 @@
+@php
+    $currentLocale = app()->getLocale();
+    $isRtl = in_array($currentLocale, ['ur', 'ar']);
+    $pdfLogo = \App\Models\CmsContent::getSystemLogo();
+@endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $currentLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
-    <title>Invoice - {{ $invoice->invoice_number }}</title>
+    <title>{{ __('Invoice') }} - {{ $invoice->invoice_number }}</title>
     <style>
         @page { size: A4; margin: 20mm; }
         body {
@@ -13,26 +18,28 @@
             padding: 30px;
             font-size: 13px;
             line-height: 1.5;
+            direction: {{ $isRtl ? 'rtl' : 'ltr' }};
+            text-align: {{ $isRtl ? 'right' : 'left' }};
         }
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        .logo-text { font-size: 24px; font-weight: 800; color: #2563eb; }
-        .inv-title { font-size: 24px; font-weight: 800; text-align: right; color: #0f172a; text-transform: uppercase; }
+        .logo-text { font-size: 24px; font-weight: 800; color: #dc2626; }
+        .inv-title { font-size: 24px; font-weight: 800; text-align: {{ $isRtl ? 'left' : 'right' }}; color: #0f172a; text-transform: uppercase; }
         .parties-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
         .party-cell { width: 50%; vertical-align: top; }
         .label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
         .party-name { font-size: 15px; font-weight: 700; color: #0f172a; }
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-        .items-table th { background: #f8fafc; color: #475569; font-size: 11px; text-transform: uppercase; padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: left; }
+        .items-table th { background: #f8fafc; color: #475569; font-size: 11px; text-transform: uppercase; padding: 10px; border-bottom: 2px solid #e2e8f0; text-align: {{ $isRtl ? 'right' : 'left' }}; }
         .items-table td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; }
-        .text-right { text-align: right; }
+        .text-right { text-align: {{ $isRtl ? 'left' : 'right' }}; }
         .text-center { text-align: center; }
-        .totals-table { width: 45%; margin-left: auto; border-collapse: collapse; margin-bottom: 30px; }
+        .totals-table { width: 45%; {{ $isRtl ? 'margin-right: auto; margin-left: 0;' : 'margin-left: auto; margin-right: 0;' }} border-collapse: collapse; margin-bottom: 30px; }
         .totals-table td { padding: 6px 10px; }
-        .total-row { font-size: 16px; font-weight: 800; border-top: 2px solid #e2e8f0; color: #2563eb; }
+        .total-row { font-size: 16px; font-weight: 800; border-top: 2px solid #e2e8f0; color: #dc2626; }
         .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-paid { background: #dcfce7; color: #166534; }
         .badge-due { background: #fee2e2; color: #991b1b; }
-        .no-print { margin-bottom: 20px; }
+        .no-print { margin-bottom: 20px; text-align: {{ $isRtl ? 'left' : 'right' }}; }
         .trial-watermark {
             position: fixed;
             top: 36%;
@@ -61,22 +68,19 @@
 <body>
     @if($invoice->isTrialInvoice())
         <div class="trial-watermark">
-            TRIAL VERSION &bull; NOT FOR OFFICIAL ACCOUNTING
+            {{ __('TRIAL VERSION • NOT FOR OFFICIAL ACCOUNTING') }}
         </div>
     @endif
-    <div class="no-print" style="text-align: right;">
+    <div class="no-print">
         <button onclick="window.print()" style="padding: 8px 18px; background: #dc2626; color: #ffffff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
             <svg width="14" height="14" viewBox="0 0 900 900" fill="#ffffff" style="vertical-align: middle;">
                 <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
             </svg>
-            Print / Save to PDF
+            {{ __('Print / Save to PDF') }}
         </button>
     </div>
 
     <!-- Header -->
-    @php
-        $pdfLogo = \App\Models\CmsContent::getSystemLogo();
-    @endphp
     <table class="header-table">
         <tr>
             <td style="vertical-align: middle;">
@@ -93,10 +97,10 @@
                 <div style="color: #64748b; font-size: 12px; margin-top: 4px;">{{ $invoice->workspace_snapshot['email'] ?? $invoice->workspace?->email ?? '' }}</div>
             </td>
             <td>
-                <div class="inv-title">INVOICE</div>
-                <div style="text-align: right; font-weight: bold; font-size: 14px; margin-top: 4px;">{{ $invoice->invoice_number }}</div>
-                <div style="text-align: right; color: #64748b; font-size: 12px;">Issue Date: {{ $invoice->issue_date ? $invoice->issue_date->format('M d, Y') : date('M d, Y') }}</div>
-                <div style="text-align: right; color: #64748b; font-size: 12px;">Due Date: {{ $invoice->due_date ? $invoice->due_date->format('M d, Y') : date('M d, Y') }}</div>
+                <div class="inv-title">{{ __('INVOICE') }}</div>
+                <div style="text-align: {{ $isRtl ? 'left' : 'right' }}; font-weight: bold; font-size: 14px; margin-top: 4px;">{{ $invoice->invoice_number }}</div>
+                <div style="text-align: {{ $isRtl ? 'left' : 'right' }}; color: #64748b; font-size: 12px;">{{ __('Issue Date') }}: {{ $invoice->issue_date ? $invoice->issue_date->format('M d, Y') : date('M d, Y') }}</div>
+                <div style="text-align: {{ $isRtl ? 'left' : 'right' }}; color: #64748b; font-size: 12px;">{{ __('Due Date') }}: {{ $invoice->due_date ? $invoice->due_date->format('M d, Y') : date('M d, Y') }}</div>
             </td>
         </tr>
     </table>
@@ -105,20 +109,20 @@
     <table class="parties-table">
         <tr>
             <td class="party-cell">
-                <div class="label">Billed By:</div>
+                <div class="label">{{ __('Billed By') }}:</div>
                 <div class="party-name">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace?->name ?? 'Agency' }}</div>
                 <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->workspace_snapshot['address'] ?? $invoice->workspace?->address ?? '' }}</div>
                 @if(!empty($invoice->workspace_snapshot['tax_id']) || !empty($invoice->workspace?->tax_id))
-                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Tax ID: {{ $invoice->workspace_snapshot['tax_id'] ?? $invoice->workspace?->tax_id }}</div>
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">{{ __('Tax ID') }}: {{ $invoice->workspace_snapshot['tax_id'] ?? $invoice->workspace?->tax_id }}</div>
                 @endif
             </td>
             <td class="party-cell">
-                <div class="label">Billed To:</div>
-                <div class="party-name">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client?->company_name ?? $invoice->client?->name ?? 'Walk-in / General Customer' }}</div>
-                <div style="color: #475569; font-size: 12px;">Attn: {{ $invoice->client_snapshot['name'] ?? $invoice->client?->name ?? 'Walk-in / General Customer' }}</div>
+                <div class="label">{{ __('Billed To') }}:</div>
+                <div class="party-name">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client?->company_name ?? $invoice->client?->name ?? __('Walk-in / General Customer') }}</div>
+                <div style="color: #475569; font-size: 12px;">{{ __('Attn') }}: {{ $invoice->client_snapshot['name'] ?? $invoice->client?->name ?? __('Walk-in / General Customer') }}</div>
                 <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->client_snapshot['address'] ?? $invoice->client?->address ?? '' }}</div>
                 @if(!empty($invoice->client_snapshot['tax_id']) || !empty($invoice->client?->tax_id))
-                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Tax/VAT ID: {{ $invoice->client_snapshot['tax_id'] ?? $invoice->client?->tax_id }}</div>
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">{{ __('VAT/Tax ID') }}: {{ $invoice->client_snapshot['tax_id'] ?? $invoice->client?->tax_id }}</div>
                 @endif
             </td>
         </tr>
@@ -128,10 +132,10 @@
     <table class="items-table">
         <thead>
             <tr>
-                <th>Description</th>
-                <th class="text-center" style="width: 80px;">Qty</th>
-                <th class="text-right" style="width: 100px;">Rate ({{ $invoice->currency }})</th>
-                <th class="text-right" style="width: 110px;">Amount</th>
+                <th>{{ __('Description') }}</th>
+                <th class="text-center" style="width: 80px;">{{ __('Qty') }}</th>
+                <th class="text-right" style="width: 120px;">{{ __('Rate') }} ({{ $invoice->currency }})</th>
+                <th class="text-right" style="width: 120px;">{{ __('Amount') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -140,9 +144,9 @@
                     <td>
                         <strong>{{ $item->description }}</strong>
                     </td>
-                    <td class="text-center">{{ $item->quantity }} {{ $item->unit }}</td>
-                    <td class="text-right">{{ $item->formatted_rate }}</td>
-                    <td class="text-right"><strong>{{ $item->formatted_amount }}</strong></td>
+                    <td class="text-center">{{ (float)$item->quantity == (int)$item->quantity ? (int)$item->quantity : $item->quantity }} {{ $item->unit }}</td>
+                    <td class="text-right">{{ number_format($item->rate_cents / 100, 2) }} {{ $invoice->currency }}</td>
+                    <td class="text-right"><strong>{{ number_format($item->amount_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
                 </tr>
             @endforeach
         </tbody>
@@ -151,43 +155,60 @@
     <!-- Totals -->
     <table class="totals-table">
         <tr>
-            <td style="color: #64748b;">Subtotal:</td>
-            <td class="text-right"><strong>{{ $invoice->formatted_subtotal }}</strong></td>
+            <td style="color: #64748b;">{{ __('Subtotal') }}:</td>
+            <td class="text-right"><strong>{{ number_format($invoice->subtotal_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
         </tr>
         @if($invoice->discount_cents > 0)
             <tr>
-                <td style="color: #16a34a;">Discount:</td>
-                <td class="text-right" style="color: #16a34a;"><strong>-${{ number_format($invoice->discount_cents / 100, 2) }}</strong></td>
+                <td style="color: #16a34a;">{{ __('Discount') }}:</td>
+                <td class="text-right" style="color: #16a34a;"><strong>-{{ number_format($invoice->discount_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
             </tr>
         @endif
         <tr>
             <td style="color: #64748b;">{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</td>
-            <td class="text-right"><strong>+{{ $invoice->formatted_tax }}</strong></td>
+            <td class="text-right"><strong>+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
         </tr>
         <tr class="total-row">
-            <td>Total:</td>
-            <td class="text-right">{{ $invoice->formatted_total }}</td>
+            <td>{{ __('Total') }}:</td>
+            <td class="text-right">{{ number_format($invoice->total_cents / 100, 2) }} {{ $invoice->currency }}</td>
         </tr>
         <tr>
-            <td style="color: #64748b;">Amount Paid:</td>
-            <td class="text-right">${{ number_format($invoice->paid_cents / 100, 2) }}</td>
+            <td style="color: #64748b;">{{ __('Amount Paid') }}:</td>
+            <td class="text-right">{{ number_format($invoice->paid_cents / 100, 2) }} {{ $invoice->currency }}</td>
         </tr>
         <tr>
-            <td style="color: #dc2626; font-weight: bold;">Balance Due:</td>
-            <td class="text-right" style="color: #dc2626; font-weight: bold;">{{ $invoice->formatted_due }}</td>
+            <td style="color: #dc2626; font-weight: bold;">{{ __('Balance Due') }}:</td>
+            <td class="text-right" style="color: #dc2626; font-weight: bold;">{{ number_format($invoice->due_cents / 100, 2) }} {{ $invoice->currency }}</td>
         </tr>
+        @if($invoice->getLateSurchargeCents() > 0)
+            <tr>
+                <td style="color: #b91c1c;">{{ __('Late Surcharge (Overdue)') }}:</td>
+                <td class="text-right" style="color: #b91c1c;"><strong>+{{ number_format($invoice->getLateSurchargeCents() / 100, 2) }} {{ $invoice->currency }}</strong></td>
+            </tr>
+            <tr class="total-row" style="color: #b91c1c;">
+                <td>{{ __('Adjusted Total Due') }}:</td>
+                <td class="text-right">{{ number_format(($invoice->due_cents + $invoice->getLateSurchargeCents()) / 100, 2) }} {{ $invoice->currency }}</td>
+            </tr>
+        @endif
     </table>
 
     <!-- Notes & Bank Info -->
+    @if($invoice->notes)
+        <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
+            <strong style="color: #334155;">{{ __('Notes') }}:</strong><br>
+            {{ $invoice->notes }}
+        </div>
+    @endif
+
     @if($invoice->terms)
-        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
-            <strong style="color: #334155;">Terms & Conditions:</strong><br>
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b;">
+            <strong style="color: #334155;">{{ __('Terms & Conditions') }}:</strong><br>
             {{ $invoice->terms }}
         </div>
     @endif
 
     <div style="text-align: center; margin-top: 40px; padding-top: 15px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8;">
-        Generated securely via <strong>RedMaple Invoice Generator</strong>
+        {{ __('Generated securely via') }} <strong>Invoicy by RedMaple</strong>
     </div>
 </body>
 </html>

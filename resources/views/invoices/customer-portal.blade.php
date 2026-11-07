@@ -1,25 +1,28 @@
 @extends('layouts.guest')
 
+@php
+    $portalLogo = \App\Models\CmsContent::getSystemLogo();
+    $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
+    $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
+    $currentLocale = app()->getLocale();
+    $isRtl = in_array($currentLocale, ['ur', 'ar']);
+@endphp
+
 @section('content')
-<div class="max-w-4xl mx-auto px-4 py-10 space-y-8">
+<div class="max-w-4xl mx-auto px-4 py-10 space-y-8" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
     <!-- Success Alert -->
     @if(session('payment_success'))
         <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-sm">
             <i class="ph ph-check-circle text-2xl text-emerald-600"></i>
             <div>
-                <p class="font-bold">Payment Received!</p>
+                <p class="font-bold">{{ __('Payment Received!') }}</p>
                 <p class="text-xs text-emerald-700">{{ session('payment_success') }}</p>
             </div>
         </div>
     @endif
 
-    @php
-        $portalLogo = \App\Models\CmsContent::getSystemLogo();
-        $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
-        $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
-    @endphp
-    <!-- Brand Header -->
-    <div class="flex items-center justify-between px-2">
+    <!-- Brand Header & Language Switcher -->
+    <div class="flex items-center justify-between px-2 flex-wrap gap-3">
         <div class="flex items-center gap-2">
             @if($portalLogo)
                 <div class="h-8 flex items-center">
@@ -31,35 +34,64 @@
                         <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                     </svg>
                 </div>
-                <span class="font-black text-slate-800 text-sm tracking-tight">{{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">{{ $brandSub }}</span> <span class="font-bold text-slate-500 text-xs">Invoice Portal</span></span>
+                <span class="font-black text-slate-800 text-sm tracking-tight">{{ $brandName }} <span class="text-xs font-normal text-slate-400">by</span> <span class="text-red-600">{{ $brandSub }}</span> <span class="font-bold text-slate-500 text-xs">{{ __('Invoice Portal') }}</span></span>
             @endif
         </div>
-        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-            <i class="ph ph-shield-check text-xs"></i> 256-Bit SSL Encrypted
-        </span>
+
+        <div class="flex items-center gap-2">
+            <!-- Portal Language Switcher -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" type="button" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-2xs">
+                    <i class="ph ph-globe text-sm text-red-600"></i>
+                    <span>{{ strtoupper($currentLocale) }}</span>
+                    <i class="ph ph-caret-down text-[10px] text-slate-400"></i>
+                </button>
+                <div x-show="open" @click.outside="open = false" x-cloak class="absolute {{ $isRtl ? 'left-0' : 'right-0' }} mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 text-xs">
+                    @foreach([
+                        'en' => '🇺🇸 English',
+                        'ur' => '🇵🇰 اردو',
+                        'ar' => '🇦🇪 العربية',
+                        'tr' => '🇹🇷 Türkçe',
+                        'hi' => '🇮🇳 हिन्दी',
+                        'es' => '🇪🇸 Español',
+                        'fr' => '🇫🇷 Français',
+                        'de' => '🇩🇪 Deutsch',
+                    ] as $code => $lbl)
+                        <a href="{{ route('invoices.portal', ['token' => $invoice->public_secure_token, 'lang' => $code]) }}"
+                           class="block px-3 py-1.5 hover:bg-red-50 text-slate-700 hover:text-red-600 {{ $currentLocale === $code ? 'font-bold bg-slate-50' : '' }}">
+                            {{ $lbl }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+
+            <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <i class="ph ph-shield-check text-xs"></i> 256-Bit SSL Encrypted
+            </span>
+        </div>
     </div>
 
     <!-- Portal Header & Action Card -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
             <div class="flex items-center gap-3">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Invoice from</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ __('Invoice from') }}</span>
                 <span class="text-sm font-bold text-slate-900">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace->name }}</span>
             </div>
             <h1 class="text-3xl font-black text-slate-900 mt-1">{{ $invoice->invoice_number }}</h1>
-            <p class="text-xs text-slate-500 mt-1">Due by <span class="font-bold text-slate-700">{{ $invoice->due_date->format('F d, Y') }}</span></p>
+            <p class="text-xs text-slate-500 mt-1">{{ __('Due by') }} <span class="font-bold text-slate-700">{{ $invoice->due_date->format('F d, Y') }}</span></p>
         </div>
 
-        <div class="text-left md:text-right">
-            <span class="text-xs uppercase font-bold text-slate-400 block tracking-wider">Amount Due</span>
-            <div class="text-3xl font-black {{ $invoice->due_cents > 0 ? 'text-blue-600' : 'text-emerald-600' }}">
-                {{ $invoice->formatted_due }}
+        <div class="{{ $isRtl ? 'text-right md:text-left' : 'text-left md:text-right' }}">
+            <span class="text-xs uppercase font-bold text-slate-400 block tracking-wider">{{ __('Amount Due') }}</span>
+            <div class="text-3xl font-black {{ $invoice->due_cents > 0 ? 'text-red-600' : 'text-emerald-600' }}">
+                {{ number_format($invoice->due_cents / 100, 2) }} {{ $invoice->currency }}
             </div>
             <span class="inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-black uppercase
                 @if($invoice->status === 'paid') bg-emerald-100 text-emerald-800
                 @elseif($invoice->status === 'partially_paid') bg-amber-100 text-amber-800
                 @else bg-blue-100 text-blue-800 @endif">
-                {{ $invoice->status === 'paid' ? 'Paid in Full' : 'Payment Outstanding' }}
+                {{ $invoice->status === 'paid' ? __('Paid in Full') : __('Payment Outstanding') }}
             </span>
         </div>
     </div>
@@ -69,7 +101,7 @@
         <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-3">
             <i class="ph ph-check-circle text-xl text-emerald-600"></i>
             <div>
-                <p class="font-bold">Promo Offer Applied!</p>
+                <p class="font-bold">{{ __('Promo Offer Applied!') }}</p>
                 <p>{{ session('coupon_success') }}</p>
             </div>
         </div>
@@ -78,7 +110,7 @@
         <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
             <i class="ph ph-warning-circle text-xl text-rose-600"></i>
             <div>
-                <p class="font-bold">Promo Coupon Error</p>
+                <p class="font-bold">{{ __('Promo Coupon Error') }}</p>
                 <p>{{ session('coupon_error') }}</p>
             </div>
         </div>
@@ -91,14 +123,14 @@
                 @csrf
                 <div class="flex items-center gap-2 text-slate-700 shrink-0">
                     <i class="ph ph-ticket text-xl text-fuchsia-600"></i>
-                    <span class="text-xs font-bold">Have a Promo or Coupon Code?</span>
+                    <span class="text-xs font-bold">{{ __('Have a Promo or Coupon Code?') }}</span>
                 </div>
                 <div class="relative flex-1 w-full">
-                    <input type="text" name="coupon_code" placeholder="Enter promo code (e.g. SAVE20, FREESERVICE)..." 
+                    <input type="text" name="coupon_code" placeholder="{{ __('Enter promo code (e.g. SAVE20, FREESERVICE)...') }}" 
                            class="w-full pl-3 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-mono uppercase focus:ring-2 focus:ring-red-500 bg-slate-50">
                 </div>
                 <button type="submit" class="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition">
-                    Apply Offer
+                    {{ __('Apply Offer') }}
                 </button>
             </form>
         </div>
@@ -113,19 +145,19 @@
                         <i class="ph ph-shield-warning"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-amber-900 text-base">Online Payment Disabled &bull; Evaluation Free Trial</h3>
-                        <p class="text-xs text-amber-700">Online payment processing (Stripe & PayPal) is disabled during the Free Trial evaluation period.</p>
+                        <h3 class="font-bold text-amber-900 text-base">{{ __('Online Payment Disabled • Evaluation Free Trial') }}</h3>
+                        <p class="text-xs text-amber-700">{{ __('Online payment processing (Stripe & PayPal) is disabled during the Free Trial evaluation period.') }}</p>
                     </div>
                 </div>
                 <div class="p-3 bg-white/80 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
                     <i class="ph ph-info text-amber-600 text-base shrink-0"></i>
-                    <span>For settlement or official inquiries, please contact the issuing vendor directly using their registered agency contact details or remittance instructions below.</span>
+                    <span>{{ __('For settlement or official inquiries, please contact the issuing vendor directly using their registered agency contact details or remittance instructions below.') }}</span>
                 </div>
             </div>
         @else
             <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">
-                <h3 class="font-bold text-slate-900 text-base">Select Online Payment Method</h3>
-                <p class="text-xs text-slate-500">Pay securely online using credit card, debit card, or PayPal account.</p>
+                <h3 class="font-bold text-slate-900 text-base">{{ __('Select Online Payment Method') }}</h3>
+                <p class="text-xs text-slate-500">{{ __('Pay securely online using credit card, debit card, or PayPal account.') }}</p>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <!-- Stripe Option -->
@@ -133,9 +165,9 @@
                         @csrf
                         <input type="hidden" name="gateway" value="stripe">
                         <button type="submit" class="w-full p-4 rounded-xl border-2 border-blue-600 bg-blue-50/50 hover:bg-blue-50 text-blue-900 flex items-center justify-between transition group shadow-sm hover:shadow">
-                            <div class="text-left">
-                                <span class="block font-bold text-sm">Pay with Credit Card</span>
-                                <span class="text-[11px] text-blue-700">Visa, Mastercard, Amex via Stripe</span>
+                            <div class="{{ $isRtl ? 'text-right' : 'text-left' }}">
+                                <span class="block font-bold text-sm">{{ __('Pay with Credit Card') }}</span>
+                                <span class="text-[11px] text-blue-700">{{ __('Visa, Mastercard, Amex via Stripe') }}</span>
                             </div>
                             <i class="ph ph-credit-card text-2xl text-blue-600 group-hover:scale-110 transition-transform"></i>
                         </button>
@@ -146,9 +178,9 @@
                         @csrf
                         <input type="hidden" name="gateway" value="paypal">
                         <button type="submit" class="w-full p-4 rounded-xl border-2 border-amber-500 bg-amber-50/50 hover:bg-amber-50 text-amber-900 flex items-center justify-between transition group shadow-sm hover:shadow">
-                            <div class="text-left">
-                                <span class="block font-bold text-sm">Pay with PayPal</span>
-                                <span class="text-[11px] text-amber-700">PayPal balance or linked cards</span>
+                            <div class="{{ $isRtl ? 'text-right' : 'text-left' }}">
+                                <span class="block font-bold text-sm">{{ __('Pay with PayPal') }}</span>
+                                <span class="text-[11px] text-amber-700">{{ __('PayPal balance or linked cards') }}</span>
                             </div>
                             <i class="ph ph-wallet text-2xl text-amber-600 group-hover:scale-110 transition-transform"></i>
                         </button>
@@ -163,36 +195,36 @@
         @if($invoice->isTrialInvoice())
             <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-center overflow-hidden z-20">
                 <div class="transform -rotate-25 border-4 border-dashed border-red-500/30 px-10 py-4 text-center font-black tracking-widest text-red-500/25 text-2xl sm:text-4xl uppercase whitespace-nowrap">
-                    Trial Version &bull; Not For Official Accounting
+                    {{ __('Trial Version • Not For Official Accounting') }}
                 </div>
             </div>
         @endif
         <!-- Download PDF Action -->
         <div class="flex items-center justify-between border-b border-slate-100 pb-6">
             <div>
-                <h4 class="font-bold text-slate-900 text-sm">Official Invoice Record</h4>
-                <p class="text-xs text-slate-500">Download or print your official document</p>
+                <h4 class="font-bold text-slate-900 text-sm">{{ __('Official Invoice Record') }}</h4>
+                <p class="text-xs text-slate-500">{{ __('Download or print your official document') }}</p>
             </div>
-            <a href="{{ route('invoices.pdf.download', $invoice->public_secure_token) }}" target="_blank"
+            <a href="{{ route('invoices.pdf.download', ['token' => $invoice->public_secure_token, 'lang' => $currentLocale]) }}" target="_blank"
                class="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition shadow-sm">
                 <i class="ph ph-download-simple text-base"></i>
                 @if($invoice->is_pdf_password_protected)
-                    Download Protected PDF <i class="ph ph-lock-key text-amber-400"></i>
+                    {{ __('Download Protected PDF') }} <i class="ph ph-lock-key text-amber-400"></i>
                 @else
-                    Download Invoice PDF
+                    {{ __('Download Invoice PDF') }}
                 @endif
             </a>
         </div>
 
         <!-- Line Items -->
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+            <table class="w-full text-sm {{ $isRtl ? 'text-right' : 'text-left' }}">
                 <thead class="border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
                     <tr>
-                        <th class="py-3">Item Description</th>
-                        <th class="py-3 text-center">Quantity</th>
-                        <th class="py-3 text-right">Rate</th>
-                        <th class="py-3 text-right">Amount</th>
+                        <th class="py-3">{{ __('Item Description') }}</th>
+                        <th class="py-3 text-center">{{ __('Quantity') }}</th>
+                        <th class="py-3 {{ $isRtl ? 'text-left' : 'text-right' }}">{{ __('Rate') }}</th>
+                        <th class="py-3 {{ $isRtl ? 'text-left' : 'text-right' }}">{{ __('Amount') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -202,13 +234,13 @@
                                 {{ $item->description }}
                             </td>
                             <td class="py-4 text-center text-slate-600">
-                                {{ $item->quantity }} {{ $item->unit }}
+                                {{ (float)$item->quantity == (int)$item->quantity ? (int)$item->quantity : $item->quantity }} {{ $item->unit }}
                             </td>
-                            <td class="py-4 text-right font-medium text-slate-600">
-                                ${{ $item->formatted_rate }}
+                            <td class="py-4 {{ $isRtl ? 'text-left' : 'text-right' }} font-medium text-slate-600">
+                                {{ number_format($item->rate_cents / 100, 2) }} {{ $invoice->currency }}
                             </td>
-                            <td class="py-4 text-right font-bold text-slate-900">
-                                ${{ $item->formatted_amount }}
+                            <td class="py-4 {{ $isRtl ? 'text-left' : 'text-right' }} font-bold text-slate-900">
+                                {{ number_format($item->amount_cents / 100, 2) }} {{ $invoice->currency }}
                             </td>
                         </tr>
                     @endforeach
@@ -217,33 +249,33 @@
         </div>
 
         <!-- Totals Breakdown -->
-        <div class="flex justify-end pt-4 border-t border-slate-100">
+        <div class="flex {{ $isRtl ? 'justify-start' : 'justify-end' }} pt-4 border-t border-slate-100">
             <div class="w-72 space-y-2 text-sm">
                 <div class="flex justify-between text-slate-600">
-                    <span>Subtotal:</span>
-                    <span class="font-semibold text-slate-900">{{ $invoice->formatted_subtotal }}</span>
+                    <span>{{ __('Subtotal') }}:</span>
+                    <span class="font-semibold text-slate-900">{{ number_format($invoice->subtotal_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 @if($invoice->discount_cents > 0)
                     <div class="flex justify-between text-emerald-600">
-                        <span>Discount:</span>
-                        <span class="font-semibold">-${{ number_format($invoice->discount_cents / 100, 2) }}</span>
+                        <span>{{ __('Discount') }}:</span>
+                        <span class="font-semibold">-{{ number_format($invoice->discount_cents / 100, 2) }} {{ $invoice->currency }}</span>
                     </div>
                 @endif
                 <div class="flex justify-between text-slate-600">
                     <span>{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</span>
-                    <span class="font-semibold text-slate-900">+{{ $invoice->formatted_tax }}</span>
+                    <span class="font-semibold text-slate-900">+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-slate-900">
-                    <span>Total Amount:</span>
-                    <span class="text-blue-600">{{ $invoice->formatted_total }}</span>
+                    <span>{{ __('Total Amount') }}:</span>
+                    <span class="text-red-600">{{ number_format($invoice->total_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 <div class="flex justify-between text-xs font-bold text-slate-500 pt-1">
-                    <span>Paid to Date:</span>
-                    <span>${{ number_format($invoice->paid_cents / 100, 2) }}</span>
+                    <span>{{ __('Paid to Date') }}:</span>
+                    <span>{{ number_format($invoice->paid_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 <div class="flex justify-between text-sm font-black text-rose-600">
-                    <span>Outstanding:</span>
-                    <span>{{ $invoice->formatted_due }}</span>
+                    <span>{{ __('Outstanding') }}:</span>
+                    <span>{{ number_format($invoice->due_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
             </div>
         </div>
@@ -253,23 +285,23 @@
             @php $bank = $invoice->workspace_snapshot['bank_details']; @endphp
             <div class="bg-slate-50 rounded-xl p-6 border border-slate-200 text-xs text-slate-700 space-y-2">
                 <h4 class="font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <i class="ph ph-bank text-base text-blue-600"></i> Direct Wire / Bank Transfer Instructions
+                    <i class="ph ph-bank text-base text-red-600"></i> {{ __('Direct Wire / Bank Transfer Instructions') }}
                 </h4>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div>
-                        <span class="text-slate-400 block text-[11px]">Bank Name</span>
+                        <span class="text-slate-400 block text-[11px]">{{ __('Bank Name') }}</span>
                         <span class="font-semibold">{{ $bank['bank_name'] ?? 'N/A' }}</span>
                     </div>
                     <div>
-                        <span class="text-slate-400 block text-[11px]">Account Number</span>
+                        <span class="text-slate-400 block text-[11px]">{{ __('Account Number') }}</span>
                         <span class="font-mono font-semibold">{{ $bank['account_number'] ?? 'N/A' }}</span>
                     </div>
                     <div>
-                        <span class="text-slate-400 block text-[11px]">Routing Number</span>
+                        <span class="text-slate-400 block text-[11px]">{{ __('Routing Number') }}</span>
                         <span class="font-mono font-semibold">{{ $bank['routing_number'] ?? 'N/A' }}</span>
                     </div>
                     <div>
-                        <span class="text-slate-400 block text-[11px]">SWIFT / BIC</span>
+                        <span class="text-slate-400 block text-[11px]">{{ __('SWIFT / BIC') }}</span>
                         <span class="font-mono font-semibold">{{ $bank['swift'] ?? 'N/A' }}</span>
                     </div>
                 </div>

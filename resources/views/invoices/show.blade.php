@@ -1,5 +1,10 @@
 @extends('layouts.app')
 
+@php
+    $currentLocale = app()->getLocale();
+    $isRtl = in_array($currentLocale, ['ur', 'ar']);
+@endphp
+
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6" x-data="{ showCreditModal: false }">
     <!-- Top Action Header -->
@@ -14,55 +19,73 @@
                     @elseif($invoice->status === 'sent') bg-sky-100 text-sky-800
                     @elseif($invoice->status === 'cancelled') bg-rose-100 text-rose-800
                     @else bg-slate-100 text-slate-800 @endif">
-                    {{ $invoice->status }}
+                    {{ __($invoice->status) }}
                 </span>
 
                 @if($invoice->sent_at)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200" title="Dispatched on {{ $invoice->sent_at->format('M d, Y h:i A') }}">
-                        <i class="ph ph-envelope-simple-check text-xs text-sky-600"></i> Emailed {{ $invoice->sent_at->format('M d') }}
+                        <i class="ph ph-envelope-simple-check text-xs text-sky-600"></i> {{ __('Emailed') }} {{ $invoice->sent_at->format('M d') }}
                     </span>
                 @else
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="This invoice has not yet been emailed to the client.">
-                        <i class="ph ph-envelope-simple text-xs"></i> Not Emailed
+                        <i class="ph ph-envelope-simple text-xs"></i> {{ __('Not Emailed') }}
                     </span>
                 @endif
 
                 @if($invoice->email_opened_at)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200" title="First opened on {{ $invoice->email_opened_at->format('M d, Y h:i A') }}">
-                        <i class="ph ph-envelope-open text-xs text-emerald-600"></i> Email Opened ({{ $invoice->email_opens_count }}x)
+                        <i class="ph ph-envelope-open text-xs text-emerald-600"></i> {{ __('Email Opened') }} ({{ $invoice->email_opens_count }}x)
                     </span>
                 @endif
 
                 @if($invoice->viewed_at)
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200" title="Client visited portal / downloaded PDF on {{ $invoice->viewed_at->format('M d, Y h:i A') }}">
-                        <i class="ph ph-eye text-xs text-indigo-600"></i> Viewed by Client ({{ $invoice->view_count }}x)
+                        <i class="ph ph-eye text-xs text-indigo-600"></i> {{ __('Viewed by Client') }} ({{ $invoice->view_count }}x)
                     </span>
                 @endif
             </div>
-            <p class="text-xs text-slate-500 mt-1">Issued {{ $invoice->issue_date->format('F d, Y') }} &bull; Due {{ $invoice->due_date->format('F d, Y') }}</p>
+            <p class="text-xs text-slate-500 mt-1">{{ __('Issued') }} {{ $invoice->issue_date->format('F d, Y') }} &bull; {{ __('Due') }} {{ $invoice->due_date->format('F d, Y') }}</p>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap" x-data="{ openActions: false }">
+            <!-- Language Switcher Form for Invoice -->
+            <form action="{{ route('invoices.language', $invoice->id) }}" method="POST" class="inline-flex items-center">
+                @csrf
+                <div class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 transition" title="{{ __('Change Invoice Document Language') }}">
+                    <i class="ph ph-translate text-sm text-red-600"></i>
+                    <select name="language" onchange="this.form.submit()" class="bg-transparent border-0 text-xs font-bold text-slate-800 focus:ring-0 cursor-pointer pr-3 py-0">
+                        <option value="en" {{ ($invoice->language ?: $currentLocale) === 'en' ? 'selected' : '' }}>🇺🇸 EN</option>
+                        <option value="ur" {{ ($invoice->language ?: $currentLocale) === 'ur' ? 'selected' : '' }}>🇵🇰 اردو</option>
+                        <option value="ar" {{ ($invoice->language ?: $currentLocale) === 'ar' ? 'selected' : '' }}>🇦🇪 العربية</option>
+                        <option value="tr" {{ ($invoice->language ?: $currentLocale) === 'tr' ? 'selected' : '' }}>🇹🇷 TR</option>
+                        <option value="hi" {{ ($invoice->language ?: $currentLocale) === 'hi' ? 'selected' : '' }}>🇮🇳 HI</option>
+                        <option value="es" {{ ($invoice->language ?: $currentLocale) === 'es' ? 'selected' : '' }}>🇪🇸 ES</option>
+                        <option value="fr" {{ ($invoice->language ?: $currentLocale) === 'fr' ? 'selected' : '' }}>🇫🇷 FR</option>
+                        <option value="de" {{ ($invoice->language ?: $currentLocale) === 'de' ? 'selected' : '' }}>🇩🇪 DE</option>
+                    </select>
+                </div>
+            </form>
+
             <a href="{{ route('invoices.edit', $invoice->id) }}"
                class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-xs transition">
-                <i class="ph ph-pencil-simple text-base text-slate-500"></i> Revise
+                <i class="ph ph-pencil-simple text-base text-slate-500"></i> {{ __('Revise') }}
             </a>
 
-            <a href="{{ route('invoices.pdf.download', $invoice->public_secure_token) }}" target="_blank"
+            <a href="{{ route('invoices.pdf.download', ['token' => $invoice->public_secure_token, 'lang' => $invoice->language ?: $currentLocale]) }}" target="_blank"
                class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition">
-                <i class="ph ph-file-pdf text-base text-slate-300"></i> PDF
+                <i class="ph ph-file-pdf text-base text-slate-300"></i> {{ __('PDF') }}
             </a>
 
-            <a href="{{ route('invoices.portal', $invoice->public_secure_token) }}" target="_blank"
+            <a href="{{ route('invoices.portal', ['token' => $invoice->public_secure_token, 'lang' => $invoice->language ?: $currentLocale]) }}" target="_blank"
                class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                <i class="ph ph-arrow-square-out text-base"></i> Pay Portal
+                <i class="ph ph-arrow-square-out text-base"></i> {{ __('Pay Portal') }}
             </a>
 
             <!-- More Actions Dropdown Menu -->
             <div class="relative">
                 <button @click="openActions = !openActions" @click.outside="openActions = false" type="button"
                         class="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition">
-                    <span>More</span>
+                    <span>{{ __('More') }}</span>
                     <i class="ph ph-caret-down text-xs"></i>
                 </button>
 
@@ -76,10 +99,10 @@
                             <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700 font-semibold">
                                 <span class="flex items-center gap-2">
                                     <i class="ph ph-paper-plane-tilt {{ $invoice->sent_at ? 'text-blue-600' : 'text-emerald-600' }} text-sm"></i>
-                                    <span>{{ $invoice->sent_at ? 'Resend to Client Email' : 'Send to Client Email' }}</span>
+                                    <span>{{ $invoice->sent_at ? __('Resend to Client Email') : __('Send to Client Email') }}</span>
                                 </span>
                                 @if($invoice->sent_at)
-                                    <span class="text-[10px] text-slate-400 font-normal">Sent</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">{{ __('Sent') }}</span>
                                 @endif
                             </button>
                         </form>
@@ -90,7 +113,7 @@
                             @csrf
                             <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold">
                                 <i class="ph ph-bell-ringing text-amber-600 text-sm"></i>
-                                Send Payment Reminder
+                                {{ __('Send Payment Reminder') }}
                             </button>
                         </form>
                     @endif
@@ -98,14 +121,14 @@
                     <button @click="showCreditModal = true; openActions = false" type="button"
                             class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-rose-700 font-semibold border-t border-slate-100">
                         <i class="ph ph-arrow-u-up-left text-rose-600 text-sm"></i>
-                        Issue Credit Note
+                        {{ __('Issue Credit Note') }}
                     </button>
 
                     <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied!');"
                             @click="openActions = false" type="button"
                             class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-600 font-medium">
                         <i class="ph ph-copy text-slate-500 text-sm"></i>
-                        Copy Portal Link
+                        {{ __('Copy Portal Link') }}
                     </button>
                 </div>
             </div>
@@ -119,13 +142,13 @@
                 <svg class="w-3.5 h-3.5 text-red-600" viewBox="0 0 900 900" fill="currentColor">
                     <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                 </svg>
-                Public Secure Customer URL:
+                {{ __('Public Secure Customer URL') }}:
             </span>
             <span class="font-mono text-red-700 block truncate max-w-lg">{{ route('invoices.portal', $invoice->public_secure_token) }}</span>
         </div>
         <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied to clipboard!');"
                 class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-sm whitespace-nowrap">
-            Copy Link
+            {{ __('Copy Link') }}
         </button>
     </div>
 
@@ -138,56 +161,56 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <div class="flex items-center gap-2">
                 <i class="ph ph-bell-ringing text-red-600 text-lg"></i>
-                <h4 class="font-bold text-sm text-slate-900">Payment Reminder Automation</h4>
-                <span class="text-xs text-slate-500">(Milestones: 45, 30, 15, 7, 3, 2 days before due)</span>
+                <h4 class="font-bold text-sm text-slate-900">{{ __('Payment Reminder Automation') }}</h4>
+                <span class="text-xs text-slate-500">({{ __('Milestones') }}: 45, 30, 15, 7, 3, 2 {{ __('days before due') }})</span>
             </div>
             @if($invoice->due_cents > 0)
                 <form action="{{ route('invoices.reminder', $invoice->id) }}" method="POST" class="inline">
                     @csrf
                     <button type="submit" class="inline-flex items-center gap-1.5 text-xs px-3 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-lg border border-red-200 transition">
-                        <i class="ph ph-paper-plane-tilt"></i> Send Manual Reminder Now
+                        <i class="ph ph-paper-plane-tilt"></i> {{ __('Send Manual Reminder Now') }}
                     </button>
                 </form>
             @endif
         </div>
 
         <div class="flex items-center gap-2 flex-wrap text-xs pt-1">
-            <span class="text-slate-500 font-medium">Schedule Progress:</span>
+            <span class="text-slate-500 font-medium">{{ __('Schedule Progress') }}:</span>
             @foreach([45, 30, 15, 7, 3, 2] as $m)
                 @php
                     $isSent = in_array($m, $sentMilestones, true);
                     $isPast = $daysRemaining < $m;
                 @endphp
                 <span class="px-2.5 py-1 rounded-lg font-bold border {{ $isSent ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : ($isPast ? 'bg-slate-100 text-slate-400 border-slate-200' : 'bg-blue-50 text-blue-700 border-blue-200') }}">
-                    {{ $m }} Days Before {{ $isSent ? '✓ Sent' : ($isPast ? '(Passed)' : '') }}
+                    {{ $m }} {{ __('Days Before') }} {{ $isSent ? '✓ ' . __('Sent') : ($isPast ? '(' . __('Passed') . ')' : '') }}
                 </span>
             @endforeach
         </div>
 
         @if($invoice->reminders->isNotEmpty())
             <div class="text-xs text-slate-500 pt-1">
-                Latest dispatch: {{ $invoice->reminders->first()->created_at->format('M d, Y H:i') }} to {{ $invoice->reminders->first()->recipient_customer_email }}
+                {{ __('Latest dispatch') }}: {{ $invoice->reminders->first()->created_at->format('M d, Y H:i') }} {{ __('to') }} {{ $invoice->reminders->first()->recipient_customer_email }}
             </div>
         @endif
     </div>
 
     <!-- Invoice Content Paper -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8 relative overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8 relative overflow-hidden" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
         @if($invoice->isTrialInvoice())
             <div class="pointer-events-none select-none absolute inset-0 flex items-center justify-center overflow-hidden z-20">
                 <div class="transform -rotate-25 border-4 border-dashed border-red-500/30 px-10 py-4 text-center font-black tracking-widest text-red-500/25 text-2xl sm:text-4xl uppercase whitespace-nowrap">
-                    Trial Version &bull; Not For Official Accounting
+                    {{ __('Trial Version • Not For Official Accounting') }}
                 </div>
             </div>
         @endif
         <!-- Invoice Parties -->
         <div class="grid grid-cols-2 gap-8 border-b border-slate-100 pb-8">
             <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">From</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{{ __('From') }}</p>
                 <h3 class="font-bold text-slate-900 text-base">{{ $invoice->workspace_snapshot['name'] ?? auth()->user()->workspace->name }}</h3>
                 <p class="text-xs text-slate-500 whitespace-pre-line mt-1">{{ $invoice->workspace_snapshot['address'] ?? auth()->user()->workspace->address }}</p>
                 @if(!empty($invoice->workspace_snapshot['tax_id']))
-                    <p class="text-xs text-slate-500 mt-1">Tax ID: <span class="font-mono">{{ $invoice->workspace_snapshot['tax_id'] }}</span></p>
+                    <p class="text-xs text-slate-500 mt-1">{{ __('Tax ID') }}: <span class="font-mono">{{ $invoice->workspace_snapshot['tax_id'] }}</span></p>
                 @endif
                 @if(!empty($invoice->workspace_snapshot['email']))
                     <p class="text-xs text-slate-500 mt-0.5">{{ $invoice->workspace_snapshot['email'] }}</p>
@@ -195,14 +218,14 @@
             </div>
 
             <div>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Billed To</p>
-                <h3 class="font-bold text-slate-900 text-base">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client_snapshot['name'] }}</h3>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{{ __('Billed To') }}</p>
+                <h3 class="font-bold text-slate-900 text-base">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client_snapshot['name'] ?? __('Walk-in / General Customer') }}</h3>
                 @if(!empty($invoice->client_snapshot['company_name']))
                     <p class="text-xs text-slate-600 font-medium">{{ $invoice->client_snapshot['name'] }}</p>
                 @endif
-                <p class="text-xs text-slate-500 whitespace-pre-line mt-1">{{ $invoice->client_snapshot['address'] ?? 'Address on file' }}</p>
+                <p class="text-xs text-slate-500 whitespace-pre-line mt-1">{{ $invoice->client_snapshot['address'] ?? __('Address on file') }}</p>
                 @if(!empty($invoice->client_snapshot['tax_id']))
-                    <p class="text-xs text-slate-500 mt-1">VAT/Tax ID: <span class="font-mono">{{ $invoice->client_snapshot['tax_id'] }}</span></p>
+                    <p class="text-xs text-slate-500 mt-1">{{ __('VAT/Tax ID') }}: <span class="font-mono">{{ $invoice->client_snapshot['tax_id'] }}</span></p>
                 @endif
                 <p class="text-xs text-slate-500 mt-0.5">{{ $invoice->client_snapshot['email'] ?? '' }}</p>
             </div>
@@ -210,32 +233,32 @@
 
         <!-- Line Items Table -->
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+            <table class="w-full text-sm {{ $isRtl ? 'text-right' : 'text-left' }}">
                 <thead class="border-b border-slate-200 text-slate-400 text-xs uppercase font-bold">
                     <tr>
-                        <th class="py-3">Description</th>
-                        <th class="py-3 text-center">Qty</th>
-                        <th class="py-3 text-right">Unit Rate</th>
-                        <th class="py-3 text-right">Amount</th>
+                        <th class="py-3">{{ __('Description') }}</th>
+                        <th class="py-3 text-center">{{ __('Qty') }}</th>
+                        <th class="py-3 {{ $isRtl ? 'text-left' : 'text-right' }}">{{ __('Unit Rate') }}</th>
+                        <th class="py-3 {{ $isRtl ? 'text-left' : 'text-right' }}">{{ __('Amount') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @foreach($invoice->items as $item)
                         <tr>
                             <td class="py-4">
-                                <div class="font-bold text-slate-800">{{ $item->title }}</div>
-                                @if($item->description)
+                                <div class="font-bold text-slate-800">{{ $item->title ?? $item->description }}</div>
+                                @if($item->description && $item->title && $item->description !== $item->title)
                                     <div class="text-xs text-slate-500 mt-0.5">{{ $item->description }}</div>
                                 @endif
                             </td>
                             <td class="py-4 text-center font-medium text-slate-600">
                                 {{ (float)$item->quantity == (int)$item->quantity ? (int)$item->quantity : $item->quantity }} {{ $item->unit }}
                             </td>
-                            <td class="py-4 text-right font-medium text-slate-600">
-                                ${{ number_format($item->rate_cents / 100, 2) }}
+                            <td class="py-4 {{ $isRtl ? 'text-left' : 'text-right' }} font-medium text-slate-600">
+                                {{ number_format($item->rate_cents / 100, 2) }} {{ $invoice->currency }}
                             </td>
-                            <td class="py-4 text-right font-bold text-slate-900">
-                                ${{ number_format($item->amount_cents / 100, 2) }}
+                            <td class="py-4 {{ $isRtl ? 'text-left' : 'text-right' }} font-bold text-slate-900">
+                                {{ number_format($item->amount_cents / 100, 2) }} {{ $invoice->currency }}
                             </td>
                         </tr>
                     @endforeach
@@ -244,42 +267,42 @@
         </div>
 
         <!-- Financial Totals Summary -->
-        <div class="flex justify-end pt-4 border-t border-slate-100">
+        <div class="flex {{ $isRtl ? 'justify-start' : 'justify-end' }} pt-4 border-t border-slate-100">
             <div class="w-72 space-y-2 text-sm">
                 <div class="flex justify-between text-slate-600">
-                    <span>Subtotal:</span>
-                    <span class="font-semibold text-slate-900">${{ number_format($invoice->subtotal_cents / 100, 2) }}</span>
+                    <span>{{ __('Subtotal') }}:</span>
+                    <span class="font-semibold text-slate-900">{{ number_format($invoice->subtotal_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 @if($invoice->discount_cents > 0)
                     <div class="flex justify-between text-emerald-600">
-                        <span>Discount:</span>
-                        <span class="font-semibold">-${{ number_format($invoice->discount_cents / 100, 2) }}</span>
+                        <span>{{ __('Discount') }}:</span>
+                        <span class="font-semibold">-{{ number_format($invoice->discount_cents / 100, 2) }} {{ $invoice->currency }}</span>
                     </div>
                 @endif
                 <div class="flex justify-between text-slate-600">
                     <span>{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</span>
-                    <span class="font-semibold text-slate-900">+{{ $invoice->formatted_tax }}</span>
+                    <span class="font-semibold text-slate-900">+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-slate-900">
-                    <span>Total Amount:</span>
-                    <span class="text-red-600">{{ $invoice->formatted_total }}</span>
+                    <span>{{ __('Total Amount') }}:</span>
+                    <span class="text-red-600">{{ number_format($invoice->total_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 <div class="flex justify-between text-xs font-bold text-slate-500 pt-1">
-                    <span>Amount Paid:</span>
-                    <span>${{ number_format($invoice->paid_cents / 100, 2) }}</span>
+                    <span>{{ __('Amount Paid') }}:</span>
+                    <span>{{ number_format($invoice->paid_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 <div class="flex justify-between text-sm font-black text-rose-600">
-                    <span>Balance Due:</span>
-                    <span>{{ $invoice->formatted_due }}</span>
+                    <span>{{ __('Balance Due') }}:</span>
+                    <span>{{ number_format($invoice->due_cents / 100, 2) }} {{ $invoice->currency }}</span>
                 </div>
                 @if($invoice->getLateSurchargeCents() > 0)
                     <div class="flex justify-between text-xs font-bold text-rose-700 bg-rose-50 px-2 py-1 rounded">
-                        <span>Late Surcharge (Overdue):</span>
-                        <span>+{{ $invoice->formatted_late_surcharge }}</span>
+                        <span>{{ __('Late Surcharge (Overdue)') }}:</span>
+                        <span>+{{ number_format($invoice->getLateSurchargeCents() / 100, 2) }} {{ $invoice->currency }}</span>
                     </div>
                     <div class="flex justify-between border-t border-rose-200 pt-1 text-sm font-black text-rose-700">
-                        <span>Adjusted Total Due:</span>
-                        <span>{{ $invoice->formatted_total_with_surcharge }}</span>
+                        <span>{{ __('Adjusted Total Due') }}:</span>
+                        <span>{{ number_format(($invoice->due_cents + $invoice->getLateSurchargeCents()) / 100, 2) }} {{ $invoice->currency }}</span>
                     </div>
                 @endif
             </div>
@@ -287,8 +310,15 @@
 
         @if($invoice->notes)
             <div class="pt-4 border-t border-slate-100 text-xs text-slate-600">
-                <p class="font-bold text-slate-700 uppercase tracking-wider mb-1">Notes</p>
+                <p class="font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Notes') }}</p>
                 <p class="whitespace-pre-line">{{ $invoice->notes }}</p>
+            </div>
+        @endif
+
+        @if($invoice->terms)
+            <div class="pt-4 border-t border-slate-100 text-xs text-slate-600">
+                <p class="font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Terms & Conditions') }}</p>
+                <p class="whitespace-pre-line">{{ $invoice->terms }}</p>
             </div>
         @endif
     </div>
@@ -298,7 +328,7 @@
         <div class="bg-rose-50/50 rounded-2xl border border-rose-200 p-6 shadow-sm space-y-3">
             <div class="flex items-center gap-2 text-rose-900 font-bold text-sm">
                 <i class="ph ph-arrow-u-up-left text-lg text-rose-600"></i>
-                Issued Credit Notes & Reversals
+                {{ __('Issued Credit Notes & Reversals') }}
             </div>
             <div class="divide-y divide-rose-200/60 text-xs">
                 @foreach($invoice->creditNotes as $cn)
@@ -322,8 +352,8 @@
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Issue Credit Note</h3>
-                    <p class="text-xs text-slate-500">For invoice {{ $invoice->invoice_number }}</p>
+                    <h3 class="font-bold text-slate-900 text-base">{{ __('Issue Credit Note') }}</h3>
+                    <p class="text-xs text-slate-500">{{ __('For invoice') }} {{ $invoice->invoice_number }}</p>
                 </div>
                 <button @click="showCreditModal = false" class="text-slate-400 hover:text-slate-600">
                     <i class="ph ph-x text-xl"></i>
@@ -335,38 +365,38 @@
                 <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Credited Amount ({{ $invoice->currency }}) *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Credited Amount') }} ({{ $invoice->currency }}) *</label>
                     <input type="number" step="0.01" max="{{ $invoice->total_cents / 100 }}" name="amount"
                            value="{{ number_format($invoice->due_cents > 0 ? $invoice->due_cents / 100 : $invoice->total_cents / 100, 2, '.', '') }}" required
                            class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
-                    <p class="text-[10px] text-slate-400 mt-1">Maximum creditable: {{ $invoice->formatted_total }}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">{{ __('Maximum creditable') }}: {{ $invoice->formatted_total }}</p>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Reason for Credit Note *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Reason for Credit Note') }} *</label>
                     <select name="reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                        <option value="Billing error or incorrect amount">Billing error or incorrect amount</option>
-                        <option value="Customer refund requested">Customer refund requested</option>
-                        <option value="Project cancelled / unfulfilled service">Project cancelled / unfulfilled service</option>
-                        <option value="Dispute resolution">Dispute resolution</option>
-                        <option value="Discount applied after issuance">Discount applied after issuance</option>
+                        <option value="Billing error or incorrect amount">{{ __('Billing error or incorrect amount') }}</option>
+                        <option value="Customer refund requested">{{ __('Customer refund requested') }}</option>
+                        <option value="Project cancelled / unfulfilled service">{{ __('Project cancelled / unfulfilled service') }}</option>
+                        <option value="Dispute resolution">{{ __('Dispute resolution') }}</option>
+                        <option value="Discount applied after issuance">{{ __('Discount applied after issuance') }}</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Audit Notes / Comments</label>
-                    <textarea name="notes" rows="2" placeholder="Explanation for accounting audit log..."
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Audit Notes / Comments') }}</label>
+                    <textarea name="notes" rows="2" placeholder="{{ __('Explanation for accounting audit log...') }}"
                               class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500"></textarea>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                     <button type="button" @click="showCreditModal = false"
                             class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
-                        Cancel
+                        {{ __('Cancel') }}
                     </button>
                     <button type="submit"
                             class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm">
-                        Confirm & Issue Credit Note
+                        {{ __('Confirm & Issue Credit Note') }}
                     </button>
                 </div>
             </form>

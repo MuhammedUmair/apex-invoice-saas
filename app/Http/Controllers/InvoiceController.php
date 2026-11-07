@@ -112,7 +112,11 @@ class InvoiceController extends Controller
                 }
             }
 
-            Mail::to($invoice->client->email)->send(new InvoiceMailable($invoice));
+            $targetLocale = $invoice->language ?? $invoice->client?->preferred_language ?? $invoice->workspace?->language ?? 'en';
+            if (!in_array($targetLocale, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de'])) {
+                $targetLocale = 'en';
+            }
+            Mail::to($invoice->client->email)->send(new InvoiceMailable($invoice, $targetLocale));
             
             $invoice->update([
                 'status' => in_array($invoice->status, ['draft', 'issued']) ? 'sent' : $invoice->status,
@@ -166,22 +170,46 @@ class InvoiceController extends Controller
         }
     }
 
-    public function show(Invoice $invoice)
+    public function show(Invoice $invoice, Request $request)
     {
         $invoice->load(['client', 'items', 'payments', 'creditNotes', 'reminders']);
+        $locale = $request->query('lang') ?? session('locale') ?? $invoice->language ?? 'en';
+        if (in_array($locale, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de'])) {
+            app()->setLocale($locale);
+        }
         return view('invoices.show', compact('invoice'));
+    }
+
+    public function updateLanguage(Request $request, Invoice $invoice)
+    {
+        $validated = $request->validate([
+            'language' => 'required|string|in:en,ur,hi,tr,ar,es,fr,de',
+        ]);
+
+        $invoice->update(['language' => $validated['language']]);
+        session(['locale' => $validated['language']]);
+        app()->setLocale($validated['language']);
+
+        return back()->with('message', __('Invoice language updated to :lang successfully!', [
+            'lang' => strtoupper($validated['language'])
+        ]));
     }
 
     /**
      * Public Customer Portal for Viewing & Paying Invoices.
      * Does NOT require user authentication - secured by cryptographic token.
      */
-    public function customerPortal(string $token)
+    public function customerPortal(Request $request, string $token)
     {
         $invoice = Invoice::withoutGlobalScopes()
             ->where('public_secure_token', $token)
             ->with(['client', 'items', 'workspace'])
             ->firstOrFail();
+
+        $targetLocale = $request->query('lang') ?? session('locale') ?? $invoice->language ?? $invoice->client?->preferred_language ?? $invoice->workspace?->language ?? 'en';
+        if (in_array($targetLocale, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de'])) {
+            app()->setLocale($targetLocale);
+        }
 
         // 1. Expiring Token Verification (Item 6)
         if ($invoice->isTokenExpired()) {
@@ -303,6 +331,11 @@ class InvoiceController extends Controller
         }
         $invoice->view_count = ($invoice->view_count ?? 0) + 1;
         $invoice->save();
+
+        $targetLocale = $request->query('lang') ?? $invoice->language ?? $invoice->client?->preferred_language ?? $invoice->workspace?->language ?? 'en';
+        if (in_array($targetLocale, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de'])) {
+            app()->setLocale($targetLocale);
+        }
 
         // Return clean printable PDF view (which supports standard browser PDF save or mPDF)
         return view('invoices.pdf-template', compact('invoice'));

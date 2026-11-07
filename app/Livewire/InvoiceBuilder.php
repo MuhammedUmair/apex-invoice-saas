@@ -33,6 +33,7 @@ class InvoiceBuilder extends Component
     public string $issueDate = '';
     public string $dueDate = '';
     public string $currency = 'USD';
+    public string $language = 'en';
     public string $countryTaxCode = 'US';
     public string $taxName = 'VAT';
     public float $taxRate = 0.00;
@@ -180,6 +181,7 @@ class InvoiceBuilder extends Component
             $this->issueDate = $invoice->issue_date ? $invoice->issue_date->format('Y-m-d') : date('Y-m-d');
             $this->dueDate = $invoice->due_date ? $invoice->due_date->format('Y-m-d') : date('Y-m-d', strtotime('+14 days'));
             $this->currency = $invoice->currency;
+            $this->language = $invoice->language ?: (session('locale') ?: ($workspace->language ?: 'en'));
             $this->taxName = $invoice->tax_name;
             $this->taxRate = (float) $invoice->tax_rate;
             $this->discountAmount = $invoice->discount_cents / 100;
@@ -238,6 +240,7 @@ class InvoiceBuilder extends Component
         $this->scheduledPublishDate = date('Y-m-d', strtotime('+7 days'));
         $this->recurringNextDate = date('Y-m-d', strtotime('+1 month'));
         $this->currency = $workspace->currency ?? 'USD';
+        $this->language = session('locale') ?: ($workspace->language ?: 'en');
         $this->countryTaxCode = $workspace->country_code ?? 'US';
 
         $this->applyCountryTaxPreset($this->countryTaxCode);
@@ -265,6 +268,9 @@ class InvoiceBuilder extends Component
                     if ($client) {
                         if ($client->preferred_currency) {
                             $this->onCurrencyChange($client->preferred_currency);
+                        }
+                        if ($client->preferred_language) {
+                            $this->language = $client->preferred_language;
                         }
                         if ($client->country_code) {
                             $this->onCountryTaxChange($client->country_code);
@@ -718,6 +724,7 @@ class InvoiceBuilder extends Component
                 'issue_date' => $this->issueDate,
                 'due_date' => $this->dueDate,
                 'currency' => $this->currency,
+                'language' => $this->language,
                 'subtotal_cents' => $subtotalCents,
                 'tax_name' => $this->taxName,
                 'tax_rate' => $this->taxRate,
@@ -752,6 +759,7 @@ class InvoiceBuilder extends Component
                 'issue_date' => $this->issueDate,
                 'due_date' => $this->dueDate,
                 'currency' => $this->currency,
+                'language' => $this->language,
                 'subtotal_cents' => $subtotalCents,
                 'tax_name' => $this->taxName,
                 'tax_rate' => $this->taxRate,

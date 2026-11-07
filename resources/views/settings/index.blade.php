@@ -4,7 +4,7 @@
 ])
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-8">
+<div class="w-full space-y-8">
 
     <div class="flex items-center justify-between">
         <div>
@@ -432,60 +432,66 @@
             </div>
 
             @if(!auth()->user()->isSuperAdmin() && $workspace->isTrial())
-                <div class="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                    <div class="flex items-start gap-3">
-                        <i class="ph ph-lock-key text-2xl text-amber-600 shrink-0 mt-0.5"></i>
+                <div class="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                            <i class="ph ph-lock-key"></i>
+                        </div>
                         <div>
-                            <div class="font-bold text-sm">Payment Gateways Disabled &bull; Free Trial Evaluation</div>
-                            <div class="text-xs text-amber-800 mt-0.5">
-                                Stripe and PayPal merchant integrations are locked during the Free Trial evaluation period. To connect live merchant accounts and accept client card payments, please upgrade to a paid agency subscription plan.
+                            <div class="font-bold text-sm text-amber-950">Payment Gateways Disabled &bull; Free Trial Evaluation</div>
+                            <div class="text-xs text-amber-900 mt-1 leading-relaxed">
+                                Stripe and PayPal merchant integrations are disabled during the Free Trial evaluation period. In trial mode, form inputs are completely removed from the page. To connect live merchant accounts and accept client card payments, please upgrade to a paid agency subscription plan.
                             </div>
                         </div>
                     </div>
-                    <a href="{{ route('membership.index') }}" class="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 whitespace-nowrap">
+                    <a href="{{ route('membership.index') }}" class="shrink-0 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 whitespace-nowrap">
                         <i class="ph ph-sparkle"></i>
                         <span>Upgrade to Unlock</span>
                     </a>
                 </div>
+            @else
+                @php
+                    $stripeKeys = $workspace->stripe_keys_encrypted ?? [];
+                    $paypalKeys = $workspace->paypal_keys_encrypted ?? [];
+                @endphp
+                <fieldset class="space-y-6">
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="ph ph-stripe-logo text-lg text-indigo-600"></i> Stripe Integration
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Publishable Key</label>
+                                <input type="text" name="stripe_publishable_key" value="{{ old('stripe_publishable_key', $stripeKeys['publishable_key'] ?? '') }}" placeholder="pk_live_..."
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Secret Key</label>
+                                <input type="password" name="stripe_secret_key" value="{{ old('stripe_secret_key', !empty($stripeKeys['secret_key']) ? '••••••••••••••••' : '') }}" placeholder="sk_live_..."
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-4 border-t border-slate-100">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="ph ph-paypal-logo text-lg text-sky-600"></i> PayPal Integration
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Client ID</label>
+                                <input type="text" name="paypal_client_id" value="{{ old('paypal_client_id', $paypalKeys['client_id'] ?? '') }}" placeholder="Client ID from PayPal Developer"
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Secret</label>
+                                <input type="password" name="paypal_client_secret" value="{{ old('paypal_client_secret', !empty($paypalKeys['secret']) ? '••••••••••••••••' : '') }}" placeholder="Secret Key"
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
             @endif
-
-            <fieldset {{ (!auth()->user()->isSuperAdmin() && $workspace->isTrial()) ? 'disabled' : '' }} class="{{ (!auth()->user()->isSuperAdmin() && $workspace->isTrial()) ? 'opacity-50 pointer-events-none select-none' : '' }} space-y-6">
-                <div class="space-y-4">
-                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                        <i class="ph ph-stripe-logo text-lg text-indigo-600"></i> Stripe Integration
-                    </h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Publishable Key</label>
-                            <input type="text" name="stripe_publishable_key" placeholder="pk_live_..."
-                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Secret Key</label>
-                            <input type="password" name="stripe_secret_key" placeholder="sk_live_..."
-                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-4 pt-4 border-t border-slate-100">
-                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                        <i class="ph ph-paypal-logo text-lg text-sky-600"></i> PayPal Integration
-                    </h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Client ID</label>
-                            <input type="text" name="paypal_client_id" placeholder="Client ID from PayPal Developer"
-                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Secret</label>
-                            <input type="password" name="paypal_client_secret" placeholder="Secret Key"
-                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-red-500">
-                        </div>
-                    </div>
-                </div>
-            </fieldset>
         </div>
 
         <!-- Card 5: SMTP Outgoing Email Delivery Configuration -->
@@ -531,90 +537,92 @@
             </div>
 
             @if($isTrialUser)
-                <div class="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                    <div class="flex items-start gap-3">
-                        <i class="ph ph-lock-key text-2xl text-amber-600 shrink-0 mt-0.5"></i>
+                <div class="p-6 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                            <i class="ph ph-lock-key"></i>
+                        </div>
                         <div>
-                            <div class="font-bold text-sm">Outgoing SMTP Disabled &bull; Free Trial Evaluation</div>
-                            <div class="text-xs text-amber-800 mt-0.5">
-                                Custom outgoing mail server configuration is locked during the Free Trial evaluation period. In trial mode, evaluation emails are dispatched via Invoicy default sandbox routing. To connect your agency's private domain mailbox (Hostinger, Google Workspace, Microsoft 365), please upgrade to a paid agency subscription plan.
+                            <div class="font-bold text-sm text-amber-950">Outgoing SMTP Disabled &bull; Free Trial Evaluation</div>
+                            <div class="text-xs text-amber-900 mt-1 leading-relaxed">
+                                Custom outgoing mail server configuration is locked during the Free Trial evaluation period. In trial mode, evaluation emails are dispatched via Invoicy default sandbox routing, and server inputs are completely omitted from the page. To connect your agency's private domain mailbox (Hostinger, Google Workspace, Microsoft 365), please upgrade to a paid agency subscription plan.
                             </div>
                         </div>
                     </div>
-                    <a href="{{ route('membership.index') }}" class="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 whitespace-nowrap">
+                    <a href="{{ route('membership.index') }}" class="shrink-0 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 whitespace-nowrap">
                         <i class="ph ph-sparkle"></i>
                         <span>Upgrade to Unlock</span>
                     </a>
                 </div>
+            @else
+                <fieldset class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                SMTP Host @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? 'smtp.hostinger.com') }}" placeholder="smtp.hostinger.com"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                SMTP Port @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 465) }}" placeholder="465 / 587"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Encryption @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <select name="smtp_encryption" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
+                                <option value="ssl" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'ssl' ? 'selected' : '' }}>SSL (Port 465)</option>
+                                <option value="tls" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'tls' ? 'selected' : '' }}>TLS (Port 587)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                SMTP Username / Mailbox Email @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <input type="email" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? '') }}" placeholder="billing@youragency.com"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                SMTP Mailbox Password @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <input type="password" name="smtp_password" value="{{ old('smtp_password', $smtp['password'] ?? '') }}" placeholder="Enter mailbox password..."
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                From Address @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <input type="email" name="smtp_from_address" value="{{ old('smtp_from_address', $smtp['from_address'] ?? '') }}" placeholder="billing@youragency.com"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                From Display Name @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
+                            </label>
+                            <input type="text" name="smtp_from_name" value="{{ old('smtp_from_name', $smtp['from_name'] ?? $workspace->name) }}" placeholder="{{ $workspace->name }}"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        </div>
+                    </div>
+                </fieldset>
             @endif
-
-            <fieldset {{ $isTrialUser ? 'disabled' : '' }} class="{{ $isTrialUser ? 'opacity-50 pointer-events-none select-none' : '' }} space-y-6">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            SMTP Host @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <input type="text" name="smtp_host" value="{{ old('smtp_host', $smtp['host'] ?? 'smtp.hostinger.com') }}" placeholder="smtp.hostinger.com"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            SMTP Port @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <input type="number" name="smtp_port" value="{{ old('smtp_port', $smtp['port'] ?? 465) }}" placeholder="465 / 587"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Encryption @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <select name="smtp_encryption" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                            <option value="ssl" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'ssl' ? 'selected' : '' }}>SSL (Port 465)</option>
-                            <option value="tls" {{ old('smtp_encryption', $smtp['encryption'] ?? 'ssl') === 'tls' ? 'selected' : '' }}>TLS (Port 587)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            SMTP Username / Mailbox Email @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <input type="email" name="smtp_username" value="{{ old('smtp_username', $smtp['username'] ?? '') }}" placeholder="billing@youragency.com"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            SMTP Mailbox Password @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <input type="password" name="smtp_password" value="{{ old('smtp_password', $smtp['password'] ?? '') }}" placeholder="Enter mailbox password..."
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            From Address @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <input type="email" name="smtp_from_address" value="{{ old('smtp_from_address', $smtp['from_address'] ?? '') }}" placeholder="billing@youragency.com"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            From Display Name @if($isSubscribedUser) <span class="text-rose-500 font-bold">*</span> @endif
-                        </label>
-                        <input type="text" name="smtp_from_name" value="{{ old('smtp_from_name', $smtp['from_name'] ?? $workspace->name) }}" placeholder="{{ $workspace->name }}"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
-                    </div>
-                </div>
-            </fieldset>
         </div>
 
         <!-- Submit Button -->
         <div class="flex items-center justify-end gap-4">
             <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition text-sm">
-                <i class="ph ph-floppy-disk text-base"></i> Save Workspace & SMTP Settings
+                <i class="ph ph-floppy-disk text-base"></i> {{ $isTrialUser ? 'Save Workspace Settings' : 'Save Workspace & SMTP Settings' }}
             </button>
         </div>
     </form>

@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/invoices/bulk-action', [InvoiceController::class, 'bulkAction'])->name('invoices.bulk');
     Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::post('/invoices/{invoice}/language', [InvoiceController::class, 'updateLanguage'])->name('invoices.language');
     Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('invoices.send');
     Route::post('/invoices/{invoice}/reminder', [InvoiceController::class, 'sendReminder'])->name('invoices.reminder');
