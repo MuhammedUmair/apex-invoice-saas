@@ -411,9 +411,11 @@
                             <span class="font-semibold text-slate-700 text-xs">
                                 <span class="text-amber-800 font-bold">{{ $available }}</span> / {{ $limit }} {{ __('Invoices Available') }}
                             </span>
+                            @if(!auth()->user()->isStaff())
                             <a href="{{ route('membership.index') }}" class="ml-1 px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] uppercase tracking-wide transition shadow-xs">
                                 {{ __('Upgrade') }}
                             </a>
+                            @endif
                         </div>
                     @endif
                     <!-- Topbar Language Switcher Dropdown -->
