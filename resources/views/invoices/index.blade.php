@@ -24,37 +24,94 @@
         <a href="{{ route('invoices.index', ['status' => 'draft']) }}" class="px-3 py-1.5 rounded-lg transition {{ $currentStatus === 'draft' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-200' }}">Drafts</a>
     </div>
 
-    <!-- Invoice Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        @if($invoices->isEmpty())
-            <div class="p-12 text-center text-slate-400">
-                <i class="ph ph-receipt text-4xl mb-2 inline-block"></i>
-                <p class="text-sm font-medium">No invoices found for this criteria.</p>
-                <div class="mt-4">
-                    <a href="{{ route('invoices.create') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg">Create First Invoice</a>
-                </div>
+    <!-- Bulk Actions Form & Table -->
+    <form id="bulk-invoices-form" method="POST" action="{{ route('invoices.bulk') }}"
+          x-data="{
+              selected: [],
+              allIds: {{ json_encode($invoices->pluck('id')) }},
+              toggleAll() {
+                  if (this.selected.length === this.allIds.length) {
+                      this.selected = [];
+                  } else {
+                      this.selected = [...this.allIds];
+                  }
+              },
+              submitBulk(action, confirmMsg) {
+                  if (this.selected.length === 0) return;
+                  if (confirmMsg && !confirm(confirmMsg)) return;
+                  $refs.bulkActionInput.value = action;
+                  $el.submit();
+              }
+          }">
+        @csrf
+        <input type="hidden" name="action" x-ref="bulkActionInput" value="">
+
+        <!-- Bulk Action Floating Toolbar (Shows when 1+ selected) -->
+        <div x-show="selected.length > 0" x-cloak class="mb-4 p-3.5 bg-slate-900 text-white rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3 border border-slate-800 transition">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-600 text-white text-xs font-bold" x-text="selected.length"></span>
+                <span class="text-xs font-semibold">Invoice(s) Selected</span>
+                <button type="button" @click="selected = []" class="text-[11px] text-slate-400 hover:text-white underline ml-1">
+                    Clear selection
+                </button>
             </div>
-        @else
-            <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
-                    <tr>
-                        <th class="px-6 py-3.5 font-bold">Invoice #</th>
-                        <th class="px-4 py-3.5 font-bold">Client / Recipient</th>
-                        <th class="px-4 py-3.5 font-bold">Dates</th>
-                        <th class="px-4 py-3.5 font-bold text-right">Total Amount</th>
-                        <th class="px-4 py-3.5 font-bold text-center">Security</th>
-                        <th class="px-4 py-3.5 font-bold text-center">Status</th>
-                        <th class="px-6 py-3.5 font-bold text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @foreach($invoices as $inv)
-                        <tr class="hover:bg-slate-50/60 transition">
-                            <td class="px-6 py-4">
-                                <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-red-600 hover:underline">
-                                    {{ $inv->invoice_number }}
-                                </a>
-                            </td>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" @click="submitBulk('mark_paid', 'Mark ' + selected.length + ' selected invoice(s) as Paid?')" 
+                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-check-circle text-sm"></i> Mark Paid
+                </button>
+                <button type="button" @click="submitBulk('mark_issued', 'Mark ' + selected.length + ' selected invoice(s) as Issued?')" 
+                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-file-text text-sm"></i> Mark Issued
+                </button>
+                <button type="button" @click="submitBulk('send_emails', 'Dispatch email to clients for ' + selected.length + ' selected invoice(s)?')" 
+                        class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-paper-plane-tilt text-sm"></i> Send Emails
+                </button>
+                <button type="button" @click="submitBulk('delete', 'Permanently delete ' + selected.length + ' selected unpaid invoice(s)? This action cannot be undone.')" 
+                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-trash text-sm"></i> Delete
+                </button>
+            </div>
+        </div>
+
+        <!-- Invoice Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            @if($invoices->isEmpty())
+                <div class="p-12 text-center text-slate-400">
+                    <i class="ph ph-receipt text-4xl mb-2 inline-block"></i>
+                    <p class="text-sm font-medium">No invoices found for this criteria.</p>
+                    <div class="mt-4">
+                        <a href="{{ route('invoices.create') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg">Create First Invoice</a>
+                    </div>
+                </div>
+            @else
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3.5 w-10 text-center">
+                                <input type="checkbox" @click="toggleAll()" :checked="selected.length === allIds.length && allIds.length > 0" class="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer">
+                            </th>
+                            <th class="px-4 py-3.5 font-bold">Invoice #</th>
+                            <th class="px-4 py-3.5 font-bold">Client / Recipient</th>
+                            <th class="px-4 py-3.5 font-bold">Dates</th>
+                            <th class="px-4 py-3.5 font-bold text-right">Total Amount</th>
+                            <th class="px-4 py-3.5 font-bold text-center">Security</th>
+                            <th class="px-4 py-3.5 font-bold text-center">Status</th>
+                            <th class="px-6 py-3.5 font-bold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($invoices as $inv)
+                            <tr class="hover:bg-slate-50/60 transition" :class="selected.includes({{ $inv->id }}) ? 'bg-red-50/30' : ''">
+                                <td class="px-4 py-4 text-center">
+                                    <input type="checkbox" name="invoice_ids[]" value="{{ $inv->id }}" x-model.number="selected" class="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer">
+                                </td>
+                                <td class="px-4 py-4">
+                                    <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-red-600 hover:underline">
+                                        {{ $inv->invoice_number }}
+                                    </a>
+                                </td>
                             <td class="px-4 py-4">
                                 <div class="font-semibold text-slate-800">{{ $inv->client->company_name ?? $inv->client->name }}</div>
                                 <div class="text-xs text-slate-400">{{ $inv->client->email }}</div>
@@ -146,5 +203,6 @@
             </div>
         @endif
     </div>
+    </form>
 </div>
 @endsection

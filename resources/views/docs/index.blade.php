@@ -94,36 +94,54 @@
     <!-- Main Container with Sidebar + Content -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col md:flex-row gap-8 w-full">
         <!-- Sidebar Navigation -->
-        <aside class="w-full md:w-64 shrink-0">
-            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm sticky top-24">
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-3">Table of Contents</h4>
-                <nav class="space-y-1 text-sm">
-                    <a href="#overview" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-house text-base text-slate-400"></i> Platform Overview
+        <aside class="w-full md:w-72 shrink-0">
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-3">Tenant Documentation Guide</h4>
+                <nav class="space-y-1 text-xs font-medium">
+                    <a href="#overview" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-shield-check text-sm text-slate-400 shrink-0"></i> 1. Platform & Multi-Tenancy
                     </a>
-                    <a href="#client-crm" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-users text-base text-slate-400"></i> Client CRM & Languages
+                    <a href="#team-roles" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-users-three text-sm text-slate-400 shrink-0"></i> 2. Team Members & Roles
                     </a>
-                    <a href="#invoicing-engine" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-receipt text-base text-slate-400"></i> Invoicing & Sequential Numbers
+                    <a href="#invoicing-engine" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-receipt text-sm text-slate-400 shrink-0"></i> 3. Invoicing & Sequences
                     </a>
-                    <a href="#tax-and-security" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-shield-check text-base text-slate-400"></i> Taxation & PDF Passwords
+                    <a href="#tracking-dispatches" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-envelope-open text-sm text-slate-400 shrink-0"></i> 4. Email & Open Tracking
                     </a>
-                    <a href="#credit-notes" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-arrow-u-up-left text-base text-slate-400"></i> Credit Notes & Refunds
+                    <a href="#tax-and-security" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-lock-key text-sm text-slate-400 shrink-0"></i> 5. Tax & PDF Protection
                     </a>
-                    <a href="#payments-webhooks" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-credit-card text-base text-slate-400"></i> Stripe, PayPal & Webhooks
+                    <a href="#recurring-retainers" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-arrows-clockwise text-sm text-slate-400 shrink-0"></i> 6. Recurring Retainers
                     </a>
-                    <a href="#membership-coupons" class="flex items-center gap-2.5 px-3 py-2 rounded-lg font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
-                        <i class="ph ph-tag text-base text-slate-400"></i> Membership & Coupons
+                    <a href="#credit-notes" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-arrow-u-up-left text-sm text-slate-400 shrink-0"></i> 7. Credit Notes & Refunds
+                    </a>
+                    <a href="#reminders-scheduler" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-bell-ringing text-sm text-slate-400 shrink-0"></i> 8. Reminders & Scheduler
+                    </a>
+                    <a href="#client-crm" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-users text-sm text-slate-400 shrink-0"></i> 9. Client CRM & Locales
+                    </a>
+                    <a href="#catalog-presets" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-package text-sm text-slate-400 shrink-0"></i> 10. Catalog & Presets
+                    </a>
+                    <a href="#payments-webhooks" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-credit-card text-sm text-slate-400 shrink-0"></i> 11. Payment Gateways
+                    </a>
+                    <a href="#branding-smtp" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-gear text-sm text-slate-400 shrink-0"></i> 12. Branding & SMTP Setup
+                    </a>
+                    <a href="#bulk-actions" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-700 transition">
+                        <i class="ph ph-check-square-offset text-sm text-slate-400 shrink-0"></i> 13. Bulk Operations Suite
                     </a>
                 </nav>
 
                 <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-500">
                     <p class="font-semibold text-slate-700">Need Live Support?</p>
-                    <p class="text-[11px] mt-0.5">Contact host administrator or view live API logs.</p>
+                    <p class="text-[11px] mt-0.5">Contact <a href="mailto:support@redmapleagency.com" class="text-red-600 hover:underline">support@redmapleagency.com</a></p>
                 </div>
             </div>
         </aside>
@@ -176,93 +194,94 @@
                     </div>
                 </div>
 
-                @if($currentLang === 'ur')
-                    <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                        <p>ریڈ میپل کا بنیادی ڈھانچہ مکمل طور پر ملٹی ٹیننٹ (Multi-Tenant) پر مبنی ہے۔ ہر ایجنسی کا الگ اور محفوظ ورک اسپیس ہوتا ہے۔</p>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li><strong>ورک اسپیس آئسولیشن:</strong> کوئی بھی ایجنسی کسی دوسری ایجنسی کے کلائنٹس، انوائسز یا مالیاتی ڈیٹا تک رسائی حاصل نہیں کر سکتی۔</li>
-                            <li><strong>سیکیور تصدیق:</strong> پاس ورڈز Bcrypt ہیشنگ کے ساتھ محفوظ کیے جاتے ہیں۔</li>
-                            <li><strong>کردار (RBAC):</strong> ایجنسی اونر (Owner)، ایڈمن (Admin)، اور اسٹاف (Staff) کے لیے اجازت نامے متعین ہیں۔</li>
-                        </ul>
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>RedMaple is built on a strict multi-tenant schema where every agency operates in an isolated workspace container:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                        <li><strong>Tenant Scoping:</strong> All database queries are automatically scoped using <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">WorkspaceScope</code>, guaranteeing zero data leakage between agencies.</li>
+                        <li><strong>Enterprise Authentication:</strong> Strong Bcrypt credential hashing and CSRF token verification.</li>
+                        <li><strong>Role-Based Access Control (RBAC):</strong> Permissions segregated by Owner, Admin, and Staff tiers.</li>
+                    </ul>
+
+                    <!-- Visual Architecture Card -->
+                    <div class="mt-4 p-4 rounded-xl bg-slate-900 text-white font-mono text-xs space-y-2 border border-slate-800">
+                        <div class="text-red-400 font-bold">// Multi-Tenant Data Isolation Model</div>
+                        <div class="text-slate-300">Tenant Workspace [/agency-slug] &rarr; Isolated CRM Clients, Invoices, Retainers, SMTP & Bank Keys</div>
+                        <div class="text-emerald-400">&check; Zero cross-tenant leakage &bull; Row-level workspace_id enforcement &bull; Cryptographic portal tokens</div>
                     </div>
-                @elseif($currentLang === 'ar')
-                    <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                        <p>يعتمد نظام ريد مابل على بنية العزل التام للمستأجرين (Multi-Tenancy)، حيث تمتلك كل وكالة مساحة عمل خاصة ومستقلة بالكامل.</p>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li><strong>عزل البيانات:</strong> لا يمكن لأي وكالة الاطلاع على فواتير أو عملاء أي وكالة أخرى.</li>
-                            <li><strong>التوثيق الآمن:</strong> تشفير كلمات المرور باستخدام خوارزمية Bcrypt مع حماية ضد هجمات CSRF.</li>
-                            <li><strong>أدوار المستخدمين:</strong> صلاحيات مقسمة بين المالك، المدير، والموظف.</li>
-                        </ul>
-                    </div>
-                @elseif($currentLang === 'hi')
-                    <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                        <p>रेडमेपल पूरी तरह से मल्टी-टेनेंट आर्किटेक्चर पर निर्मित है। प्रत्येक एजेंसी का डेटा पूरी तरह से अलग और सुरक्षित रहता है।</p>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li><strong>डेटा अलगाव:</strong> कोई भी एजेंसी किसी अन्य एजेंसी के क्लाइंट्स या इनवॉइस नहीं देख सकती।</li>
-                            <li><strong>सुरक्षित प्रमाणीकरण:</strong> Bcrypt एन्क्रिप्शन के साथ पासवर्ड सुरक्षित रखे जाते हैं।</li>
-                            <li><strong>भूमिकाएँ (RBAC):</strong> ओनर, एडमिन, और स्टाफ के लिए अलग अनुमतियाँ।</li>
-                        </ul>
-                    </div>
-                @elseif($currentLang === 'tr')
-                    <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                        <p>RedMaple platformu, her ajansın kendi yalıtılmış çalışma alanına sahip olduğu çok kiracılı (multi-tenant) bir mimari ile çalışır.</p>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li><strong>Ajans İzolasyonu:</strong> Hiçbir ajans başka bir ajansın faturalarını veya müşteri verilerini göremez.</li>
-                            <li><strong>Güvenli Kimlik Doğrulama:</strong> Bcrypt parola şifrelemesi ve CSRF koruması mevcuttur.</li>
-                            <li><strong>Roller:</strong> Sahip (Owner), Yönetici (Admin) ve Personel (Staff) rolleri desteklenir.</li>
-                        </ul>
-                    </div>
-                @else
-                    <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                        <p>RedMaple is built on a strict multi-tenant schema where every agency operates in an isolated workspace container:</p>
-                        <ul class="list-disc list-inside space-y-1 text-slate-600">
-                            <li><strong>Tenant Scoping:</strong> All database queries are automatically scoped using <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">WorkspaceScope</code>, guaranteeing zero data leakage between agencies.</li>
-                            <li><strong>Enterprise Authentication:</strong> Strong Bcrypt credential hashing and CSRF token verification.</li>
-                            <li><strong>Role-Based Access Control (RBAC):</strong> Permissions segregated by Owner, Admin, and Staff tiers.</li>
-                        </ul>
-                    </div>
-                @endif
+                </div>
             </section>
 
-            <!-- Section 2: Client CRM & Languages -->
-            <section id="client-crm" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+            <!-- Section 2: Team Members & Role Privileges -->
+            <section id="team-roles" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
                 <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="ph ph-users"></i>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-users-three"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">2. Client Directory & Multilingual Support (Urdu, Hindi, Turkish)</h3>
-                        <p class="text-xs text-slate-500">Multi-currency billing and localized customer preferences</p>
+                        <h3 class="text-lg font-bold text-slate-900">2. Team Members & Granular Role Privileges</h3>
+                        <p class="text-xs text-slate-500">Seat allocations, activation invites, and permission enforcement</p>
                     </div>
                 </div>
 
                 <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                    <p>
-                        @if($currentLang === 'ur')
-                            کلائنٹ ڈائرکٹری میں کلائنٹ شامل کرتے وقت آپ ان کی پسندیدہ زبان، کرنسی اور ادائیگی کی شرائط منتخب کر سکتے ہیں:
-                        @elseif($currentLang === 'ar')
-                            عند إضافة عميل جديد، يمكنك تعيين لغة الفاتورة المفضلة، العملة الإقليمية، وشروط الاستحقاق:
-                        @elseif($currentLang === 'hi')
-                            क्लाइंट जोड़ते समय आप उसकी पसंदीदा भाषा (हिंदी, उर्दू, तुर्की आदि), मुद्रा और भुगतान की शर्तें चुन सकते हैं:
-                        @elseif($currentLang === 'tr')
-                            Müşteri eklerken müşterinin faturada tercih ettiği dili (Türkçe, Urduca, Hintçe vb.), para birimini ve ödeme vadelerini belirleyebilirsiniz:
-                        @else
-                            When registering a client in the CRM, you can configure their specific language and billing rules:
-                        @endif
-                    </p>
+                    <p>Agency teams are managed under <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">Agency Settings &rarr; Team Members</code>. Each team member is assigned one of three granular roles:</p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="text-xs font-bold text-slate-900 block mb-1">Supported Languages</span>
-                            <span class="text-xs text-slate-600 leading-normal block">English, Urdu (اردو), Hindi (हिन्दी), Turkish (Türkçe), Arabic (العربية), Spanish, French, German, Chinese.</span>
-                        </div>
-                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="text-xs font-bold text-slate-900 block mb-1">Supported Currencies</span>
-                            <span class="text-xs text-slate-600 leading-normal block">USD ($), EUR (€), GBP (£), AED (د.إ), SAR (﷼), CAD (C$), AUD (A$), INR (₹), TRY (₺), PKR (Rs).</span>
-                        </div>
-                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="text-xs font-bold text-slate-900 block mb-1">Payment Terms</span>
-                            <span class="text-xs text-slate-600 leading-normal block">Due on Receipt, Net 7 Days, Net 14 Days, Net 30 Days, Net 60 Days.</span>
+                    <!-- Permission Matrix Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 mt-2">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">Privilege / Capability</th>
+                                    <th class="px-3 py-3 text-center text-red-700">Primary Owner</th>
+                                    <th class="px-3 py-3 text-center text-blue-700">Workspace Admin</th>
+                                    <th class="px-3 py-3 text-center text-emerald-700">Staff Member</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-700">
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-4 py-2.5 font-medium">Create & Manage Invoices</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-4 py-2.5 font-medium">Client CRM & Service Catalog</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-4 py-2.5 font-medium">Credit Notes & Reminders</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-4 py-2.5 font-medium">Agency Settings & SMTP Config</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-rose-600 font-bold">&cross; Restricted (Hidden)</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-4 py-2.5 font-medium">Plan & Billing Upgrades</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-rose-600 font-bold">&cross; Restricted (Hidden)</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="px-4 py-2.5 font-medium">Invite & Change Team Roles</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">&check; Full</td>
+                                    <td class="px-3 py-2.5 text-center text-rose-600 font-bold">&cross; Restricted</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+                        <i class="ph ph-shield-check text-base text-amber-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <strong>Email Verification Required:</strong> Newly invited team members receive a signed activation email. Until their email address is verified via the cryptographic link, their login remains locked to prevent account spoofing.
                         </div>
                     </div>
                 </div>
@@ -282,29 +301,73 @@
 
                 <div class="text-sm leading-relaxed text-slate-700 space-y-3">
                     <p>
-                        @if($currentLang === 'ur')
-                            ہر انوائس کو ایک منفرد اور مسلسل نمبر دیا جاتا ہے جیسے کہ <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">INV-2026-0001</code>۔ ڈیٹا بیس میں اٹامک لاکنگ (Atomic Locking) اس بات کو یقینی بناتی ہے کہ ایک ہی وقت میں دو انوائسز پر ایک جیسا نمبر جاری نہ ہو۔
-                        @elseif($currentLang === 'ar')
-                            يتم ترقيم الفواتير تسلسلياً برمز فريد مثل <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">INV-2026-0001</code> مع قفل تسلسلي ذري يمنع تكرار الأرقام أو وجود فجوات حسابية.
-                        @elseif($currentLang === 'hi')
-                            प्रत्येक इनवॉइस को एक क्रमिक संख्या दी जाती है (जैसे <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">INV-2026-0001</code>)। डेटाबेस लॉकिंग सुनिश्चित करती है कि कोई डुप्लीकेट नंबर उत्पन्न न हो।
-                        @elseif($currentLang === 'tr')
-                            Her fatura <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">INV-2026-0001</code> gibi sıralı ve benzersiz bir numara alır. Veritabanı kilidi, eşzamanlı işlemlerde mükerrer fatura numarasını engeller.
-                        @else
-                            Every issued invoice is assigned a concurrency-safe sequential code (e.g., <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">INV-2026-0001</code>). An atomic database sequence counter prevents duplicate numbering even under simultaneous checkout attempts.
-                        @endif
+                        Every issued invoice is assigned a concurrency-safe sequential code (e.g., <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600">INV-2026-0001</code>). An atomic database sequence counter prevents duplicate numbering even under simultaneous checkout attempts.
                     </p>
+
+                    <!-- Visual Invoice Status Flowchart -->
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider block mb-3">Invoice Lifecycle Flow</span>
+                        <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+                            <span class="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700">1. Draft</span>
+                            <i class="ph ph-arrow-right text-slate-400"></i>
+                            <span class="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800">2. Issued</span>
+                            <i class="ph ph-arrow-right text-slate-400"></i>
+                            <span class="px-3 py-1.5 rounded-lg bg-sky-100 text-sky-800">3. Sent / Emailed</span>
+                            <i class="ph ph-arrow-right text-slate-400"></i>
+                            <span class="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800">4. Partially Paid</span>
+                            <i class="ph ph-arrow-right text-slate-400"></i>
+                            <span class="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800">5. Fully Paid</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Section 4: Taxation & PDF Passwords -->
+            <!-- Section 4: Email Dispatch & Open Tracking -->
+            <section id="tracking-dispatches" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-envelope-open"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">4. Email Dispatches, Resend Confirmation & Open Tracking</h3>
+                        <p class="text-xs text-slate-500">Real-time engagement telemetry, beacon tracking, and duplicate prevention</p>
+                    </div>
+                </div>
+
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>Invoicy provides real-time client engagement analytics for every invoice dispatched to a client email address:</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-sky-700 flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-paper-plane-tilt"></i> Dispatch Status
+                            </span>
+                            <p class="text-xs text-slate-600">Dispatches via authenticated SMTP. Re-send safety dialog asks confirmation if invoice was previously dispatched.</p>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-emerald-700 flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-envelope-open"></i> Email Open Tracking
+                            </span>
+                            <p class="text-xs text-slate-600">Embedded 1x1 transparent beacon telemetry logs exact timestamps and count when recipient opens the email in their client.</p>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-indigo-700 flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-eye"></i> Portal / PDF Views
+                            </span>
+                            <p class="text-xs text-slate-600">Logs every view of the secure web payment portal or PDF download with date and IP telemetry.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 5: Taxation & PDF Passwords -->
             <section id="tax-and-security" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
                 <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-lock-key"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">4. Country Taxation Rules & PDF Security</h3>
+                        <h3 class="text-lg font-bold text-slate-900">5. Country Taxation Rules & PDF Security</h3>
                         <p class="text-xs text-slate-500">GAAP/IFRS pre-tax discounts and optional client PIN protection</p>
                     </div>
                 </div>
@@ -318,21 +381,43 @@
                 </div>
             </section>
 
-            <!-- Section 5: Credit Notes & Refunds -->
+            <!-- Section 6: Recurring Retainers -->
+            <section id="recurring-retainers" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-arrows-clockwise"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">6. Recurring Retainers & Auto-Billing</h3>
+                        <p class="text-xs text-slate-500">Automated monthly billing cycles and recurring client retainers</p>
+                    </div>
+                </div>
+
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>Agencies with monthly retainer agreements can configure automated recurring billing under <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">Recurring Retainers</code>:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                        <li><strong>Billing Cycles:</strong> Weekly, Monthly, Quarterly, Semi-Annually, or Annually.</li>
+                        <li><strong>Generation Mode:</strong> Automated dispatch or Draft queue requiring admin approval before delivery.</li>
+                        <li><strong>Auto-Numbering:</strong> Each generation pulls from the next sequential invoice number.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Section 7: Credit Notes & Refunds -->
             <section id="credit-notes" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
                 <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-arrow-u-up-left"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">5. Credit Notes & Ledger Refunds</h3>
+                        <h3 class="text-lg font-bold text-slate-900">7. Credit Notes & Ledger Refunds</h3>
                         <p class="text-xs text-slate-500">Accounting integrity and immutable reversal trail</p>
                     </div>
                 </div>
 
                 <div class="text-sm leading-relaxed text-slate-700 space-y-3">
                     <p>
-                        In commercial accounting, issued invoices must never be deleted. To correct errors, billing mistakes, or cancelled projects, an agency issues a **Credit Note** (<code class="bg-slate-100 px-1 py-0.5 rounded">CN-YYYY-XXXX</code>).
+                        In commercial accounting, issued invoices must never be deleted. To correct errors, billing mistakes, or cancelled projects, an agency issues a <strong>Credit Note</strong> (<code class="bg-slate-100 px-1 py-0.5 rounded">CN-YYYY-XXXX</code>).
                     </p>
                     <p class="text-xs text-slate-600">
                         Credit notes automatically adjust outstanding balances, update the financial audit trail, and maintain strict accounting compliance.
@@ -340,59 +425,157 @@
                 </div>
             </section>
 
-            <!-- Section 6: Payments & Webhooks -->
+            <!-- Section 8: Reminders & Scheduler -->
+            <section id="reminders-scheduler" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-bell-ringing"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">8. Reminders & Automated Scheduler</h3>
+                        <p class="text-xs text-slate-500">Automated receivables follow-up before and after invoice due dates</p>
+                    </div>
+                </div>
+
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>Configure automated payment reminder rules to minimize overdue invoices:</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-800 block mb-1">Pre-Due Notice</span>
+                            <span class="text-xs text-slate-600 block">Sends gentle reminder 3 days prior to due date.</span>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-800 block mb-1">Due Date Alert</span>
+                            <span class="text-xs text-slate-600 block">Sends notification on the exact due date.</span>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-rose-700 block mb-1">Overdue Follow-up</span>
+                            <span class="text-xs text-slate-600 block">Escalates notification at 7, 14, and 30 days overdue.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 9: Client CRM & Languages -->
+            <section id="client-crm" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-users"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">9. Client Directory & CRM</h3>
+                        <p class="text-xs text-slate-500">Multi-currency billing and localized customer preferences</p>
+                    </div>
+                </div>
+
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>When registering a client in the CRM, you can configure their specific language and billing rules:</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-900 block mb-1">Supported Languages</span>
+                            <span class="text-xs text-slate-600 leading-normal block">English, Urdu (اردو), Hindi (हिन्दी), Turkish (Türkçe), Arabic (العربية), Spanish, French, German, Chinese.</span>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-900 block mb-1">Supported Currencies</span>
+                            <span class="text-xs text-slate-600 leading-normal block">USD ($), EUR (€), GBP (£), AED (د.إ), SAR (﷼), CAD (C$), AUD (A$), INR (₹), TRY (₺), PKR (Rs).</span>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="text-xs font-bold text-slate-900 block mb-1">Payment Terms</span>
+                            <span class="text-xs text-slate-600 leading-normal block">Due on Receipt, Net 7 Days, Net 14 Days, Net 30 Days, Net 60 Days.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 10: Catalog & Presets -->
+            <section id="catalog-presets" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-package"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">10. Service Catalog & Line Item Presets</h3>
+                        <p class="text-xs text-slate-500">Pre-saved products, hourly deliverables, and standard rates</p>
+                    </div>
+                </div>
+
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>Save recurring service items under <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">Catalog & Presets</code>. When drafting new invoices, simply select a preset from the autocomplete dropdown to instantly populate unit rate, description, and tax category.</p>
+                </div>
+            </section>
+
+            <!-- Section 11: Payments & Webhooks -->
             <section id="payments-webhooks" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
                 <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-credit-card"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">6. Stripe, PayPal & Webhook Processing</h3>
-                        <p class="text-xs text-slate-500">Idempotent automated reconciliation without duplicate charges</p>
+                        <h3 class="text-lg font-bold text-slate-900">11. Stripe, PayPal & Merchant Gateways</h3>
+                        <p class="text-xs text-slate-500">Direct client payments deposit directly into your agency merchant account</p>
                     </div>
                 </div>
 
                 <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                    <p>Configure your webhook endpoints in your gateway developer dashboard:</p>
-                    <div class="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs space-y-1 overflow-x-auto ltr-text">
-                        <div><span class="text-emerald-400">Stripe Webhook URL:</span> https://redmapleagency.com/webhooks/stripe</div>
-                        <div><span class="text-sky-400">PayPal Webhook URL:</span> https://redmapleagency.com/webhooks/paypal</div>
-                    </div>
-                    <p class="text-xs text-slate-600">Every webhook payload is verified and indexed using its gateway event ID, preventing double-crediting if a webhook is retried.</p>
+                    <p>Connect your own Stripe and PayPal accounts in Agency Settings:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                        <li><strong>Direct Merchant Settlement:</strong> Client payments flow directly into your agency merchant balance. Invoicy charges 0% transaction commission.</li>
+                        <li><strong>Free Trial Evaluation Mode:</strong> In trial mode, gateway input is locked to prevent live payments on test accounts. Upgrading to a paid subscription unlocks live Stripe and PayPal integrations immediately.</li>
+                        <li><strong>Idempotent Webhooks:</strong> Webhook events are deduplicated to prevent double-crediting.</li>
+                    </ul>
                 </div>
             </section>
 
-            <!-- Section 7: Membership & Coupons -->
-            <section id="membership-coupons" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+            <!-- Section 12: Branding & SMTP Setup -->
+            <section id="branding-smtp" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
                 <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="ph ph-tag"></i>
+                    <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-gear"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">7. SaaS Membership & Atomic Coupons</h3>
-                        <p class="text-xs text-slate-500">Promo codes for subscription signups and renewals</p>
+                        <h3 class="text-lg font-bold text-slate-900">12. Agency Branding, Wire Transfer & Custom SMTP</h3>
+                        <p class="text-xs text-slate-500">Custom logos, brand colors, whitelabel PDFs, and custom outgoing email servers</p>
                     </div>
                 </div>
 
                 <div class="text-sm leading-relaxed text-slate-700 space-y-3">
-                    <p>Agencies can subscribe to or renew SaaS tiers using discount coupons:</p>
+                    <p>Customize your agency's visual identity and communications under <code class="bg-slate-100 px-1 py-0.5 rounded text-slate-800">Agency Settings</code>:</p>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="font-mono font-bold text-red-600 text-xs">LAUNCH2026</span>
-                            <span class="text-xs text-slate-600 block mt-0.5">20% off all plans</span>
+                            <span class="text-xs font-bold text-slate-800 block mb-1">Custom Logo & Colors</span>
+                            <span class="text-xs text-slate-600 block">Upload PNG, JPG, or SVG logos and configure primary brand hex colors.</span>
                         </div>
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="font-mono font-bold text-red-600 text-xs">HOSTINGER50</span>
-                            <span class="text-xs text-slate-600 block mt-0.5">50% promotional discount</span>
+                            <span class="text-xs font-bold text-slate-800 block mb-1">Wire Transfer Details</span>
+                            <span class="text-xs text-slate-600 block">Add Bank Name, IBAN, Swift code, and routing numbers automatically stamped on PDF invoices.</span>
                         </div>
                         <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="font-mono font-bold text-red-600 text-xs">SAVE10FIXED</span>
-                            <span class="text-xs text-slate-600 block mt-0.5">$10.00 flat discount</span>
+                            <span class="text-xs font-bold text-slate-800 block mb-1">Custom Outgoing SMTP</span>
+                            <span class="text-xs text-slate-600 block">Dispatch invoices from your own corporate domain email address with live connection test.</span>
                         </div>
                     </div>
-                    <p class="text-xs text-slate-500 mt-2">
-                        Coupons feature atomic concurrency checks preventing race conditions during checkout spikes.
-                    </p>
+                </div>
+            </section>
+
+            <!-- Section 13: Bulk Operations Suite -->
+            <section id="bulk-actions" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-check-square-offset"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">13. Bulk Operations Suite</h3>
+                        <p class="text-xs text-slate-500">High-velocity multi-record batch processing</p>
+                    </div>
+                </div>
+
+                <div class="text-sm leading-relaxed text-slate-700 space-y-3">
+                    <p>Invoicy provides bulk selection toolbars across key management modules:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600">
+                        <li><strong>Invoices Bulk Actions:</strong> Select multiple invoices to batch <em>Mark as Paid</em>, batch <em>Mark as Issued</em>, dispatch <em>Batch Email Invoices</em>, or <em>Delete Drafts</em> in a single click.</li>
+                        <li><strong>Tenant Workspaces (Admin):</strong> Batch <em>Activate</em>, <em>Suspend</em>, grant <em>+14 Days Trial Extensions</em>, or <em>Renew for 1 Month</em> across multiple subscribed agencies.</li>
+                        <li><strong>Promotional Coupons & Offers (Admin):</strong> Batch <em>Activate</em>, <em>Pause</em>, or <em>Delete</em> discount offers.</li>
+                    </ul>
                 </div>
             </section>
 

@@ -109,7 +109,62 @@
     </div>
 
     <!-- TAB 1: TENANT WORKSPACES & ACTIVE SUBSCRIPTIONS -->
-    <div x-show="currentTab === 'tenants'" class="space-y-6">
+    <div x-show="currentTab === 'tenants'" class="space-y-6"
+         x-data="{
+             selectedWorkspaces: [],
+             allWorkspaceIds: {{ json_encode($workspaces->pluck('id')) }},
+             toggleAllWorkspaces() {
+                 if (this.selectedWorkspaces.length === this.allWorkspaceIds.length) {
+                     this.selectedWorkspaces = [];
+                 } else {
+                     this.selectedWorkspaces = [...this.allWorkspaceIds];
+                 }
+             },
+             submitWorkspaceBulk(action, confirmMsg) {
+                 if (this.selectedWorkspaces.length === 0) return;
+                 if (confirmMsg && !confirm(confirmMsg)) return;
+                 $refs.wsBulkActionInput.value = action;
+                 $refs.wsBulkForm.submit();
+             }
+         }">
+
+        <!-- Bulk Action Floating Toolbar (Shows when 1+ selected) -->
+        <div x-show="selectedWorkspaces.length > 0" x-cloak class="p-3.5 bg-slate-900 text-white rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3 border border-slate-800 transition">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold" x-text="selectedWorkspaces.length"></span>
+                <span class="text-xs font-semibold">Workspace(s) Selected</span>
+                <button type="button" @click="selectedWorkspaces = []" class="text-[11px] text-slate-400 hover:text-white underline ml-1">
+                    Clear selection
+                </button>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" @click="submitWorkspaceBulk('activate', 'Activate subscription for ' + selectedWorkspaces.length + ' workspace(s)?')" 
+                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-check-circle text-sm"></i> Activate
+                </button>
+                <button type="button" @click="submitWorkspaceBulk('suspend', 'Suspend ' + selectedWorkspaces.length + ' selected workspace(s)?')" 
+                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-prohibit text-sm"></i> Suspend
+                </button>
+                <button type="button" @click="submitWorkspaceBulk('extend_trial_14', 'Grant +14 days Free Trial extension to ' + selectedWorkspaces.length + ' workspace(s)?')" 
+                        class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-clock text-sm"></i> +14 Days Trial
+                </button>
+                <button type="button" @click="submitWorkspaceBulk('renew_month', 'Renew subscriptions for ' + selectedWorkspaces.length + ' workspace(s) for 1 full month?')" 
+                        class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-arrows-clockwise text-sm"></i> Renew (+1 Month)
+                </button>
+            </div>
+        </div>
+
+        <form x-ref="wsBulkForm" method="POST" action="{{ route('admin.subscriptions.bulk') }}">
+            @csrf
+            <input type="hidden" name="action" x-ref="wsBulkActionInput" value="">
+            <template x-for="id in selectedWorkspaces" :key="id">
+                <input type="hidden" name="workspace_ids[]" :value="id">
+            </template>
+        </form>
+
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -125,6 +180,9 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
                         <tr>
+                            <th class="px-4 py-3 w-10 text-center">
+                                <input type="checkbox" @click="toggleAllWorkspaces()" :checked="selectedWorkspaces.length === allWorkspaceIds.length && allWorkspaceIds.length > 0" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                            </th>
                             <th class="px-6 py-3">Agency / Workspace</th>
                             <th class="px-6 py-3">Owner Contact</th>
                             <th class="px-6 py-3">Assigned Plan</th>
@@ -141,7 +199,10 @@
                                 $owner = $ws->users->first();
                                 $status = $sub ? strtolower($sub->status) : 'none';
                             @endphp
-                            <tr class="hover:bg-slate-50/50" x-data="{ openRenew: false, openEditOwner: false }">
+                            <tr class="hover:bg-slate-50/50" :class="selectedWorkspaces.includes({{ $ws->id }}) ? 'bg-amber-50/30' : ''" x-data="{ openRenew: false, openEditOwner: false }">
+                                <td class="px-4 py-4 text-center">
+                                    <input type="checkbox" value="{{ $ws->id }}" x-model.number="selectedWorkspaces" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                                </td>
                                 <td class="px-6 py-4">
                                     <span class="font-bold text-slate-900">{{ $ws->name }}</span>
                                     <span class="block text-xs font-mono text-slate-400">/{{ $ws->slug }}</span>

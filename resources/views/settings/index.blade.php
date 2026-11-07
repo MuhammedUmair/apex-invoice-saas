@@ -1,12 +1,20 @@
-@extends('layouts.app', ['title' => 'Agency Settings - Invoicy', 'header' => __('Agency Settings')])
+@extends('layouts.app', [
+    'title' => (auth()->user() && auth()->user()->isSuperAdmin()) ? 'System Settings - Invoicy' : 'Agency Settings - Invoicy',
+    'header' => (auth()->user() && auth()->user()->isSuperAdmin()) ? __('System Settings') : __('Agency Settings')
+])
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-8">
 
     <div class="flex items-center justify-between">
         <div>
-            <h2 class="text-xl font-bold text-slate-900">Workspace & Invoicing Configuration</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Manage your agency profile, wire transfer details, brand styling, SMTP email, and security</p>
+            @if(auth()->user() && auth()->user()->isSuperAdmin())
+                <h2 class="text-xl font-bold text-slate-900">System & Platform Configuration</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Configure platform defaults, payment gateway integrations, outgoing mail servers, and administration credentials</p>
+            @else
+                <h2 class="text-xl font-bold text-slate-900">Workspace & Invoicing Configuration</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Manage your agency profile, wire transfer details, brand styling, SMTP email, and security</p>
+            @endif
         </div>
         <div class="flex items-center gap-2">
             @if(auth()->user() && auth()->user()->isSuperAdmin())
@@ -411,12 +419,19 @@
                     <i class="ph ph-credit-card"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Payment Gateway API Keys (Stripe & PayPal)</h3>
+                    <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                        <span>Payment Gateway API Keys (Stripe & PayPal)</span>
+                        @if(auth()->user() && auth()->user()->isSuperAdmin())
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <i class="ph ph-shield-check"></i> Super Admin Direct Access
+                            </span>
+                        @endif
+                    </h3>
                     <p class="text-xs text-slate-500">Direct client payments deposit directly into your agency merchant account</p>
                 </div>
             </div>
 
-            @if($workspace->isTrial())
+            @if(!auth()->user()->isSuperAdmin() && $workspace->isTrial())
                 <div class="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                     <div class="flex items-start gap-3">
                         <i class="ph ph-lock-key text-2xl text-amber-600 shrink-0 mt-0.5"></i>
@@ -434,7 +449,7 @@
                 </div>
             @endif
 
-            <fieldset {{ $workspace->isTrial() ? 'disabled' : '' }} class="{{ $workspace->isTrial() ? 'opacity-50 pointer-events-none select-none' : '' }} space-y-6">
+            <fieldset {{ (!auth()->user()->isSuperAdmin() && $workspace->isTrial()) ? 'disabled' : '' }} class="{{ (!auth()->user()->isSuperAdmin() && $workspace->isTrial()) ? 'opacity-50 pointer-events-none select-none' : '' }} space-y-6">
                 <div class="space-y-4">
                     <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                         <i class="ph ph-stripe-logo text-lg text-indigo-600"></i> Stripe Integration
@@ -723,14 +738,27 @@
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
                                         <i class="ph ph-crown text-xs"></i> Owner
                                     </span>
-                                @elseif($member->role === 'admin')
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                        <i class="ph ph-shield text-xs"></i> Admin
-                                    </span>
+                                @elseif($member->id === auth()->id() || !auth()->user()->isAdmin())
+                                    @if($member->role === 'admin')
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <i class="ph ph-shield text-xs"></i> Admin
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <i class="ph ph-user text-xs"></i> Staff
+                                        </span>
+                                    @endif
                                 @else
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        <i class="ph ph-user text-xs"></i> Staff
-                                    </span>
+                                    <form method="POST" action="{{ route('settings.team.update_role', $member->id) }}" class="inline-block" onchange="this.submit()">
+                                        @csrf
+                                        <div class="relative inline-block" title="Change role privileges for {{ $member->name }}">
+                                            <select name="role" class="appearance-none text-[11px] font-bold py-1 pl-2.5 pr-7 rounded-lg border {{ $member->role === 'admin' ? 'border-blue-300 bg-blue-50 text-blue-800' : 'border-emerald-300 bg-emerald-50 text-emerald-800' }} hover:border-slate-400 focus:ring-1 focus:ring-red-500 cursor-pointer transition shadow-2xs">
+                                                <option value="staff" {{ $member->role === 'staff' ? 'selected' : '' }}>Staff (Invoicing & CRM)</option>
+                                                <option value="admin" {{ $member->role === 'admin' ? 'selected' : '' }}>Admin (Full Settings)</option>
+                                            </select>
+                                            <i class="ph ph-caret-down text-[10px] text-slate-500 absolute right-2 top-2 pointer-events-none"></i>
+                                        </div>
+                                    </form>
                                 @endif
                             </td>
                             <td class="py-3 px-4">

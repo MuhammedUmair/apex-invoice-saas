@@ -91,32 +91,90 @@
         </div>
     </div>
 
-    <!-- Coupons Table Card -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <i class="ph ph-tag text-slate-600"></i>
-                {{ __('All Promotional Offers & Codes') }}
-            </h3>
+    <!-- Bulk Actions Container for Coupons -->
+    <div x-data="{
+        selectedCoupons: [],
+        allCouponIds: {{ json_encode($coupons->pluck('id')) }},
+        toggleAllCoupons() {
+            if (this.selectedCoupons.length === this.allCouponIds.length) {
+                this.selectedCoupons = [];
+            } else {
+                this.selectedCoupons = [...this.allCouponIds];
+            }
+        },
+        submitCouponBulk(action, confirmMsg) {
+            if (this.selectedCoupons.length === 0) return;
+            if (confirmMsg && !confirm(confirmMsg)) return;
+            $refs.couponBulkActionInput.value = action;
+            $refs.couponBulkForm.submit();
+        }
+    }" class="space-y-4">
+
+        <!-- Bulk Action Floating Toolbar (Shows when 1+ selected) -->
+        <div x-show="selectedCoupons.length > 0" x-cloak class="p-3.5 bg-slate-900 text-white rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3 border border-slate-800 transition">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-fuchsia-600 text-white text-xs font-bold" x-text="selectedCoupons.length"></span>
+                <span class="text-xs font-semibold">{{ __('Coupon(s) Selected') }}</span>
+                <button type="button" @click="selectedCoupons = []" class="text-[11px] text-slate-400 hover:text-white underline ml-1">
+                    {{ __('Clear selection') }}
+                </button>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <button type="button" @click="submitCouponBulk('activate', 'Activate ' + selectedCoupons.length + ' selected promotional coupon(s)?')" 
+                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-check-circle text-sm"></i> {{ __('Activate Offers') }}
+                </button>
+                <button type="button" @click="submitCouponBulk('deactivate', 'Pause / Deactivate ' + selectedCoupons.length + ' selected promotional coupon(s)?')" 
+                        class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-pause text-sm"></i> {{ __('Pause / Deactivate') }}
+                </button>
+                <button type="button" @click="submitCouponBulk('delete', 'Permanently delete ' + selectedCoupons.length + ' selected coupon code(s)?')" 
+                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="ph ph-trash text-sm"></i> {{ __('Delete Selected') }}
+                </button>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
-                    <tr>
-                        <th class="px-4 py-3">{{ __('CODE & NAME') }}</th>
-                        <th class="px-3 py-3">{{ __('OFFER BENEFIT') }}</th>
-                        <th class="px-3 py-3 text-center">{{ __('TARGET AUDIENCE') }}</th>
-                        <th class="px-3 py-3 text-center">{{ __('USAGE / LIMIT') }}</th>
-                        <th class="px-3 py-3">{{ __('EXPIRY') }}</th>
-                        <th class="px-3 py-3 text-center">{{ __('STATUS') }}</th>
-                        <th class="px-4 py-3 text-right">{{ __('ACTIONS') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($coupons as $coupon)
-                        <tr class="hover:bg-slate-50/50 transition">
-                            <td class="px-4 py-3.5 align-middle">
+        <form x-ref="couponBulkForm" method="POST" action="{{ route('admin.coupons.bulk') }}">
+            @csrf
+            <input type="hidden" name="action" x-ref="couponBulkActionInput" value="">
+            <template x-for="id in selectedCoupons" :key="id">
+                <input type="hidden" name="coupon_ids[]" :value="id">
+            </template>
+        </form>
+
+        <!-- Coupons Table Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                    <i class="ph ph-tag text-slate-600"></i>
+                    {{ __('All Promotional Offers & Codes') }}
+                </h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+                        <tr>
+                            <th class="px-3 py-3 w-10 text-center">
+                                <input type="checkbox" @click="toggleAllCoupons()" :checked="selectedCoupons.length === allCouponIds.length && allCouponIds.length > 0" class="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500 cursor-pointer">
+                            </th>
+                            <th class="px-4 py-3">{{ __('CODE & NAME') }}</th>
+                            <th class="px-3 py-3">{{ __('OFFER BENEFIT') }}</th>
+                            <th class="px-3 py-3 text-center">{{ __('TARGET AUDIENCE') }}</th>
+                            <th class="px-3 py-3 text-center">{{ __('USAGE / LIMIT') }}</th>
+                            <th class="px-3 py-3">{{ __('EXPIRY') }}</th>
+                            <th class="px-3 py-3 text-center">{{ __('STATUS') }}</th>
+                            <th class="px-4 py-3 text-right">{{ __('ACTIONS') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($coupons as $coupon)
+                            <tr class="hover:bg-slate-50/50 transition" :class="selectedCoupons.includes({{ $coupon->id }}) ? 'bg-fuchsia-50/30' : ''">
+                                <td class="px-3 py-3.5 text-center align-middle">
+                                    <input type="checkbox" value="{{ $coupon->id }}" x-model.number="selectedCoupons" class="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500 cursor-pointer">
+                                </td>
+                                <td class="px-4 py-3.5 align-middle">
                                 <div class="flex items-center gap-2.5">
                                     <span class="px-2.5 py-1 rounded-lg bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-800 font-mono font-bold text-xs">
                                         {{ $coupon->code }}
@@ -204,6 +262,7 @@
                 {{ $coupons->links() }}
             </div>
         @endif
+    </div>
     </div>
 
     <!-- Recent Redemptions Log -->

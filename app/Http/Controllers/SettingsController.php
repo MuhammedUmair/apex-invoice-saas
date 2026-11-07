@@ -10,6 +10,10 @@ class SettingsController extends Controller
     public function index()
     {
         $user = Auth::user();
+        if ($user->isStaff()) {
+            return redirect()->route('dashboard')->with('error', 'Access Denied: Staff accounts do not have permission to access Agency Settings.');
+        }
+
         $workspace = $user->workspace;
         $teamMembers = $workspace ? $workspace->users()->orderBy('created_at', 'asc')->get() : collect([$user]);
         $plan = $workspace?->currentSubscription?->plan;
@@ -29,6 +33,10 @@ class SettingsController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
+        if ($user->isStaff()) {
+            return redirect()->route('dashboard')->with('error', 'Access Denied: Staff accounts do not have permission to modify Agency Settings.');
+        }
+
         $workspace = $user->workspace;
 
         $validated = $request->validate([
@@ -125,8 +133,8 @@ class SettingsController extends Controller
             'swift' => $validated['swift'] ?? '',
         ];
 
-        // Save Gateway keys if provided (only allowed for active paid plans, locked in trial)
-        if (!$workspace->isTrial()) {
+        // Save Gateway keys if provided (allowed for active paid plans or Super Admin, locked in trial)
+        if ($user->isSuperAdmin() || !$workspace->isTrial()) {
             if (!empty($validated['stripe_publishable_key']) || !empty($validated['stripe_secret_key'])) {
                 $workspace->stripe_keys_encrypted = [
                     'publishable_key' => $validated['stripe_publishable_key'] ?? '',
@@ -244,6 +252,10 @@ class SettingsController extends Controller
 
     public function testSmtp(Request $request)
     {
+        if (Auth::user()->isStaff()) {
+            return back()->with('smtp_error', 'Access Denied: Staff accounts cannot test SMTP configuration.');
+        }
+
         $request->validate([
             'test_email' => 'required|email',
         ]);
@@ -433,5 +445,54 @@ class SettingsController extends Controller
 
         return redirect()->to(route('settings.index') . '#team')
             ->with('team_success', "Team member '{$memberName}' has been removed from your workspace.");
+    }
+
+    /**
+     * Update team member role privileges (admin vs staff).
+     */
+    public function updateTeamMemberRole(Request $request, $memberId)
+    {
+        $currentUser = Auth::user();
+        $workspace = $currentUser->workspace;
+
+        if (!$currentUser->isAdmin()) {
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Unauthorized: Only workspace owners and admins can manage team member roles.');
+        }
+
+        $validated = $request->validate([
+            'role' => 'required|in:admin,staff',
+        ]);
+
+        $member = \App\Models\User::where('workspace_id', $workspace->id)->where('id', $memberId)->firstOrFail();
+
+        if ($member->role === 'owner') {
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Security Violation: Workspace primary owner role cannot be changed.');
+        }
+
+        if ($member->is_super_admin) {
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'Security Violation: Platform Super Admin role cannot be modified.');
+        }
+
+        if ($member->id === $currentUser->id) {
+            return redirect()->to(route('settings.index') . '#team')
+                ->with('team_error', 'You cannot change your own role.');
+        }
+
+        $oldRole = $member->role;
+        $member->role = $validated['role'];
+        $member->save();
+
+        \App\Services\AuditService::log('team.role_updated', $currentUser, [
+            'member_id' => $member->id,
+            'member_email' => $member->email,
+            'old_role' => $oldRole,
+            'new_role' => $member->role,
+        ]);
+
+        return redirect()->to(route('settings.index') . '#team')
+            ->with('team_success', "Role privileges for '{$member->name}' updated to " . ucfirst($member->role) . " successfully.");
     }
 }

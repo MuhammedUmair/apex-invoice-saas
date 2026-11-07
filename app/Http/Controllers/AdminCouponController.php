@@ -131,4 +131,43 @@ class AdminCouponController extends Controller
 
         return back()->with('success', "Coupon '{$code}' deleted successfully.");
     }
+
+    /**
+     * Perform bulk operations on selected promotional coupons (Item 6).
+     */
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:activate,deactivate,delete',
+            'coupon_ids' => 'required|array|min:1',
+            'coupon_ids.*' => 'required|integer',
+        ]);
+
+        $action = $validated['action'];
+        $coupons = Coupon::whereIn('id', $validated['coupon_ids'])->get();
+
+        if ($coupons->isEmpty()) {
+            return back()->with('error', 'No coupons selected.');
+        }
+
+        $count = 0;
+
+        if ($action === 'activate') {
+            Coupon::whereIn('id', $validated['coupon_ids'])->update(['is_active' => true]);
+            $count = $coupons->count();
+            return back()->with('success', "Activated {$count} promotional offer(s) successfully.");
+        } elseif ($action === 'deactivate') {
+            Coupon::whereIn('id', $validated['coupon_ids'])->update(['is_active' => false]);
+            $count = $coupons->count();
+            return back()->with('success', "Paused / deactivated {$count} promotional offer(s) successfully.");
+        } elseif ($action === 'delete') {
+            foreach ($coupons as $c) {
+                $c->delete();
+                $count++;
+            }
+            return back()->with('success', "Deleted {$count} promotional offer(s) successfully.");
+        }
+
+        return back();
+    }
 }

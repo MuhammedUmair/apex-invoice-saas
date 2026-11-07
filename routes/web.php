@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
 
     // Invoice Management, Revision & Client Email Dispatch
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::post('/invoices/bulk-action', [InvoiceController::class, 'bulkAction'])->name('invoices.bulk');
     Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
     Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
@@ -133,8 +134,11 @@ Route::middleware('auth')->group(function () {
         return view('services.index');
     })->name('services.index');
 
-    // SaaS Membership Packages & Checkout
+    // SaaS Membership Packages & Checkout (Restricted from Staff)
     Route::get('/membership', function () {
+        if (\Illuminate\Support\Facades\Auth::check() && \Illuminate\Support\Facades\Auth::user()->isStaff()) {
+            return redirect()->route('dashboard')->with('error', 'Access Denied: Staff accounts do not have permission to view Plan & Billing.');
+        }
         return view('membership.index');
     })->name('membership.index');
 
@@ -145,6 +149,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->middleware('throttle:6,1')->name('settings.smtp.test');
     Route::post('/settings/team', [SettingsController::class, 'addTeamMember'])->name('settings.team.add');
+    Route::post('/settings/team/{member}/role', [SettingsController::class, 'updateTeamMemberRole'])->name('settings.team.update_role');
     Route::post('/settings/team/{member}/resend-verification', [SettingsController::class, 'resendTeamVerification'])->name('settings.team.resend_verification');
     Route::delete('/settings/team/{member}', [SettingsController::class, 'removeTeamMember'])->name('settings.team.remove');
 
@@ -176,6 +181,7 @@ Route::middleware('auth')->group(function () {
 
         // Super Admin Subscriptions & Plans Manager (Item 14)
         Route::get('/admin/subscriptions', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions.index');
+        Route::post('/admin/subscriptions/bulk-action', [AdminSubscriptionController::class, 'bulkAction'])->name('admin.subscriptions.bulk');
         Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
         Route::post('/admin/subscriptions/settings', [AdminSubscriptionController::class, 'updateAlertSettings'])->name('admin.subscriptions.settings');
         Route::post('/admin/subscriptions/alerts/read-all', [AdminSubscriptionController::class, 'markAllAlertsRead'])->name('admin.subscriptions.alerts.read_all');
@@ -188,6 +194,7 @@ Route::middleware('auth')->group(function () {
 
         // Promotional Coupons & Offers Designer (Items 4 & 5)
         Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');
+        Route::post('/admin/coupons/bulk-action', [\App\Http\Controllers\AdminCouponController::class, 'bulkAction'])->name('admin.coupons.bulk');
         Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
         Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
         Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');

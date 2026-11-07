@@ -109,6 +109,10 @@ class Workspace extends Model
      */
     public function isTrial(): bool
     {
+        if (auth()->check() && auth()->user()->isSuperAdmin()) {
+            return false;
+        }
+
         $sub = $this->currentSubscription;
         if (!$sub) {
             return true;

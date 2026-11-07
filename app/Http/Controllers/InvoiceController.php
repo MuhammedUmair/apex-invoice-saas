@@ -332,4 +332,112 @@ class InvoiceController extends Controller
             'Expires' => '0',
         ]);
     }
+
+    /**
+     * Perform bulk operations on selected invoices (Item 6).
+     */
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:mark_paid,mark_issued,send_emails,delete',
+            'invoice_ids' => 'required|array|min:1',
+            'invoice_ids.*' => 'required|integer',
+        ]);
+
+        $workspaceId = Auth::user()->workspace_id;
+        $invoices = Invoice::where('workspace_id', $workspaceId)
+            ->whereIn('id', $validated['invoice_ids'])
+            ->with(['client', 'workspace'])
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return back()->with('error', 'No valid invoices selected.');
+        }
+
+        $count = 0;
+        $action = $validated['action'];
+
+        if ($action === 'mark_paid') {
+            foreach ($invoices as $inv) {
+                $inv->status = 'paid';
+                $inv->paid_cents = $inv->total_cents;
+                $inv->due_cents = 0;
+                $inv->save();
+                \App\Services\AuditService::log('invoice.bulk_marked_paid', $inv);
+                $count++;
+            }
+            return back()->with('message', "Successfully marked {$count} invoice(s) as Paid.");
+        } elseif ($action === 'mark_issued') {
+            foreach ($invoices as $inv) {
+                if ($inv->status !== 'paid') {
+                    $inv->status = 'issued';
+                    $inv->save();
+                    \App\Services\AuditService::log('invoice.bulk_marked_issued', $inv);
+                    $count++;
+                }
+            }
+            return back()->with('message', "Successfully marked {$count} invoice(s) as Issued.");
+        } elseif ($action === 'send_emails') {
+            if (!Auth::user()->hasVerifiedEmail()) {
+                return back()->with('warning', 'You must verify your account email address before dispatching invoices to clients.');
+            }
+
+            $successCount = 0;
+            $failedCount = 0;
+
+            foreach ($invoices as $inv) {
+                if (!$inv->client || empty($inv->client->email)) {
+                    $failedCount++;
+                    continue;
+                }
+
+                if ($inv->workspace->hasReachedDailyEmailCap()) {
+                    return back()->with('warning', "Daily dispatch limit reached. Dispatched {$successCount} invoices before hitting quota.");
+                }
+
+                try {
+                    if ($inv->workspace && !empty($inv->workspace->smtp_settings_encrypted)) {
+                        $smtp = $inv->workspace->smtp_settings_encrypted;
+                        if (!empty($smtp['host']) && !empty($smtp['username'])) {
+                            config([
+                                'mail.mailers.smtp.host' => $smtp['host'],
+                                'mail.mailers.smtp.port' => $smtp['port'] ?? 465,
+                                'mail.mailers.smtp.encryption' => $smtp['encryption'] ?? 'ssl',
+                                'mail.mailers.smtp.username' => $smtp['username'],
+                                'mail.mailers.smtp.password' => $smtp['password'] ?? '',
+                                'mail.from.address' => $smtp['from_address'] ?? $smtp['username'],
+                                'mail.from.name' => $smtp['from_name'] ?? ($inv->workspace->name ?: 'Invoicy by RedMaple'),
+                            ]);
+                        }
+                    }
+
+                    \Illuminate\Support\Facades\Mail::to($inv->client->email)->send(new \App\Mail\InvoiceMailable($inv));
+                    $inv->update([
+                        'status' => in_array($inv->status, ['draft', 'issued']) ? 'sent' : $inv->status,
+                        'sent_at' => now(),
+                    ]);
+                    $inv->workspace->incrementDailyEmailCount();
+                    \App\Services\AuditService::log('invoice.bulk_dispatched_email', $inv, null, ['recipient' => $inv->client->email]);
+                    $successCount++;
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("Bulk send failed for invoice #{$inv->invoice_number}: " . $e->getMessage());
+                    $failedCount++;
+                }
+            }
+
+            return back()->with('message', "Dispatched {$successCount} invoice email(s) successfully." . ($failedCount > 0 ? " ({$failedCount} skipped due to missing email or delivery issue)" : ""));
+        } elseif ($action === 'delete') {
+            foreach ($invoices as $inv) {
+                if ($inv->status === 'paid') {
+                    continue;
+                }
+                $inv->items()->delete();
+                $inv->delete();
+                $count++;
+            }
+            return back()->with('message', "Successfully deleted {$count} unpaid / draft invoice(s).");
+        }
+
+        return back();
+    }
 }

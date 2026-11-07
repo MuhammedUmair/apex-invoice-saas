@@ -115,41 +115,41 @@
 
                     <a href="{{ route('admin.subscriptions.index') }}" 
                        :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.subscriptions.*') ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.subscriptions.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? '{{ __('Subscriptions & Tenants') }}' : ''">
-                        <i class="ph ph-crown text-lg text-amber-400 shrink-0"></i>
+                        <i class="ph ph-crown text-lg {{ request()->routeIs('admin.subscriptions.*') ? '!text-white' : 'text-amber-400' }} shrink-0"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">{{ __('Subscriptions & Tenants') }}</span>
                     </a>
 
                     <a href="{{ route('builder.index') }}" 
                        :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('builder.*') ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('builder.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? '{{ __('Website Builder') }}' : ''">
-                        <i class="ph ph-paint-brush-broad text-lg text-emerald-400 shrink-0"></i>
+                        <i class="ph ph-paint-brush-broad text-lg {{ request()->routeIs('builder.*') ? '!text-white' : 'text-emerald-400' }} shrink-0"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">{{ __('Website Builder') }}</span>
                     </a>
 
                     <a href="{{ route('admin.ads.index') }}" 
                        :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.ads.*') ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.ads.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? '{{ __('Advertisements') }}' : ''">
-                        <i class="ph ph-megaphone text-lg text-indigo-400 shrink-0"></i>
+                        <i class="ph ph-megaphone text-lg {{ request()->routeIs('admin.ads.*') ? '!text-white' : 'text-indigo-400' }} shrink-0"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">{{ __('Advertisements') }}</span>
                     </a>
 
                     <a href="{{ route('cms.index') }}" 
                        :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('cms.*') ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('cms.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? '{{ __('Website & Docs CMS') }}' : ''">
-                        <i class="ph ph-note-pencil text-lg text-teal-400 shrink-0"></i>
+                        <i class="ph ph-note-pencil text-lg {{ request()->routeIs('cms.*') ? '!text-white' : 'text-teal-400' }} shrink-0"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">{{ __('Website & Docs CMS') }}</span>
                     </a>
 
                     <a href="{{ route('admin.coupons.index') }}" 
                        :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.coupons.*') ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.coupons.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? '{{ __('Coupons & Offers') }}' : ''">
-                        <i class="ph ph-ticket text-lg text-fuchsia-400 shrink-0"></i>
+                        <i class="ph ph-ticket text-lg {{ request()->routeIs('admin.coupons.*') ? '!text-white' : 'text-fuchsia-400' }} shrink-0"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">{{ __('Coupons & Offers') }}</span>
                     </a>
 
@@ -160,66 +160,66 @@
 
                 <a href="{{ route('dashboard') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('dashboard') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Dashboard') }}' : ''">
-                    <i class="ph ph-squares-four text-lg shrink-0"></i>
+                    <i class="ph ph-squares-four text-lg {{ request()->routeIs('dashboard') ? '!text-white' : '' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Dashboard') }}</span>
                 </a>
 
                 <a href="{{ route('invoices.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('invoices.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('invoices.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Invoices') }}' : ''">
-                    <i class="ph ph-receipt text-lg shrink-0"></i>
+                    <i class="ph ph-receipt text-lg {{ request()->routeIs('invoices.*') ? '!text-white' : '' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Invoices') }}</span>
                 </a>
 
                 <a href="{{ route('recurring.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('recurring.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('recurring.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Recurring Retainers') }}' : ''">
-                    <i class="ph ph-arrows-clockwise text-lg text-cyan-400 shrink-0"></i>
+                    <i class="ph ph-arrows-clockwise text-lg {{ request()->routeIs('recurring.*') ? '!text-white' : 'text-cyan-400' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Recurring Retainers') }}</span>
                 </a>
 
                 <a href="{{ route('credit-notes.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('credit-notes.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('credit-notes.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Credit Notes') }}' : ''">
-                    <i class="ph ph-arrow-u-up-left text-lg text-rose-400 shrink-0"></i>
+                    <i class="ph ph-arrow-u-up-left text-lg {{ request()->routeIs('credit-notes.*') ? '!text-white' : 'text-rose-400' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Credit Notes') }}</span>
                 </a>
 
                 <a href="{{ route('reminders.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('reminders.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('reminders.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Reminders & Scheduler') }}' : ''">
-                    <i class="ph ph-bell-ringing text-lg text-amber-400 shrink-0"></i>
+                    <i class="ph ph-bell-ringing text-lg {{ request()->routeIs('reminders.*') ? '!text-white' : 'text-amber-400' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Reminders & Scheduler') }}</span>
                 </a>
 
                 <a href="{{ route('clients.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('clients.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Client CRM') }}' : ''">
-                    <i class="ph ph-users text-lg shrink-0"></i>
+                    <i class="ph ph-users text-lg {{ request()->routeIs('clients.*') ? '!text-white' : '' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Client CRM') }}</span>
                 </a>
 
                 <a href="{{ route('services.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('services.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('services.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Catalog & Presets') }}' : ''">
-                    <i class="ph ph-package text-lg shrink-0"></i>
+                    <i class="ph ph-package text-lg {{ request()->routeIs('services.*') ? '!text-white' : '' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Catalog & Presets') }}</span>
                 </a>
 
-                @if(!auth()->user() || !auth()->user()->isSuperAdmin())
+                @if(!auth()->user() || (!auth()->user()->isSuperAdmin() && !auth()->user()->isStaff()))
                 <a href="{{ route('membership.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('membership.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('membership.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Plan & Billing') }}' : ''">
-                    <i class="ph ph-crown text-lg text-amber-400 shrink-0"></i>
+                    <i class="ph ph-crown text-lg {{ request()->routeIs('membership.*') ? '!text-white' : 'text-amber-400' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Plan & Billing') }}</span>
                 </a>
                 @endif
@@ -232,13 +232,16 @@
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Documentation') }}</span>
                 </a>
 
+                @if(!auth()->user() || !auth()->user()->isStaff())
                 <a href="{{ route('settings.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('settings.*') ? 'bg-red-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('settings.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? (auth()->user() && auth()->user()->isSuperAdmin() ? '{{ __('System Settings') }}' : '{{ __('Agency Settings') }}') : ''">
-                    <i class="ph ph-gear text-lg text-slate-400 shrink-0"></i>
+                    <i class="ph ph-gear text-lg {{ request()->routeIs('settings.*') ? '!text-white' : 'text-slate-400' }} shrink-0"></i>
                     <span x-show="!sidebarCollapsed" class="truncate">{{ (auth()->user() && auth()->user()->isSuperAdmin()) ? __('System Settings') : __('Agency Settings') }}</span>
                 </a>
+                @endif
+            </nav>
             </nav>
 
             <!-- Advertisement Section on Left Sidebar (Item 2) -->
@@ -329,24 +332,38 @@
             <!-- Bottom User Profile & Sign Out -->
             <div class="p-4 border-t border-slate-800">
                 <div class="flex items-center justify-between" :class="sidebarCollapsed ? 'justify-center flex-col gap-2' : ''">
-                    <a href="{{ route('settings.index') }}#profile" class="flex items-center gap-2 overflow-hidden group hover:opacity-90 transition" title="Click to edit owner profile & contact name">
-                        <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 group-hover:scale-105 transition">
-                            {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
+                    @if(auth()->user() && auth()->user()->isStaff())
+                        <div class="flex items-center gap-2 overflow-hidden" title="Staff Account">
+                            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0">
+                                {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
+                            </div>
+                            <div class="text-xs truncate" x-show="!sidebarCollapsed">
+                                <p class="font-medium text-white truncate max-w-[100px]">{{ auth()->user()->name }}</p>
+                                <p class="text-slate-400 capitalize text-[10px] flex items-center gap-1">
+                                    <span class="text-emerald-400 font-semibold">Staff Member</span>
+                                </p>
+                            </div>
                         </div>
-                        <div class="text-xs truncate" x-show="!sidebarCollapsed">
-                            <p class="font-medium text-white truncate max-w-[100px] group-hover:text-red-300 transition">{{ auth()->user()->name }}</p>
-                            <p class="text-slate-400 capitalize text-[10px] flex items-center gap-1">
-                                @if(auth()->user() && auth()->user()->isSuperAdmin())
-                                    <span class="text-amber-400 font-bold flex items-center gap-1">
-                                        <i class="ph ph-shield-check text-xs"></i> Super Admin
-                                    </span>
-                                @else
-                                    <span>{{ auth()->user()->role }}</span>
-                                    <i class="ph ph-pencil-simple text-[10px] text-slate-500 group-hover:text-slate-300"></i>
-                                @endif
-                            </p>
-                        </div>
-                    </a>
+                    @else
+                        <a href="{{ route('settings.index') }}#profile" class="flex items-center gap-2 overflow-hidden group hover:opacity-90 transition" title="Click to edit owner profile & contact name">
+                            <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0 group-hover:scale-105 transition">
+                                {{ substr(auth()->user()->name ?? 'U', 0, 1) }}
+                            </div>
+                            <div class="text-xs truncate" x-show="!sidebarCollapsed">
+                                <p class="font-medium text-white truncate max-w-[100px] group-hover:text-red-300 transition">{{ auth()->user()->name }}</p>
+                                <p class="text-slate-400 capitalize text-[10px] flex items-center gap-1">
+                                    @if(auth()->user() && auth()->user()->isSuperAdmin())
+                                        <span class="text-amber-400 font-bold flex items-center gap-1">
+                                            <i class="ph ph-shield-check text-xs"></i> Super Admin
+                                        </span>
+                                    @else
+                                        <span>{{ auth()->user()->role }}</span>
+                                        <i class="ph ph-pencil-simple text-[10px] text-slate-500 group-hover:text-slate-300"></i>
+                                    @endif
+                                </p>
+                            </div>
+                        </a>
+                    @endif
                     <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
                        class="text-slate-400 hover:text-rose-400 p-1.5 transition cursor-pointer" title="{{ __('Sign Out') }}">
                         <i class="ph ph-sign-out text-lg"></i>

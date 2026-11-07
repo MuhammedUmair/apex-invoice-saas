@@ -333,4 +333,81 @@ class AdminSubscriptionController extends Controller
         return back()->with('success', "Expiration check finished: {$count} expired trial(s) updated and alerted.")
             ->withInput(['tab' => 'alerts']);
     }
+
+    /**
+     * Bulk actions for tenant workspaces & subscriptions (Item 6).
+     */
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:activate,suspend,extend_trial_14,renew_month',
+            'workspace_ids' => 'required|array|min:1',
+            'workspace_ids.*' => 'required|integer',
+        ]);
+
+        $action = $validated['action'];
+        $workspaces = Workspace::whereIn('id', $validated['workspace_ids'])->get();
+
+        if ($workspaces->isEmpty()) {
+            return back()->with('error', 'No workspaces selected.');
+        }
+
+        $count = 0;
+
+        foreach ($workspaces as $workspace) {
+            $sub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
+            if (!$sub) {
+                $defaultPlan = Plan::where('code', 'starter')->first() ?? Plan::first();
+                $sub = Subscription::create([
+                    'workspace_id' => $workspace->id,
+                    'plan_id' => $defaultPlan->id,
+                    'gateway' => 'manual_admin',
+                    'status' => 'active',
+                    'current_period_ends_at' => now()->addMonth(),
+                ]);
+            }
+
+            if ($action === 'activate') {
+                $updateData = [
+                    'status' => 'active',
+                    'canceled_at' => null,
+                ];
+                if (!$sub->current_period_ends_at || $sub->current_period_ends_at->isPast()) {
+                    $updateData['current_period_ends_at'] = now()->addMonth();
+                }
+                $sub->update($updateData);
+                $count++;
+            } elseif ($action === 'suspend') {
+                $sub->update(['status' => 'suspended']);
+                $count++;
+            } elseif ($action === 'extend_trial_14') {
+                $currentTrial = ($sub->trial_ends_at && $sub->trial_ends_at->isFuture()) ? $sub->trial_ends_at : now();
+                $newTrialEnd = $currentTrial->copy()->addDays(14);
+                $sub->update([
+                    'status' => 'trialing',
+                    'trial_ends_at' => $newTrialEnd,
+                    'current_period_ends_at' => $newTrialEnd,
+                    'canceled_at' => null,
+                ]);
+                $count++;
+            } elseif ($action === 'renew_month') {
+                $baseDate = ($sub->current_period_ends_at && $sub->current_period_ends_at->isFuture()) ? $sub->current_period_ends_at : now();
+                $sub->update([
+                    'status' => 'active',
+                    'current_period_ends_at' => $baseDate->copy()->addMonth(),
+                    'canceled_at' => null,
+                ]);
+                $count++;
+            }
+        }
+
+        $labels = [
+            'activate' => 'activated',
+            'suspend' => 'suspended',
+            'extend_trial_14' => 'granted +14 days trial extension',
+            'renew_month' => 'renewed for +1 month',
+        ];
+
+        return back()->with('success', "Successfully {$labels[$action]} for {$count} tenant workspace(s).");
+    }
 }
