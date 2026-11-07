@@ -16,8 +16,25 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function showLogin()
+    /**
+     * Ensure authentication routes strictly resolve on the official SaaS subdomain
+     * (https://invoicy.redmapleagency.com) rather than the main marketing domain.
+     */
+    protected function ensureInvoicySubdomain(Request $request)
     {
+        $host = strtolower($request->getHost());
+        if (in_array($host, ['redmapleagency.com', 'www.redmapleagency.com'])) {
+            return redirect()->away('https://invoicy.redmapleagency.com' . $request->getRequestUri(), 301);
+        }
+        return null;
+    }
+
+    public function showLogin(Request $request)
+    {
+        if ($redirect = $this->ensureInvoicySubdomain($request)) {
+            return $redirect;
+        }
+
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
@@ -69,8 +86,12 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-    public function showRegister()
+    public function showRegister(Request $request)
     {
+        if ($redirect = $this->ensureInvoicySubdomain($request)) {
+            return $redirect;
+        }
+
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
@@ -173,8 +194,12 @@ class AuthController extends Controller
         return response()->json(['status' => 'logged_out', 'message' => 'Session terminated on browser/tab close.']);
     }
 
-    public function showForgotPassword()
+    public function showForgotPassword(Request $request)
     {
+        if ($redirect = $this->ensureInvoicySubdomain($request)) {
+            return $redirect;
+        }
+
         return view('auth.forgot-password');
     }
 
@@ -226,6 +251,10 @@ class AuthController extends Controller
 
     public function showResetPassword(string $token, Request $request)
     {
+        if ($redirect = $this->ensureInvoicySubdomain($request)) {
+            return $redirect;
+        }
+
         return view('auth.reset-password', [
             'token' => $token,
             'email' => $request->query('email'),

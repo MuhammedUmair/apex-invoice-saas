@@ -17,11 +17,11 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('admin.2fa.verify') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.2fa.verify') }}" class="space-y-4" autocomplete="off">
             @csrf
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 text-center">6-Digit Security Code</label>
-                <input type="text" name="two_factor_code" maxlength="6" autofocus required
+                <input type="text" name="two_factor_code" maxlength="6" autofocus required autocomplete="one-time-code"
                        class="w-full text-center text-2xl font-mono tracking-widest py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:outline-none"
                        placeholder="000000">
             </div>

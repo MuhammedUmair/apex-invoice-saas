@@ -128,6 +128,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::post('/settings/smtp/test', [SettingsController::class, 'testSmtp'])->middleware('throttle:6,1')->name('settings.smtp.test');
+    Route::post('/settings/team', [SettingsController::class, 'addTeamMember'])->name('settings.team.add');
+    Route::delete('/settings/team/{member}', [SettingsController::class, 'removeTeamMember'])->name('settings.team.remove');
 
     // Monthly Recurring Invoicing & Retainers (Item 18)
     Route::get('/recurring-invoices', [RecurringInvoiceController::class, 'index'])->name('recurring.index');

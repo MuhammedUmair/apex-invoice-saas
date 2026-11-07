@@ -318,8 +318,14 @@
                         <div class="text-xs truncate" x-show="!sidebarCollapsed">
                             <p class="font-medium text-white truncate max-w-[100px] group-hover:text-red-300 transition">{{ auth()->user()->name }}</p>
                             <p class="text-slate-400 capitalize text-[10px] flex items-center gap-1">
-                                <span>{{ auth()->user()->role }}</span>
-                                <i class="ph ph-pencil-simple text-[10px] text-slate-500 group-hover:text-slate-300"></i>
+                                @if(auth()->user() && auth()->user()->is_super_admin)
+                                    <span class="text-amber-400 font-bold flex items-center gap-1">
+                                        <i class="ph ph-shield-check text-xs"></i> Super Admin
+                                    </span>
+                                @else
+                                    <span>{{ auth()->user()->role }}</span>
+                                    <i class="ph ph-pencil-simple text-[10px] text-slate-500 group-hover:text-slate-300"></i>
+                                @endif
                             </p>
                         </div>
                     </a>
@@ -346,9 +352,36 @@
                             title="Toggle Sidebar Expand / Collapse">
                         <i class="ph ph-sidebar-simple text-lg"></i>
                     </button>
-                    <h2 class="text-lg font-bold text-slate-800">{{ $header ?? __('Overview') }}</h2>
+                    <div class="flex items-center gap-2.5">
+                        <h2 class="text-lg font-bold text-slate-800">{{ $header ?? __('Overview') }}</h2>
+                        @if(auth()->user() && auth()->user()->is_super_admin)
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+                                <i class="ph ph-shield-check text-sm font-bold text-amber-600"></i> Super Admin
+                            </span>
+                        @endif
+                    </div>
                 </div>
                 <div class="flex items-center gap-3">
+                    @if(auth()->user() && auth()->user()->workspace && auth()->user()->workspace->isTrial())
+                        @php
+                            $ws = auth()->user()->workspace;
+                            $plan = $ws->currentSubscription?->plan;
+                            $limit = ($plan && $plan->invoice_limit) ? $plan->invoice_limit : 15;
+                            $used = $ws->invoices()->where('created_at', '>=', now()->startOfMonth())->count();
+                            $available = max(0, $limit - $used);
+                        @endphp
+                        <div class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-xs shadow-2xs">
+                            <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                            <span class="font-bold uppercase tracking-wider text-[10px] text-amber-700">{{ __('Trial Version') }}</span>
+                            <span class="text-amber-300">|</span>
+                            <span class="font-semibold text-slate-700 text-xs">
+                                <span class="text-amber-800 font-bold">{{ $available }}</span> / {{ $limit }} {{ __('Invoices Available') }}
+                            </span>
+                            <a href="{{ route('membership.index') }}" class="ml-1 px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] uppercase tracking-wide transition shadow-xs">
+                                {{ __('Upgrade') }}
+                            </a>
+                        </div>
+                    @endif
                     <!-- Topbar Language Switcher Dropdown -->
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-medium text-slate-700 transition">

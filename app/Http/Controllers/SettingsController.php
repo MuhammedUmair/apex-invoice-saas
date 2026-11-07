@@ -11,10 +11,15 @@ class SettingsController extends Controller
     {
         $user = Auth::user();
         $workspace = $user->workspace;
+        $teamMembers = $workspace ? $workspace->users()->orderBy('created_at', 'asc')->get() : collect([$user]);
+        $plan = $workspace?->currentSubscription?->plan;
+        $seatLimit = $plan ? $plan->team_seats : 1;
 
         return view('settings.index', [
             'workspace' => $workspace,
             'user' => $user,
+            'teamMembers' => $teamMembers,
+            'seatLimit' => $seatLimit,
         ]);
     }
 
@@ -249,5 +254,94 @@ class SettingsController extends Controller
         } catch (\Throwable $e) {
             return back()->with('smtp_error', "SMTP Delivery Failed: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Add a new team member to the workspace within the plan's seat limit.
+     */
+    public function addTeamMember(Request $request)
+    {
+        $currentUser = Auth::user();
+        $workspace = $currentUser->workspace;
+
+        if (!$currentUser->isAdmin()) {
+            return back()->with('team_error', 'Unauthorized: Only workspace owners and admins can add team members.');
+        }
+
+        $plan = $workspace?->currentSubscription?->plan;
+        $seatLimit = $plan ? $plan->team_seats : 1;
+        $currentSeats = $workspace->users()->count();
+
+        if ($currentSeats >= $seatLimit) {
+            return back()->with('team_error', "Workspace seat limit reached ({$currentSeats} of {$seatLimit} seats). Please upgrade your subscription plan to add more team members.");
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'role' => 'required|string|in:admin,staff',
+            'password' => [
+                'required',
+                'string',
+                \Illuminate\Validation\Rules\Password::min(8)->letters()->numbers(),
+            ],
+        ]);
+
+        $newUser = \App\Models\User::create([
+            'workspace_id' => $workspace->id,
+            'name' => $validated['name'],
+            'email' => strtolower(trim($validated['email'])),
+            'password' => \Illuminate\Support\Facades\Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'is_super_admin' => false,
+            'email_verified_at' => now(),
+        ]);
+
+        \App\Services\AuditService::log('team.member_added', $newUser, null, [
+            'name' => $newUser->name,
+            'email' => $newUser->email,
+            'role' => $newUser->role,
+        ]);
+
+        return redirect()->route('settings.index')
+            ->with('team_success', "Team member '{$newUser->name}' ({$newUser->email}) added successfully as " . ucfirst($newUser->role) . "!");
+    }
+
+    /**
+     * Remove a team member from the workspace.
+     */
+    public function removeTeamMember($memberId)
+    {
+        $currentUser = Auth::user();
+        $workspace = $currentUser->workspace;
+
+        if (!$currentUser->isAdmin()) {
+            return back()->with('team_error', 'Unauthorized: Only workspace owners and admins can manage team members.');
+        }
+
+        $member = \App\Models\User::where('workspace_id', $workspace->id)->where('id', $memberId)->firstOrFail();
+
+        if ($member->role === 'owner') {
+            return back()->with('team_error', 'Security Violation: The workspace primary owner account cannot be deleted.');
+        }
+
+        if ($member->id === $currentUser->id) {
+            return back()->with('team_error', 'You cannot remove your own account.');
+        }
+
+        $memberName = $member->name;
+        $memberEmail = $member->email;
+        $memberRole = $member->role;
+
+        $member->delete();
+
+        \App\Services\AuditService::log('team.member_removed', $currentUser, [
+            'name' => $memberName,
+            'email' => $memberEmail,
+            'role' => $memberRole,
+        ], null);
+
+        return redirect()->route('settings.index')
+            ->with('team_success', "Team member '{$memberName}' has been removed from your workspace.");
     }
 }

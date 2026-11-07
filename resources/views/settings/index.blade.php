@@ -46,6 +46,18 @@
             {{ session('profile_success') }}
         </div>
     @endif
+    @if (session('team_success'))
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-users-three text-base text-emerald-600"></i>
+            {{ session('team_success') }}
+        </div>
+    @endif
+    @if (session('team_error'))
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-warning-circle text-base text-rose-600"></i>
+            {{ session('team_error') }}
+        </div>
+    @endif
 
     <!-- Card 0: Owner Contact & Personal Profile -->
     <div id="profile" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
@@ -508,6 +520,184 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    <!-- Card 7: Team Members & 5 Seat Access Control -->
+    <div id="team" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0">
+                    <i class="ph ph-users-three"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">Team Members & Seat Management</h3>
+                    <p class="text-xs text-slate-500">Supervise authorized staff, assign role privileges, and manage workspace seats</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold {{ $teamMembers->count() >= $seatLimit ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-indigo-50 text-indigo-800 border border-indigo-200' }}">
+                    <i class="ph ph-user-check text-sm"></i>
+                    <span>Seats Allocated: {{ $teamMembers->count() }} / {{ $seatLimit }}</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Role Privileges Guide Matrix -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <div class="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
+                <div class="flex items-center gap-1.5 font-bold text-red-600">
+                    <span class="w-2 h-2 rounded-full bg-red-600"></span>
+                    <span>Owner (Account Holder)</span>
+                </div>
+                <p class="text-slate-500 text-[11px] leading-relaxed">
+                    Full workspace ownership, subscription upgrades & billing, wire transfer configuration, and adding/removing all team members.
+                </p>
+            </div>
+            <div class="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
+                <div class="flex items-center gap-1.5 font-bold text-blue-600">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span>Admin (Agency Manager)</span>
+                </div>
+                <p class="text-slate-500 text-[11px] leading-relaxed">
+                    Create/edit invoices, credit notes, client catalogs, manage service presets, and invite staff members within seat limits.
+                </p>
+            </div>
+            <div class="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
+                <div class="flex items-center gap-1.5 font-bold text-emerald-600">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span>Staff (Billing Executive)</span>
+                </div>
+                <p class="text-slate-500 text-[11px] leading-relaxed">
+                    Generate client invoices, view service offerings, and record customer payments. Cannot modify workspace settings or delete members.
+                </p>
+            </div>
+        </div>
+
+        <!-- Current Team Members Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                        <th class="py-3 px-4">Member</th>
+                        <th class="py-3 px-4">Role Privileges</th>
+                        <th class="py-3 px-4">Joined Date</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach($teamMembers as $member)
+                        <tr class="hover:bg-slate-50/70 transition">
+                            <td class="py-3 px-4 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                                    {{ strtoupper(substr($member->name, 0, 1)) }}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                                        {{ $member->name }}
+                                        @if($member->id === auth()->id())
+                                            <span class="text-[10px] text-slate-400 font-normal">(You)</span>
+                                        @endif
+                                    </p>
+                                    <p class="text-slate-400 text-[11px]">{{ $member->email }}</p>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4">
+                                @if($member->role === 'owner')
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                        <i class="ph ph-crown text-xs"></i> Owner
+                                    </span>
+                                @elseif($member->role === 'admin')
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                        <i class="ph ph-shield text-xs"></i> Admin
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <i class="ph ph-user text-xs"></i> Staff
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="py-3 px-4 text-slate-500 text-[11px]">
+                                {{ $member->created_at ? $member->created_at->format('M d, Y') : 'N/A' }}
+                            </td>
+                            <td class="py-3 px-4 text-right">
+                                @if($member->role === 'owner')
+                                    <span class="text-slate-400 text-[11px] italic">Owner (Protected)</span>
+                                @elseif($member->id === auth()->id())
+                                    <span class="text-slate-400 text-[11px] italic">Active Account</span>
+                                @else
+                                    <form method="POST" action="{{ route('settings.team.remove', $member->id) }}" onsubmit="return confirm('Are you sure you want to revoke access and delete user {{ $member->name }}?');" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Remove Team Member">
+                                            <i class="ph ph-trash text-base"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add Team Member Form (If seats available) -->
+        @if($teamMembers->count() < $seatLimit)
+            <div class="pt-6 border-t border-slate-100">
+                <div class="mb-4">
+                    <h4 class="font-bold text-slate-900 text-sm">Add New Team Member Account</h4>
+                    <p class="text-xs text-slate-500">Create an employee account under your workspace within your {{ $seatLimit }}-seat limit.</p>
+                </div>
+
+                <form method="POST" action="{{ route('settings.team.add') }}" class="space-y-4" autocomplete="off">
+                    @csrf
+                    <input type="text" style="display:none" name="fakeusernameremembered" tabindex="-1" autocomplete="off"/>
+                    <input type="password" style="display:none" name="fakepasswordremembered" tabindex="-1" autocomplete="off"/>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name *</label>
+                            <input type="text" name="name" required placeholder="e.g. John Doe"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email Address *</label>
+                            <input type="email" name="email" required placeholder="staff@agency.com" autocomplete="off"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Role Privileges *</label>
+                            <select name="role" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                                <option value="staff">Staff (Create invoices & clients)</option>
+                                <option value="admin">Admin (Manage invoices & catalog)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Initial Password (Min 8 Chars) *</label>
+                            <input type="password" name="password" required placeholder="Temporary password" autocomplete="new-password"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow transition">
+                                <i class="ph ph-user-plus text-base"></i> Add Team Member
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        @else
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-slate-600">
+                    <i class="ph ph-info text-base text-indigo-600"></i>
+                    <span>All {{ $seatLimit }} seats on your current plan are in use. Upgrade to add more team members.</span>
+                </div>
+                <a href="{{ route('membership.index') }}" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs transition shrink-0 text-center">
+                    Upgrade Plan for More Seats &rarr;
+                </a>
+            </div>
+        @endif
     </div>
 
 </div>

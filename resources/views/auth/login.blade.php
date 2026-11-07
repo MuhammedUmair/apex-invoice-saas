@@ -46,11 +46,15 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login.post') }}" class="space-y-5">
+        <form method="POST" action="{{ route('login.post') }}" class="space-y-5" autocomplete="off">
             @csrf
+            <!-- Anti-autofill decoy inputs to prevent browser from pre-filling saved passwords -->
+            <input type="text" style="display:none" name="fakeusernameremembered" tabindex="-1" autocomplete="off"/>
+            <input type="password" style="display:none" name="fakepasswordremembered" tabindex="-1" autocomplete="off"/>
+
             <div>
                 <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="name@company.com"
+                <input id="email" type="email" name="email" value="" required autofocus autocomplete="off" placeholder="name@company.com"
                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
             </div>
 
@@ -61,7 +65,7 @@
                         Forgot Password?
                     </a>
                 </div>
-                <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"
+                <input id="password" type="password" name="password" value="" required autocomplete="new-password" placeholder="Enter your password"
                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
             </div>
 
