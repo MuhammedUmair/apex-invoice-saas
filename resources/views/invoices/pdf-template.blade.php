@@ -88,15 +88,15 @@
                             <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
                         </svg>
                     @endif
-                    <span class="logo-text" style="color: #0f172a;">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace->name }}</span>
+                    <span class="logo-text" style="color: #0f172a;">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace?->name ?? 'Invoicy' }}</span>
                 </div>
-                <div style="color: #64748b; font-size: 12px; margin-top: 4px;">{{ $invoice->workspace_snapshot['email'] ?? $invoice->workspace->email }}</div>
+                <div style="color: #64748b; font-size: 12px; margin-top: 4px;">{{ $invoice->workspace_snapshot['email'] ?? $invoice->workspace?->email ?? '' }}</div>
             </td>
             <td>
                 <div class="inv-title">INVOICE</div>
                 <div style="text-align: right; font-weight: bold; font-size: 14px; margin-top: 4px;">{{ $invoice->invoice_number }}</div>
-                <div style="text-align: right; color: #64748b; font-size: 12px;">Issue Date: {{ $invoice->issue_date->format('M d, Y') }}</div>
-                <div style="text-align: right; color: #64748b; font-size: 12px;">Due Date: {{ $invoice->due_date->format('M d, Y') }}</div>
+                <div style="text-align: right; color: #64748b; font-size: 12px;">Issue Date: {{ $invoice->issue_date ? $invoice->issue_date->format('M d, Y') : date('M d, Y') }}</div>
+                <div style="text-align: right; color: #64748b; font-size: 12px;">Due Date: {{ $invoice->due_date ? $invoice->due_date->format('M d, Y') : date('M d, Y') }}</div>
             </td>
         </tr>
     </table>
@@ -106,19 +106,19 @@
         <tr>
             <td class="party-cell">
                 <div class="label">Billed By:</div>
-                <div class="party-name">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace->name }}</div>
-                <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->workspace_snapshot['address'] ?? $invoice->workspace->address }}</div>
-                @if(!empty($invoice->workspace_snapshot['tax_id']))
-                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Tax ID: {{ $invoice->workspace_snapshot['tax_id'] }}</div>
+                <div class="party-name">{{ $invoice->workspace_snapshot['name'] ?? $invoice->workspace?->name ?? 'Agency' }}</div>
+                <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->workspace_snapshot['address'] ?? $invoice->workspace?->address ?? '' }}</div>
+                @if(!empty($invoice->workspace_snapshot['tax_id']) || !empty($invoice->workspace?->tax_id))
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Tax ID: {{ $invoice->workspace_snapshot['tax_id'] ?? $invoice->workspace?->tax_id }}</div>
                 @endif
             </td>
             <td class="party-cell">
                 <div class="label">Billed To:</div>
-                <div class="party-name">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client->company_name ?? $invoice->client->name }}</div>
-                <div style="color: #475569; font-size: 12px;">Attn: {{ $invoice->client_snapshot['name'] ?? $invoice->client->name }}</div>
-                <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->client_snapshot['address'] ?? $invoice->client->address }}</div>
-                @if(!empty($invoice->client_snapshot['tax_id']))
-                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Tax/VAT ID: {{ $invoice->client_snapshot['tax_id'] }}</div>
+                <div class="party-name">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client?->company_name ?? $invoice->client?->name ?? 'Walk-in / General Customer' }}</div>
+                <div style="color: #475569; font-size: 12px;">Attn: {{ $invoice->client_snapshot['name'] ?? $invoice->client?->name ?? 'Walk-in / General Customer' }}</div>
+                <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->client_snapshot['address'] ?? $invoice->client?->address ?? '' }}</div>
+                @if(!empty($invoice->client_snapshot['tax_id']) || !empty($invoice->client?->tax_id))
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Tax/VAT ID: {{ $invoice->client_snapshot['tax_id'] ?? $invoice->client?->tax_id }}</div>
                 @endif
             </td>
         </tr>

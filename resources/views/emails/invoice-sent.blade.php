@@ -23,11 +23,11 @@
     <div class="container">
         <div class="header">
             <h1>Invoicy by RedMaple</h1>
-            <p>{{ $invoice->workspace->name ?? 'RedMaple Agency' }}</p>
+            <p>{{ $invoice->workspace?->name ?? $invoice->workspace_snapshot['name'] ?? 'RedMaple Agency' }}</p>
         </div>
         <div class="body">
             <h2 style="font-size: 18px; margin-top: 0; color: #0f172a;">New Invoice Issued</h2>
-            <p>Dear {{ $invoice->client->name }},</p>
+            <p>Dear {{ $invoice->client?->name ?? $invoice->client_snapshot['name'] ?? 'Walk-in / General Customer' }},</p>
             <p>A new invoice has been generated for your account. Please review the summary below:</p>
             
             <div class="details-box">
@@ -70,5 +70,7 @@
             <p>Sent securely via Invoicy by RedMaple &bull; {{ $invoice->workspace->email ?? 'support@redmapleagency.com' }}</p>
         </div>
     </div>
+    <!-- 1x1 Transparent Email Open Tracking Beacon -->
+    <img src="{{ route('invoices.track.open', $invoice->public_secure_token) }}" width="1" height="1" alt="" style="display:none; width:1px; height:1px; border:0;" />
 </body>
 </html>

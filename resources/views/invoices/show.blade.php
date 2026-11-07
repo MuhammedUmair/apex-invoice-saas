@@ -5,16 +5,39 @@
     <!-- Top Action Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
                 <h1 class="text-2xl font-black text-slate-900">{{ $invoice->invoice_number }}</h1>
                 <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold uppercase
                     @if($invoice->status === 'paid') bg-emerald-100 text-emerald-800
                     @elseif($invoice->status === 'partially_paid') bg-amber-100 text-amber-800
                     @elseif($invoice->status === 'issued') bg-blue-100 text-blue-800
+                    @elseif($invoice->status === 'sent') bg-sky-100 text-sky-800
                     @elseif($invoice->status === 'cancelled') bg-rose-100 text-rose-800
                     @else bg-slate-100 text-slate-800 @endif">
                     {{ $invoice->status }}
                 </span>
+
+                @if($invoice->sent_at)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200" title="Dispatched on {{ $invoice->sent_at->format('M d, Y h:i A') }}">
+                        <i class="ph ph-envelope-simple-check text-xs text-sky-600"></i> Emailed {{ $invoice->sent_at->format('M d') }}
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="This invoice has not yet been emailed to the client.">
+                        <i class="ph ph-envelope-simple text-xs"></i> Not Emailed
+                    </span>
+                @endif
+
+                @if($invoice->email_opened_at)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200" title="First opened on {{ $invoice->email_opened_at->format('M d, Y h:i A') }}">
+                        <i class="ph ph-envelope-open text-xs text-emerald-600"></i> Email Opened ({{ $invoice->email_opens_count }}x)
+                    </span>
+                @endif
+
+                @if($invoice->viewed_at)
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200" title="Client visited portal / downloaded PDF on {{ $invoice->viewed_at->format('M d, Y h:i A') }}">
+                        <i class="ph ph-eye text-xs text-indigo-600"></i> Viewed by Client ({{ $invoice->view_count }}x)
+                    </span>
+                @endif
             </div>
             <p class="text-xs text-slate-500 mt-1">Issued {{ $invoice->issue_date->format('F d, Y') }} &bull; Due {{ $invoice->due_date->format('F d, Y') }}</p>
         </div>
@@ -47,11 +70,17 @@
                      class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
                     
                     @if($invoice->client && !empty($invoice->client->email))
-                        <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="w-full">
+                        <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="w-full"
+                              onsubmit="return confirm('{{ $invoice->sent_at ? "This invoice was already emailed to {$invoice->client->email} on " . $invoice->sent_at->format('M d, Y h:i A') . ". Do you want to send it again?" : "Send invoice #{$invoice->invoice_number} to {$invoice->client->email}?" }}');">
                             @csrf
-                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold">
-                                <i class="ph ph-paper-plane-tilt text-emerald-600 text-sm"></i>
-                                Send to Client Email
+                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700 font-semibold">
+                                <span class="flex items-center gap-2">
+                                    <i class="ph ph-paper-plane-tilt {{ $invoice->sent_at ? 'text-blue-600' : 'text-emerald-600' }} text-sm"></i>
+                                    <span>{{ $invoice->sent_at ? 'Resend to Client Email' : 'Send to Client Email' }}</span>
+                                </span>
+                                @if($invoice->sent_at)
+                                    <span class="text-[10px] text-slate-400 font-normal">Sent</span>
+                                @endif
                             </button>
                         </form>
                     @endif

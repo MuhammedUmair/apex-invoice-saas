@@ -219,6 +219,9 @@ Route::prefix('invoices/p')->middleware('throttle:60,1')->group(function () {
     Route::get('/{token}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf.download');
 });
 
+// Invisible 1x1 GIF Email Open Tracking Beacon (Item 13)
+Route::get('/invoices/track/{token}/open.gif', [InvoiceController::class, 'trackEmailOpen'])->name('invoices.track.open');
+
 /*
 |--------------------------------------------------------------------------
 | Webhook Endpoints (Stripe & PayPal)

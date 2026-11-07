@@ -83,14 +83,48 @@
                                     @if($inv->status === 'paid') bg-emerald-100 text-emerald-800
                                     @elseif($inv->status === 'partially_paid') bg-amber-100 text-amber-800
                                     @elseif($inv->status === 'issued') bg-blue-100 text-blue-800
+                                    @elseif($inv->status === 'sent') bg-sky-100 text-sky-800
                                     @elseif($inv->status === 'credited') bg-purple-100 text-purple-800
                                     @elseif($inv->status === 'overdue') bg-rose-100 text-rose-800
                                     @else bg-slate-100 text-slate-800 @endif">
                                     {{ $inv->status }}
                                 </span>
+
+                                <div class="mt-1 space-y-0.5">
+                                    @if($inv->sent_at)
+                                        <span class="block text-[10px] text-sky-700 font-medium" title="Dispatched on {{ $inv->sent_at->format('M d, Y h:i A') }}">
+                                            <i class="ph ph-paper-plane-tilt"></i> Emailed {{ $inv->sent_at->format('M d') }}
+                                        </span>
+                                    @elseif($inv->status === 'issued')
+                                        <span class="block text-[10px] text-amber-700 font-semibold" title="Invoice finalized, but not yet emailed to client">
+                                            <i class="ph ph-envelope-simple"></i> Not Emailed
+                                        </span>
+                                    @endif
+
+                                    @if($inv->email_opened_at)
+                                        <span class="block text-[10px] text-emerald-700 font-semibold" title="Email opened on {{ $inv->email_opened_at->format('M d, Y h:i A') }}">
+                                            <i class="ph ph-envelope-open"></i> Opened ({{ $inv->email_opens_count }}x)
+                                        </span>
+                                    @endif
+
+                                    @if($inv->viewed_at)
+                                        <span class="block text-[10px] text-indigo-700 font-semibold" title="Portal or PDF viewed on {{ $inv->viewed_at->format('M d, Y h:i A') }}">
+                                            <i class="ph ph-eye"></i> Viewed ({{ $inv->view_count }}x)
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    @if($inv->client && !empty($inv->client->email))
+                                        <form action="{{ route('invoices.send', $inv->id) }}" method="POST" class="inline"
+                                              onsubmit="return confirm('{{ $inv->sent_at ? "This invoice was already emailed to {$inv->client->email} on " . $inv->sent_at->format('M d, Y h:i A') . ". Do you want to send it again?" : "Send invoice #{$inv->invoice_number} to {$inv->client->email}?" }}');">
+                                            @csrf
+                                            <button type="submit" class="p-1.5 rounded-lg hover:bg-emerald-50 {{ $inv->sent_at ? 'text-sky-600' : 'text-emerald-600' }}" title="{{ $inv->sent_at ? 'Resend Invoice Email (Already sent ' . $inv->sent_at->format('M d') . ')' : 'Send Invoice to Customer Email' }}">
+                                                <i class="ph {{ $inv->sent_at ? 'ph-arrows-clockwise' : 'ph-paper-plane-tilt' }} text-base"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                     <a href="{{ route('invoices.edit', $inv->id) }}" class="p-1.5 rounded-lg hover:bg-amber-50 text-amber-700" title="Revise / Edit Invoice">
                                         <i class="ph ph-pencil-simple text-base"></i>
                                     </a>

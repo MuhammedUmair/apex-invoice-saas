@@ -181,6 +181,12 @@ class InvoiceController extends Controller
             abort(410, 'Security Notice: This invoice portal access token has expired. Please contact the vendor for a refreshed link.');
         }
 
+        // Track customer view & engagement (Item 13)
+        if (!$invoice->viewed_at) {
+            $invoice->viewed_at = now();
+        }
+        $invoice->increment('view_count');
+
         return view('invoices.customer-portal', compact('invoice'));
     }
 
@@ -283,7 +289,44 @@ class InvoiceController extends Controller
             session(["pdf_auth_{$invoice->id}" => $password]);
         }
 
+        // Track customer download & view (Item 13)
+        if (!$invoice->viewed_at) {
+            $invoice->viewed_at = now();
+        }
+        $invoice->increment('view_count');
+
         // Return clean printable PDF view (which supports standard browser PDF save or mPDF)
         return view('invoices.pdf-template', compact('invoice'));
+    }
+
+    /**
+     * Invisible 1x1 GIF tracking beacon to track when client opens the email (Item 13).
+     */
+    public function trackEmailOpen(string $token)
+    {
+        $invoice = Invoice::withoutGlobalScopes()
+            ->where('public_secure_token', $token)
+            ->first();
+
+        if ($invoice) {
+            if (!$invoice->email_opened_at) {
+                $invoice->email_opened_at = now();
+            }
+            $invoice->increment('email_opens_count');
+
+            \App\Services\AuditService::log('invoice.email_opened', $invoice, null, [
+                'recipient' => $invoice->client?->email ?? $invoice->client_snapshot['email'] ?? null,
+                'invoice_number' => $invoice->invoice_number,
+                'ip' => request()->ip(),
+            ]);
+        }
+
+        $gif1x1 = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+        return response($gif1x1, 200, [
+            'Content-Type' => 'image/gif',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 }

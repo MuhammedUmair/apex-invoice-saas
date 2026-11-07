@@ -51,6 +51,10 @@ class Invoice extends Model
         'late_surcharge_type',
         'late_surcharge_value',
         'late_surcharge_days',
+        'viewed_at',
+        'view_count',
+        'email_opened_at',
+        'email_opens_count',
     ];
 
     protected $casts = [
@@ -75,6 +79,10 @@ class Invoice extends Model
         'tax_rate' => 'decimal:2',
         'sent_at' => 'datetime',
         'paid_at' => 'datetime',
+        'viewed_at' => 'datetime',
+        'view_count' => 'integer',
+        'email_opened_at' => 'datetime',
+        'email_opens_count' => 'integer',
         'portal_token_expires_at' => 'datetime',
         'pin_locked_until' => 'datetime',
         'failed_pin_attempts' => 'integer',
