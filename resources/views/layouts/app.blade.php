@@ -242,10 +242,9 @@
                 </a>
                 @endif
             </nav>
-            </nav>
 
             <!-- Advertisement Section on Left Sidebar (Item 2) -->
-            @if(!auth()->user() || !auth()->user()->isSuperAdmin())
+            @if(!auth()->user() || (!auth()->user()->isSuperAdmin() && !auth()->user()->isStaff()))
             @php
                 $sidebarAd = null;
                 try {
