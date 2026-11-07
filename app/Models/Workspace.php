@@ -114,11 +114,17 @@ class Workspace extends Model
             return true;
         }
 
-        if ($sub->status === 'trialing') {
+        // Subscriptions that are trialing or not active (canceled, expired, past_due) are treated as restricted/trial
+        if (!in_array($sub->status, ['active'])) {
             return true;
         }
 
-        return $sub->plan && ($sub->plan->is_trial || $sub->plan->code === 'trial');
+        // If subscription has expired past its period
+        if ($sub->current_period_ends_at && $sub->current_period_ends_at->isPast()) {
+            return true;
+        }
+
+        return (bool) ($sub->plan?->is_trial || $sub->plan?->code === 'trial');
     }
 
     /**

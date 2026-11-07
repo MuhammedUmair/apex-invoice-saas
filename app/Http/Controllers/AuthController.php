@@ -130,6 +130,21 @@ class AuthController extends Controller
     }
 
     /**
+     * Generate a cryptographically secure 6-character Base32 alphanumeric OTP passcode.
+     * Excludes ambiguous glyphs (0, O, 1, I) to eliminate human transcription mistakes.
+     */
+    protected function generateSecureAlphanumericOtp(int $length = 6): string
+    {
+        $pool = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $otp = '';
+        $max = strlen($pool) - 1;
+        for ($i = 0; $i < $length; $i++) {
+            $otp .= $pool[random_int(0, $max)];
+        }
+        return $otp;
+    }
+
+    /**
      * Dedicated Control Panel Login for Platform Super Administrators (/cp).
      */
     public function showCpLogin(Request $request)
@@ -204,8 +219,8 @@ class AuthController extends Controller
                 ])->onlyInput('email');
             }
 
-            // Generate 6-digit OTP passcode
-            $otp = (string) random_int(100000, 999999);
+            // Generate cryptographically secure 6-character alphanumeric OTP passcode
+            $otp = $this->generateSecureAlphanumericOtp(6);
 
             // Store in session (expires in 10 minutes)
             $request->session()->put('cp_otp_user_id', $user->id);
@@ -294,12 +309,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Verify Super Admin 6-digit OTP passcode.
+     * Verify Super Admin 6-character alphanumeric OTP passcode.
      */
     public function verifyCpOtp(Request $request)
     {
         $request->validate([
-            'otp' => 'required|digits:6',
+            'otp' => 'required|string|size:6',
         ]);
 
         $userId = session('cp_otp_user_id');
@@ -323,7 +338,9 @@ class AuthController extends Controller
             ]);
         }
 
-        if (!Hash::check($request->otp, $otpHash)) {
+        $cleanOtp = strtoupper(trim((string) $request->input('otp', '')));
+
+        if (!Hash::check($cleanOtp, $otpHash)) {
             $rem = 5 - $attempts;
             return back()->withErrors([
                 'otp' => "Invalid verification passcode. ($rem attempt(s) remaining before session reset)",
@@ -383,7 +400,7 @@ class AuthController extends Controller
             return redirect()->route('cp.login');
         }
 
-        $otp = (string) random_int(100000, 999999);
+        $otp = $this->generateSecureAlphanumericOtp(6);
         $request->session()->put('cp_otp_hash', Hash::make($otp));
         $request->session()->put('cp_otp_expires_at', now()->addMinutes(10)->timestamp);
 

@@ -30,7 +30,7 @@
                 Hello <strong>{{ $user->name ?? 'Super Administrator' }}</strong>,
             </p>
             <p style="font-size: 14px; color: #334155; line-height: 1.5; margin: 0;">
-                A sign-in request to the Invoicy Control Panel was initiated for your administrator account. Use the following 6-digit one-time passcode to complete authentication:
+                A sign-in request to the Invoicy Control Panel was initiated for your administrator account. Use the following 6-character alphanumeric security passcode to complete authentication:
             </p>
             
             <div class="otp-box">

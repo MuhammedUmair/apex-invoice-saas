@@ -122,21 +122,23 @@ class SettingsController extends Controller
             'swift' => $validated['swift'] ?? '',
         ];
 
-        // Save Gateway keys if provided
-        if (!empty($validated['stripe_publishable_key']) || !empty($validated['stripe_secret_key'])) {
-            $workspace->stripe_keys_encrypted = [
-                'publishable_key' => $validated['stripe_publishable_key'] ?? '',
-                'secret_key' => $validated['stripe_secret_key'] ?? '',
-                'webhook_secret' => $validated['stripe_webhook_secret'] ?? '',
-            ];
-        }
+        // Save Gateway keys if provided (only allowed for active paid plans, locked in trial)
+        if (!$workspace->isTrial()) {
+            if (!empty($validated['stripe_publishable_key']) || !empty($validated['stripe_secret_key'])) {
+                $workspace->stripe_keys_encrypted = [
+                    'publishable_key' => $validated['stripe_publishable_key'] ?? '',
+                    'secret_key' => $validated['stripe_secret_key'] ?? '',
+                    'webhook_secret' => $validated['stripe_webhook_secret'] ?? '',
+                ];
+            }
 
-        if (!empty($validated['paypal_client_id']) || !empty($validated['paypal_client_secret'])) {
-            $workspace->paypal_keys_encrypted = [
-                'client_id' => $validated['paypal_client_id'] ?? '',
-                'client_secret' => $validated['paypal_client_secret'] ?? '',
-                'webhook_id' => $validated['paypal_webhook_id'] ?? '',
-            ];
+            if (!empty($validated['paypal_client_id']) || !empty($validated['paypal_client_secret'])) {
+                $workspace->paypal_keys_encrypted = [
+                    'client_id' => $validated['paypal_client_id'] ?? '',
+                    'client_secret' => $validated['paypal_client_secret'] ?? '',
+                    'webhook_id' => $validated['paypal_webhook_id'] ?? '',
+                ];
+            }
         }
 
         // Save Custom SMTP settings if provided

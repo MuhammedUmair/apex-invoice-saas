@@ -70,7 +70,7 @@
 
             <div>
                 <label for="otp" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 text-center">
-                    6-Digit One-Time Security Passcode
+                    6-Character Security Passcode (Alphanumeric)
                 </label>
                 <div class="relative">
                     <input id="otp"
@@ -80,10 +80,12 @@
                            required
                            autofocus
                            autocomplete="one-time-code"
-                           inputmode="numeric"
-                           pattern="[0-9]{6}"
-                           placeholder="000000"
-                           class="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3 px-4 rounded-xl border-2 border-slate-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-slate-50 focus:bg-white text-slate-900 shadow-inner">
+                           inputmode="text"
+                           pattern="[A-Za-z0-9]{6}"
+                           placeholder="K7M9P2"
+                           style="text-transform: uppercase;"
+                           oninput="this.value = this.value.toUpperCase()"
+                           class="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3 px-4 rounded-xl border-2 border-slate-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-slate-50 focus:bg-white text-slate-900 shadow-inner uppercase">
                 </div>
                 <div class="flex items-center justify-between mt-2 text-xs text-slate-500">
                     <span class="flex items-center gap-1">
@@ -91,7 +93,7 @@
                         Expires in:
                         <strong class="font-mono text-red-600" x-text="formatTime(remainingSeconds)"></strong>
                     </span>
-                    <span class="text-[11px] text-slate-400">Numeric only</span>
+                    <span class="text-[11px] text-slate-400">Letters & Numbers (A-Z, 2-9)</span>
                 </div>
             </div>
 

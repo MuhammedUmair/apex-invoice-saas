@@ -107,16 +107,11 @@
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> System Operational
                     </span>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                     <a href="{{ route('login') }}" class="p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 flex flex-col gap-1">
                         <i class="ph ph-sign-in text-red-600 text-lg"></i>
                         <span class="font-bold text-slate-800">Agency Login</span>
                         <span class="text-[10px] text-slate-400">Access workspace</span>
-                    </a>
-                    <a href="{{ route('cp.login') }}" class="p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 flex flex-col gap-1">
-                        <i class="ph ph-shield-star text-amber-600 text-lg"></i>
-                        <span class="font-bold text-slate-800">Control Panel</span>
-                        <span class="text-[10px] text-slate-400">Super Admin /cp</span>
                     </a>
                     <a href="{{ url('/#pricing') }}" class="p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 flex flex-col gap-1">
                         <i class="ph ph-tag text-blue-600 text-lg"></i>
