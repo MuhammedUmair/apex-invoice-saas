@@ -13,10 +13,14 @@ class EnsureSuperAdmin
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, ?string $permission = null): Response
     {
         if (!auth()->check() || !auth()->user()->isSuperAdmin()) {
             abort(403, 'Unauthorized access: Platform Super Admin privileges are required to access this area.');
+        }
+
+        if ($permission && !auth()->user()->hasAdminPermission($permission)) {
+            abort(403, "Access Denied: Your administrator role does not have permission to access '{$permission}'.");
         }
 
         // Two-Factor Authentication Check for Super Admins (Item 9 & 11)

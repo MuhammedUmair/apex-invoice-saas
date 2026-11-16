@@ -342,7 +342,7 @@ class AdminSubscriptionController extends Controller
         $validated = $request->validate([
             'action' => 'required|string|in:activate,suspend,extend_trial_14,renew_month',
             'workspace_ids' => 'required|array|min:1',
-            'workspace_ids.*' => 'required|integer',
+            'workspace_ids.*' => 'required|string',
         ]);
 
         $action = $validated['action'];

@@ -19,6 +19,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_super_admin',
+        'admin_role',
         'two_factor_secret',
         'two_factor_recovery_codes',
         'two_factor_confirmed_at',
@@ -74,6 +75,10 @@ class User extends Authenticatable
             return true;
         }
 
+        if (!empty($this->admin_role) && in_array($this->admin_role, ['super_admin', 'finance_admin', 'support_admin', 'technical_admin'])) {
+            return true;
+        }
+
         $superAdminEmails = [
             'superadmin@redmapleagency.com',
             'superadmin@redmaplestudio.com',
@@ -82,6 +87,52 @@ class User extends Authenticatable
         ];
 
         return in_array(strtolower($this->email), array_map('strtolower', $superAdminEmails));
+    }
+
+    public function getAdminRole(): ?string
+    {
+        if (!empty($this->admin_role)) {
+            return $this->admin_role;
+        }
+
+        if ($this->isSuperAdmin()) {
+            return 'super_admin';
+        }
+
+        return null;
+    }
+
+    public function getAdminRoleLabel(): string
+    {
+        return match ($this->getAdminRole()) {
+            'super_admin' => 'Super Admin',
+            'finance_admin' => 'Finance Admin',
+            'support_admin' => 'Support Admin',
+            'technical_admin' => 'Technical Admin',
+            default => 'Tenant User',
+        };
+    }
+
+    public function hasAdminPermission(string $permission): bool
+    {
+        $role = $this->getAdminRole();
+        if (!$role) {
+            return false;
+        }
+
+        if ($role === 'super_admin') {
+            return true;
+        }
+
+        return match ($permission) {
+            'finance', 'revenue', 'transactions', 'refunds', 'tax_reports' => in_array($role, ['finance_admin']),
+            'subscriptions', 'plans', 'coupons' => in_array($role, ['finance_admin']),
+            'support', 'tickets', 'feedback', 'workspaces_view' => in_array($role, ['support_admin', 'technical_admin']),
+            'impersonation' => in_array($role, ['support_admin']),
+            'monitoring', 'health', 'errors', 'jobs', 'integrations', 'webhooks', 'announcements' => in_array($role, ['technical_admin']),
+            'config' => in_array($role, ['technical_admin']),
+            default => false,
+        };
     }
 
     public function hasTwoFactorEnabled(): bool

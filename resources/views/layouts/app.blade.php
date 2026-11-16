@@ -62,6 +62,25 @@
     @livewireStyles
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    <!-- Persistent Assisted Session / Impersonation Banner (Section 11) -->
+    @if(session('super_admin_assisted_session'))
+    <div class="bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 text-white px-4 py-2 text-xs font-bold flex items-center justify-between shadow-lg sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <span class="animate-pulse bg-white text-rose-700 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">
+                Privileged Support Mode
+            </span>
+            <span>
+                Assisted Session Active: Viewing workspace <strong>{{ session('assisted_workspace_name') }}</strong> (Operator: {{ session('assisted_operator_email') }})
+            </span>
+        </div>
+        <form method="POST" action="{{ route('admin.impersonate.stop') }}" class="inline">
+            @csrf
+            <button type="submit" class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-900 rounded font-bold transition flex items-center gap-1 shadow-xs">
+                <i class="ph ph-sign-out font-bold"></i> Exit Assisted Session
+            </button>
+        </form>
+    </div>
+    @endif
     <div class="min-h-screen flex" x-data="{ sidebarCollapsed: localStorage.getItem('sidebar_collapsed') === 'true' }">
         <!-- Sidebar Navigation (Expand/Collapse Supported) -->
         <aside :class="sidebarCollapsed ? 'w-20' : 'w-72'" class="bg-slate-900 text-slate-200 flex flex-col shrink-0 transition-all duration-300 relative">
@@ -106,55 +125,23 @@
             <!-- Nav Links -->
             <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
                 @if(auth()->user() && auth()->user()->isSuperAdmin())
-                    <!-- Super Admin Primary Platform Management Suite -->
+                    <!-- Super Admin Control Centre Link (CP) -->
                     <div class="px-3 pb-1 pt-1">
                         <span x-show="!sidebarCollapsed" class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                            <i class="ph ph-shield-star text-xs"></i> Platform Admin
+                            <i class="ph ph-shield-star text-xs"></i> Platform Control
                         </span>
                     </div>
 
-                    <a href="{{ route('admin.subscriptions.index') }}" 
+                    <a href="{{ route('admin.dashboard') }}" 
                        :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.subscriptions.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                       :title="sidebarCollapsed ? '{{ __('Subscriptions & Tenants') }}' : ''">
-                        <i class="ph ph-crown text-lg {{ request()->routeIs('admin.subscriptions.*') ? '!text-white' : 'text-amber-400' }} shrink-0"></i>
-                        <span x-show="!sidebarCollapsed" class="truncate">{{ __('Subscriptions & Tenants') }}</span>
-                    </a>
-
-                    <a href="{{ route('builder.index') }}" 
-                       :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('builder.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                       :title="sidebarCollapsed ? '{{ __('Website Builder') }}' : ''">
-                        <i class="ph ph-paint-brush-broad text-lg {{ request()->routeIs('builder.*') ? '!text-white' : 'text-emerald-400' }} shrink-0"></i>
-                        <span x-show="!sidebarCollapsed" class="truncate">{{ __('Website Builder') }}</span>
-                    </a>
-
-                    <a href="{{ route('admin.ads.index') }}" 
-                       :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.ads.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                       :title="sidebarCollapsed ? '{{ __('Advertisements') }}' : ''">
-                        <i class="ph ph-megaphone text-lg {{ request()->routeIs('admin.ads.*') ? '!text-white' : 'text-indigo-400' }} shrink-0"></i>
-                        <span x-show="!sidebarCollapsed" class="truncate">{{ __('Advertisements') }}</span>
-                    </a>
-
-                    <a href="{{ route('cms.index') }}" 
-                       :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('cms.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                       :title="sidebarCollapsed ? '{{ __('Website & Docs CMS') }}' : ''">
-                        <i class="ph ph-note-pencil text-lg {{ request()->routeIs('cms.*') ? '!text-white' : 'text-teal-400' }} shrink-0"></i>
-                        <span x-show="!sidebarCollapsed" class="truncate">{{ __('Website & Docs CMS') }}</span>
-                    </a>
-
-                    <a href="{{ route('admin.coupons.index') }}" 
-                       :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                       class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('admin.coupons.*') ? 'bg-amber-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                       :title="sidebarCollapsed ? '{{ __('Coupons & Offers') }}' : ''">
-                        <i class="ph ph-ticket text-lg {{ request()->routeIs('admin.coupons.*') ? '!text-white' : 'text-fuchsia-400' }} shrink-0"></i>
-                        <span x-show="!sidebarCollapsed" class="truncate">{{ __('Coupons & Offers') }}</span>
+                       class="flex items-center rounded-lg text-sm font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500 hover:text-slate-950 transition shadow-sm"
+                       :title="sidebarCollapsed ? 'Control Centre (CP)' : ''">
+                        <i class="ph ph-shield-check text-lg shrink-0 text-amber-400"></i>
+                        <span x-show="!sidebarCollapsed" class="truncate font-bold">Control Centre (CP)</span>
                     </a>
 
                     <div class="pt-3 pb-1 border-t border-slate-800/80 my-2">
-                        <span x-show="!sidebarCollapsed" class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Testbed (Sandbox)</span>
+                        <span x-show="!sidebarCollapsed" class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Agency Workspace</span>
                     </div>
                 @endif
 

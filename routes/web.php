@@ -13,6 +13,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RecurringInvoiceController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\WebsiteBuilderController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Auth;
@@ -167,20 +168,32 @@ Route::middleware('auth')->group(function () {
         if (strlen($code) === 6 && is_numeric($code)) {
             session(['super_admin_2fa_verified' => true]);
             \App\Services\AuditService::log('admin.2fa_verified', auth()->user());
-            return redirect()->intended(route('admin.subscriptions.index'));
+            return redirect()->intended(route('admin.dashboard'));
         }
         return back()->withErrors(['two_factor_code' => 'Invalid 2FA authentication code entered.']);
     })->name('admin.2fa.verify');
 
     Route::middleware([\App\Http\Middleware\EnsureSuperAdmin::class])->group(function () {
-        // Website & Docs CMS with Auto-Translate (Items 12 & 13)
-        Route::get('/admin/cms', [CmsController::class, 'index'])->name('cms.index');
-        Route::post('/admin/cms', [CmsController::class, 'update'])->name('cms.update');
-        Route::post('/admin/cms/docs', [CmsController::class, 'storeDocArticle'])->name('cms.docs.store');
-        Route::post('/admin/cms/docs/{article}', [CmsController::class, 'updateDocArticle'])->name('cms.docs.update');
-        Route::post('/admin/cms/docs/{article}/translate', [CmsController::class, 'autoTranslateDoc'])->name('cms.docs.translate');
+        // GROUP 1: OVERVIEW
+        Route::get('/admin', [SuperAdminController::class, 'dashboard'])->name('admin.dashboard');
+        Route::get('/admin/analytics', [SuperAdminController::class, 'analytics'])->name('admin.analytics');
+        Route::get('/admin/export', [SuperAdminController::class, 'exportCsv'])->name('admin.export');
 
-        // Super Admin Subscriptions & Plans Manager (Item 14)
+        // GROUP 2: CUSTOMER MANAGEMENT
+        Route::get('/admin/workspaces', [SuperAdminController::class, 'workspaces'])->name('admin.workspaces.index');
+        Route::get('/admin/workspaces/suspended', [SuperAdminController::class, 'suspendedWorkspaces'])->name('admin.workspaces.suspended');
+        Route::get('/admin/workspaces/{workspace}', [SuperAdminController::class, 'workspaceShow'])->name('admin.workspaces.show');
+        Route::get('/admin/workspaces/{workspace}/activity', [SuperAdminController::class, 'workspaceActivity'])->name('admin.workspaces.activity');
+        Route::post('/admin/workspaces/{workspace}/suspend', [SuperAdminController::class, 'suspendWorkspace'])->name('admin.workspaces.suspend');
+        Route::post('/admin/workspaces/{workspace}/reinstate', [SuperAdminController::class, 'reinstateWorkspace'])->name('admin.workspaces.reinstate');
+        Route::get('/admin/users', [SuperAdminController::class, 'users'])->name('admin.users.index');
+        Route::get('/admin/users/{user}', [SuperAdminController::class, 'userShow'])->name('admin.users.show');
+
+        // ASSISTED ACCESS / IMPERSONATION (Section 11)
+        Route::post('/admin/impersonate/{workspace}', [SuperAdminController::class, 'startImpersonation'])->name('admin.impersonate.start');
+        Route::post('/admin/impersonate/stop', [SuperAdminController::class, 'stopImpersonation'])->name('admin.impersonate.stop');
+
+        // GROUP 3: SUBSCRIPTION & PLAN MANAGEMENT (Reused & Enhanced)
         Route::get('/admin/subscriptions', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions.index');
         Route::post('/admin/subscriptions/bulk-action', [AdminSubscriptionController::class, 'bulkAction'])->name('admin.subscriptions.bulk');
         Route::post('/admin/subscriptions/plans/{plan}', [AdminSubscriptionController::class, 'updatePlan'])->name('admin.plans.update');
@@ -193,14 +206,38 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/subscriptions/{workspace}/status', [AdminSubscriptionController::class, 'updateWorkspaceStatus'])->name('admin.workspaces.status');
         Route::post('/admin/subscriptions/{workspace}/owner', [AdminSubscriptionController::class, 'updateOwnerContact'])->name('admin.workspaces.owner');
 
-        // Promotional Coupons & Offers Designer (Items 4 & 5)
         Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');
         Route::post('/admin/coupons/bulk-action', [\App\Http\Controllers\AdminCouponController::class, 'bulkAction'])->name('admin.coupons.bulk');
         Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
         Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
         Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
 
-        // Website Builder (Logos, Navigation & Landing Pages)
+        // GROUP 4: FINANCIAL MANAGEMENT
+        Route::get('/admin/finance/revenue', [SuperAdminController::class, 'revenue'])->name('admin.finance.revenue');
+        Route::get('/admin/finance/transactions', [SuperAdminController::class, 'transactions'])->name('admin.finance.transactions');
+        Route::get('/admin/finance/failed-payments', [SuperAdminController::class, 'failedPayments'])->name('admin.finance.failed_payments');
+        Route::get('/admin/finance/refunds', [SuperAdminController::class, 'refunds'])->name('admin.finance.refunds');
+        Route::post('/admin/finance/refunds/{payment}', [SuperAdminController::class, 'processRefund'])->name('admin.finance.refunds.process');
+        Route::get('/admin/finance/invoices', [SuperAdminController::class, 'subscriptionInvoices'])->name('admin.finance.invoices');
+        Route::get('/admin/finance/tax-reports', [SuperAdminController::class, 'taxReports'])->name('admin.finance.tax_reports');
+
+        // GROUP 5: PLATFORM MANAGEMENT
+        Route::get('/admin/platform/features', [SuperAdminController::class, 'features'])->name('admin.platform.features');
+        Route::post('/admin/platform/features/update', [SuperAdminController::class, 'updateFeature'])->name('admin.platform.features.update');
+        Route::get('/admin/platform/usage', [SuperAdminController::class, 'usage'])->name('admin.platform.usage');
+        Route::get('/admin/platform/emails', [SuperAdminController::class, 'emailTemplates'])->name('admin.platform.emails');
+        Route::get('/admin/platform/announcements', [SuperAdminController::class, 'announcements'])->name('admin.platform.announcements');
+        Route::post('/admin/platform/announcements', [SuperAdminController::class, 'storeAnnouncement'])->name('admin.platform.announcements.store');
+        Route::post('/admin/platform/announcements/{announcement}/toggle', [SuperAdminController::class, 'toggleAnnouncement'])->name('admin.platform.announcements.toggle');
+        Route::delete('/admin/platform/announcements/{announcement}', [SuperAdminController::class, 'deleteAnnouncement'])->name('admin.platform.announcements.delete');
+
+        // CMS & Website Builder & Ads (Integrated under Platform Group)
+        Route::get('/admin/cms', [CmsController::class, 'index'])->name('cms.index');
+        Route::post('/admin/cms', [CmsController::class, 'update'])->name('cms.update');
+        Route::post('/admin/cms/docs', [CmsController::class, 'storeDocArticle'])->name('cms.docs.store');
+        Route::post('/admin/cms/docs/{article}', [CmsController::class, 'updateDocArticle'])->name('cms.docs.update');
+        Route::post('/admin/cms/docs/{article}/translate', [CmsController::class, 'autoTranslateDoc'])->name('cms.docs.translate');
+
         Route::get('/admin/website-builder', [WebsiteBuilderController::class, 'index'])->name('builder.index');
         Route::post('/admin/website-builder/branding', [WebsiteBuilderController::class, 'updateBranding'])->name('builder.branding');
         Route::post('/admin/website-builder/navigation', [WebsiteBuilderController::class, 'updateNavigation'])->name('builder.navigation');
@@ -209,11 +246,37 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'updatePage'])->name('builder.pages.update');
         Route::delete('/admin/website-builder/pages/{page}', [WebsiteBuilderController::class, 'destroyPage'])->name('builder.pages.destroy');
 
-        // Advertisement Management (Image, HTML, Text Ads)
         Route::get('/admin/advertisements', [AdvertisementController::class, 'index'])->name('admin.ads.index');
         Route::post('/admin/advertisements', [AdvertisementController::class, 'store'])->name('admin.ads.store');
         Route::post('/admin/advertisements/{advertisement}/toggle', [AdvertisementController::class, 'toggle'])->name('admin.ads.toggle');
         Route::delete('/admin/advertisements/{advertisement}', [AdvertisementController::class, 'destroy'])->name('admin.ads.destroy');
+
+        // GROUP 6: SUPPORT & MONITORING
+        Route::get('/admin/support/tickets', [SuperAdminController::class, 'supportTickets'])->name('admin.support.tickets');
+        Route::get('/admin/support/tickets/{ticket}', [SuperAdminController::class, 'ticketShow'])->name('admin.support.tickets.show');
+        Route::post('/admin/support/tickets/{ticket}/reply', [SuperAdminController::class, 'ticketReply'])->name('admin.support.tickets.reply');
+        Route::get('/admin/support/feedback', [SuperAdminController::class, 'userFeedback'])->name('admin.support.feedback');
+        Route::get('/admin/monitoring/health', [SuperAdminController::class, 'systemHealth'])->name('admin.monitoring.health');
+        Route::get('/admin/monitoring/errors', [SuperAdminController::class, 'errorLogs'])->name('admin.monitoring.errors');
+        Route::get('/admin/monitoring/jobs', [SuperAdminController::class, 'backgroundJobs'])->name('admin.monitoring.jobs');
+        Route::get('/admin/monitoring/integrations', [SuperAdminController::class, 'integrationStatus'])->name('admin.monitoring.integrations');
+
+        // GROUP 7: SECURITY & AUDIT
+        Route::get('/admin/security/admins', [SuperAdminController::class, 'adminUsers'])->name('admin.security.admins');
+        Route::post('/admin/security/admins/{user}/role', [SuperAdminController::class, 'updateAdminRole'])->name('admin.security.admins.role');
+        Route::get('/admin/security/logins', [SuperAdminController::class, 'loginHistory'])->name('admin.security.logins');
+        Route::get('/admin/security/audit-logs', [SuperAdminController::class, 'auditLogs'])->name('admin.security.audit_logs');
+        Route::get('/admin/security/events', [SuperAdminController::class, 'securityEvents'])->name('admin.security.events');
+        Route::get('/admin/security/webhooks', [SuperAdminController::class, 'webhookLogs'])->name('admin.security.webhooks');
+
+        // GROUP 8: CONFIGURATION
+        Route::get('/admin/config/general', [SuperAdminController::class, 'configGeneral'])->name('admin.config.general');
+        Route::get('/admin/config/gateways', [SuperAdminController::class, 'configGateways'])->name('admin.config.gateways');
+        Route::get('/admin/config/smtp', [SuperAdminController::class, 'configSmtp'])->name('admin.config.smtp');
+        Route::get('/admin/config/storage', [SuperAdminController::class, 'configStorage'])->name('admin.config.storage');
+        Route::get('/admin/config/taxes', [SuperAdminController::class, 'configTaxes'])->name('admin.config.taxes');
+        Route::get('/admin/config/branding', [SuperAdminController::class, 'configBranding'])->name('admin.config.branding');
+        Route::post('/admin/config', [SuperAdminController::class, 'updateConfig'])->name('admin.config.update');
     });
 });
 

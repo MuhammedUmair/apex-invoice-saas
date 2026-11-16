@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin', ['title' => 'Coupons & Promotional Offers', 'header' => 'Coupons & Discounts Manager'])
 
 @section('title', __('Coupons & Promotional Offers') . ' - RedMaple')
 

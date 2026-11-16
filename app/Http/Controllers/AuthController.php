@@ -104,9 +104,10 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             \App\Services\AuditService::log('auth.login_success', Auth::user());
+            \App\Models\LoginHistory::record($email, $user, 'successful');
 
             if ($user->isSuperAdmin()) {
-                return redirect()->intended(route('admin.subscriptions.index'));
+                return redirect()->intended(route('admin.dashboard'));
             }
 
             return redirect()->intended(route('dashboard'));
@@ -130,6 +131,7 @@ class AuthController extends Controller
                 'ip' => $ip,
                 'lockout_minutes' => 60,
             ]);
+            \App\Models\LoginHistory::record($email, null, 'blocked', 'Account lockout triggered');
 
             return back()->with('lockout_seconds', $seconds)
                 ->withErrors([
@@ -140,6 +142,7 @@ class AuthController extends Controller
         $errorMessage = "The provided credentials do not match our records. (Warning: {$remaining} attempt(s) remaining before a 60-minute account lockout).";
 
         \App\Services\AuditService::log('auth.login_failed', null, null, ['email' => $email, 'remaining' => $remaining]);
+        \App\Models\LoginHistory::record($email, null, 'failed', 'Invalid credentials');
 
         return back()->withErrors([
             'email' => $errorMessage,

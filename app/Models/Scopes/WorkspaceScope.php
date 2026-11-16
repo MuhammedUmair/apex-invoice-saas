@@ -15,9 +15,11 @@ class WorkspaceScope implements Scope
      */
     public function apply(Builder $builder, Model $model): void
     {
-        // 1. Allow Super Admin routes to query across workspaces without restriction
+        // 1. Allow Super Admin routes to query across workspaces strictly if authenticated as platform admin
         if (request() && (request()->is('admin') || request()->is('admin/*'))) {
-            return;
+            if (Auth::check() && Auth::user()->isSuperAdmin()) {
+                return;
+            }
         }
 
         // 2. Allow CLI commands (e.g. queue workers, seeders) only when running in non-testing console

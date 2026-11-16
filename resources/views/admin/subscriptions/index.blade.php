@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Subscriptions & Plan Manager - Super Admin', 'header' => 'SaaS Subscriptions, Plans & Alerts'])
+@extends('layouts.admin', ['title' => 'Subscriptions & Plan Manager', 'header' => 'SaaS Subscriptions, Plans & Alerts'])
 
 @section('content')
 <div class="space-y-8" x-data="{ currentTab: '{{ old('tab', $currentTab ?? 'tenants') }}' }">
