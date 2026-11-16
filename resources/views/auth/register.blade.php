@@ -53,6 +53,12 @@
 
         <form method="POST" action="{{ route('register.post') }}" class="space-y-4">
             @csrf
+
+            <!-- Anti-Bot Honeypot (Invisible to real users, catches automated spam bots) -->
+            <div style="position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none;" aria-hidden="true">
+                <input type="text" name="business_fax" tabindex="-1" autocomplete="off" value="">
+                <input type="text" name="hp_url" tabindex="-1" autocomplete="off" value="">
+            </div>
             <div>
                 <label for="company_name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Agency or Business Name</label>
                 <input id="company_name" type="text" name="company_name" value="{{ old('company_name') }}" required placeholder="e.g. Acme Creative Agency"

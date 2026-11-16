@@ -186,6 +186,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/workspaces/{workspace}/activity', [SuperAdminController::class, 'workspaceActivity'])->name('admin.workspaces.activity');
         Route::post('/admin/workspaces/{workspace}/suspend', [SuperAdminController::class, 'suspendWorkspace'])->name('admin.workspaces.suspend');
         Route::post('/admin/workspaces/{workspace}/reinstate', [SuperAdminController::class, 'reinstateWorkspace'])->name('admin.workspaces.reinstate');
+        Route::delete('/admin/workspaces/{workspace}', [SuperAdminController::class, 'deleteWorkspace'])->name('admin.workspaces.destroy');
         Route::get('/admin/users', [SuperAdminController::class, 'users'])->name('admin.users.index');
         Route::get('/admin/users/{user}', [SuperAdminController::class, 'userShow'])->name('admin.users.show');
 

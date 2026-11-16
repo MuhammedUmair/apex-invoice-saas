@@ -295,6 +295,38 @@ class SuperAdminController extends Controller
         return back()->with('success', "Workspace '{$workspace->name}' reinstated to Active status.");
     }
 
+    public function deleteWorkspace(Workspace $workspace, Request $request)
+    {
+        if (!auth()->user()->isSuperAdmin() || auth()->user()->getAdminRole() !== 'super_admin') {
+            abort(403, 'Permission denied: Deleting a tenant workspace requires Super Admin role.');
+        }
+
+        $request->validate([
+            'reason' => 'required|string|min:3|max:500',
+        ]);
+
+        $name = $workspace->name;
+        $id = $workspace->id;
+
+        DB::transaction(function () use ($workspace, $request, $name, $id) {
+            Subscription::where('workspace_id', $id)->delete();
+            SubscriptionAlert::where('workspace_id', $id)->delete();
+            Payment::withoutGlobalScopes()->where('workspace_id', $id)->delete();
+            Invoice::withoutGlobalScopes()->where('workspace_id', $id)->delete();
+            User::where('workspace_id', $id)->delete();
+            $workspace->delete();
+
+            AuditService::log('admin.workspace_deleted', null, null, [
+                'workspace_id' => $id,
+                'name' => $name,
+                'reason' => $request->reason,
+                'actor' => auth()->user()->email,
+            ]);
+        });
+
+        return redirect()->route('admin.workspaces.index')->with('success', "Workspace '{$name}' permanently purged from platform.");
+    }
+
     public function users(Request $request)
     {
         $query = User::with('workspace');

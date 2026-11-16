@@ -1,7 +1,7 @@
 @extends('layouts.admin', ['title' => 'Workspace: ' . $workspace->name, 'header' => 'Tenant 360° Profile'])
 
 @section('content')
-<div class="space-y-8" x-data="{ impersonateModal: false }">
+<div class="space-y-8" x-data="{ impersonateModal: false, deleteModal: false }">
     <!-- Header Summary Card -->
     <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div class="flex items-start gap-4">
@@ -34,6 +34,9 @@
             <button @click="impersonateModal = true" 
                     class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                 <i class="ph ph-user-switch font-bold text-base"></i> Assisted Support Session
+            </button>
+            <button @click="deleteModal = true" class="px-3.5 py-2 bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1">
+                <i class="ph ph-trash"></i> Delete Workspace
             </button>
             <a href="{{ route('admin.workspaces.activity', $workspace->id) }}" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1">
                 <i class="ph ph-clock-counter-clockwise"></i> Activity Log
@@ -197,6 +200,34 @@
                 <div class="flex items-center justify-end gap-3 pt-2">
                     <button type="button" @click="impersonateModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Cancel</button>
                     <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-xs font-bold text-slate-950">Confirm & Launch Session</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Permanent Delete Workspace Modal -->
+    <div x-show="deleteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50" x-cloak>
+        <div class="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl" @click.away="deleteModal = false">
+            <div class="flex items-center gap-3 text-rose-400">
+                <i class="ph ph-trash text-2xl font-bold"></i>
+                <h3 class="font-bold text-white text-base">Permanently Purge Workspace</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Are you sure you want to completely delete <strong class="text-white">{{ $workspace->name }}</strong>? 
+                This will purge all users, subscriptions, and data associated with this tenant. This action is irreversible.
+            </p>
+            <form action="{{ route('admin.workspaces.destroy', $workspace->id) }}" method="POST" class="space-y-4">
+                @csrf
+                @method('DELETE')
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Deletion Justification (Audit) <span class="text-rose-400">*</span>
+                    </label>
+                    <textarea name="reason" required rows="2" placeholder="e.g. Spam account, test workspace, customer account closure..."
+                              class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-rose-500 outline-none"></textarea>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" @click="deleteModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white">Permanently Delete</button>
                 </div>
             </form>
         </div>

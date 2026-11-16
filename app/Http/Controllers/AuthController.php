@@ -481,6 +481,50 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        // 1. Anti-Bot Honeypot Protection (Invisible fields)
+        if ($request->filled('business_fax') || $request->filled('hp_url')) {
+            \App\Services\AuditService::log('security.bot_registration_dropped', null, null, [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+            return redirect()->route('login')->with('success', 'Registration submitted. Please check your inbox.');
+        }
+
+        // 2. Anti-Spam & URL keyword filtering on company_name and name
+        $companyName = (string) $request->input('company_name');
+        $personName = (string) $request->input('name');
+        $spamPatterns = [
+            '/(https?:\/\/|www\.|\.cc[\/\?\s]|\.ru[\/\?\s]|\.tk[\/\?\s]|\.xyz[\/\?\s]|\.top[\/\?\s])/i',
+            '/\b(scam|casino|viagra|porn|crypto|whatsapp|telegram|myxa|escort|hacker)\b/i',
+            '/(\*{2,}|={2,}|_{3,})/', // excessive spam asterisks or repetitive special symbols
+        ];
+        foreach ($spamPatterns as $pattern) {
+            if (preg_match($pattern, $companyName) || preg_match($pattern, $personName)) {
+                return back()->withErrors([
+                    'company_name' => 'Registration rejected: Business name contains prohibited terms, external URLs, or invalid formatting characters.',
+                ])->withInput();
+            }
+        }
+
+        // 3. Disposable / Temporary Email Domain Firewall
+        $email = strtolower(trim((string) $request->input('email')));
+        $domain = substr(strrchr($email, "@"), 1);
+        $blockedDisposableDomains = [
+            'merepost.com', 'mailinator.com', 'guerrillamail.com', '10minutemail.com',
+            'tempmail.com', 'temp-mail.org', 'throwawaymail.com', 'trashmail.com',
+            'sharklasers.com', 'yopmail.com', 'dispostable.com', 'dropmail.me',
+            'getairmail.com', 'mytemp.email', 'crazymailing.com', 'mohmal.com',
+            'generator.email', 'armyspy.com', 'cuvox.de', 'dayrep.com', 'einrot.com',
+            'fleckens.hu', 'gustr.com', 'jourrapide.com', 'rhyta.com', 'superrito.com',
+            'teleworm.us', 'myxa.cc', 'temp-link.net', 'fakemailgenerator.com',
+            'emailondeck.com', 'inboxkitten.com', 'maildrop.cc', 'getnada.com',
+        ];
+        if (in_array($domain, $blockedDisposableDomains)) {
+            return back()->withErrors([
+                'email' => 'Disposable or temporary email addresses are not permitted. Please register with a verified corporate or personal email address.',
+            ])->withInput();
+        }
+
         $data = $request->validate([
             'company_name' => 'required|string|max:255',
             'name' => 'required|string|max:255',
@@ -509,13 +553,14 @@ class AuthController extends Controller
             'currency' => $data['currency'],
         ]);
 
-        // 2. Create Workspace Owner User
+        // 2. Create Workspace Owner User (Unverified initially)
         $user = User::create([
             'workspace_id' => $workspace->id,
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'role' => 'owner',
+            'email_verified_at' => null,
         ]);
 
         // 3. Assign Free Trial Subscription (Configurable Days)
@@ -536,25 +581,40 @@ class AuthController extends Controller
             app(\App\Services\SubscriptionAlertService::class)->notifySignup($user, $workspace, $trialPlan, $sub);
         }
 
-        // 4. Process Promotional / Referral Coupon (Item 4)
-        $welcomeMsg = "Welcome to RedMaple Invoicy! Your {$trialDays}-day trial has begun.";
+        // 4. Process Promotional / Referral Coupon
         if (!empty($data['coupon_code'])) {
             try {
                 $couponService = app(\App\Services\CouponService::class);
                 $check = $couponService->validate($data['coupon_code'], 'signup', 0, $data['currency'], $workspace);
                 if ($check['valid']) {
                     $couponService->applyToSignup($check['coupon'], $workspace, $user);
-                    $offerName = $check['coupon']->name ?: $check['coupon']->code;
-                    $welcomeMsg = "Welcome! Promotional offer '{$offerName}' has been successfully applied to your account.";
                 }
             } catch (\Throwable $e) {
                 // Graceful fallback if coupon process fails
             }
         }
 
-        Auth::login($user);
+        // 5. Send Email Activation Link
+        $verifyUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addMinutes(60),
+            ['id' => $user->id, 'hash' => sha1($user->email)]
+        );
 
-        return redirect()->route('dashboard')->with('success', $welcomeMsg);
+        try {
+            Mail::raw(
+                "Hello {$user->name},\n\nThank you for registering on Invoicy by RedMaple!\n\nPlease click the secure link below to verify your email address and activate your 14-day free trial:\n\n{$verifyUrl}\n\nThis verification link expires in 60 minutes.\n\nThank you,\nRedMaple Invoicy Team",
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                        ->subject('Activate Your Invoicy Account Email');
+                }
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Could not dispatch signup activation email: " . $e->getMessage());
+        }
+
+        // DO NOT AUTO-LOGIN. Mandatory verification prevents bot session access.
+        return redirect()->route('login')->with('success', "Registration successful! An activation link has been sent to {$user->email}. Please check your inbox and click the verification link before logging in.");
     }
 
     public function logout(Request $request)
