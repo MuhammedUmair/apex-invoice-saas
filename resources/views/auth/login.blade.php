@@ -117,7 +117,10 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('login.post') }}" class="space-y-5" autocomplete="off">
+            <form method="POST" action="{{ route('login.post') }}" class="space-y-5" autocomplete="off"
+                  x-data="{ isHumanVerified: false }"
+                  @human-verified.window="isHumanVerified = true"
+                  @submit="if (!isHumanVerified) { $event.preventDefault(); window.dispatchEvent(new CustomEvent('invoicy-check-human')); }">
                 @csrf
                 <!-- Anti-autofill decoy inputs to prevent browser from pre-filling saved passwords -->
                 <input type="text" style="display:none" name="fakeusernameremembered" tabindex="-1" autocomplete="off"/>
@@ -171,9 +174,14 @@
                     </label>
                 </div>
 
-                <button type="submit" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
-                    <i class="ph ph-lock-key text-base"></i>
-                    Sign In to RedMaple
+                <!-- Proprietary Invoicy Human Shield (Cloudflare / Turnstile style) -->
+                <x-human-shield action="login" />
+
+                <button type="submit" 
+                        class="w-full py-3 px-4 font-bold rounded-lg text-sm shadow-md transition flex items-center justify-center gap-2"
+                        :class="isHumanVerified ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-lg cursor-pointer' : 'bg-slate-300 text-slate-600 cursor-not-allowed'">
+                    <i class="ph text-base" :class="isHumanVerified ? 'ph-lock-key-open' : 'ph-lock-key'"></i>
+                    <span x-text="isHumanVerified ? 'Sign In to RedMaple' : 'Verify Humanity to Sign In'"></span>
                 </button>
             </form>
         @endif

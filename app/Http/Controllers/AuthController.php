@@ -56,6 +56,14 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        // Proprietary Invoicy Human Shield Verification (Cloudflare / Turnstile style)
+        $humanCheck = app(\App\Services\HumanVerificationService::class)->verify($request, 'login');
+        if (!$humanCheck['success']) {
+            return back()->withErrors([
+                'human_verification' => $humanCheck['message'],
+            ])->onlyInput('email');
+        }
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
@@ -522,6 +530,14 @@ class AuthController extends Controller
         if (in_array($domain, $blockedDisposableDomains)) {
             return back()->withErrors([
                 'email' => 'Disposable or temporary email addresses are not permitted. Please register with a verified corporate or personal email address.',
+            ])->withInput();
+        }
+
+        // 4. Proprietary Invoicy Human Shield Verification (Cloudflare / Turnstile style)
+        $humanCheck = app(\App\Services\HumanVerificationService::class)->verify($request, 'register');
+        if (!$humanCheck['success']) {
+            return back()->withErrors([
+                'human_verification' => $humanCheck['message'],
             ])->withInput();
         }
 

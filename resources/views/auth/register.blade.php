@@ -6,21 +6,24 @@
     $brandName = \App\Models\CmsContent::getVal('website_brand_name', 'Invoicy');
     $brandSub = \App\Models\CmsContent::getVal('website_brand_sub', 'RedMaple');
 @endphp
-<div class="min-h-[90vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10" x-data="{
-    password: '',
-    get lengthOk() { return this.password.length >= 8; },
-    get upperOk() { return /[A-Z]/.test(this.password) && /[a-z]/.test(this.password); },
-    get numberOk() { return /[0-9]/.test(this.password); },
-    get symbolOk() { return /[^A-Za-z0-9]/.test(this.password); },
-    get strength() {
-        let score = 0;
-        if (this.lengthOk) score++;
-        if (this.upperOk) score++;
-        if (this.numberOk) score++;
-        if (this.symbolOk) score++;
-        return score;
-    }
-}">
+<div class="min-h-[90vh] flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-10" 
+     x-data="{
+         password: '',
+         isHumanVerified: false,
+         get lengthOk() { return this.password.length >= 8; },
+         get upperOk() { return /[A-Z]/.test(this.password) && /[a-z]/.test(this.password); },
+         get numberOk() { return /[0-9]/.test(this.password); },
+         get symbolOk() { return /[^A-Za-z0-9]/.test(this.password); },
+         get strength() {
+             let score = 0;
+             if (this.lengthOk) score++;
+             if (this.upperOk) score++;
+             if (this.numberOk) score++;
+             if (this.symbolOk) score++;
+             return score;
+         }
+     }"
+     @human-verified.window="isHumanVerified = true">
     <div class="w-full max-w-lg bg-white p-8 sm:p-10 rounded-2xl shadow-xl border border-slate-200">
         <div class="text-center mb-8">
             @if($loginLogo)
@@ -51,7 +54,8 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('register.post') }}" class="space-y-4">
+        <form method="POST" action="{{ route('register.post') }}" class="space-y-4"
+              @submit="if (!isHumanVerified) { $event.preventDefault(); window.dispatchEvent(new CustomEvent('invoicy-check-human')); }">
             @csrf
 
             <!-- Anti-Bot Honeypot (Invisible to real users, catches automated spam bots) -->
@@ -174,9 +178,14 @@
                 <p class="text-[11px] text-slate-500 mt-1">Have an offer code? Enter it above to unlock exclusive discounts, extended trial, or free service credits.</p>
             </div>
 
-            <button type="submit" class="w-full mt-2 py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
-                <i class="ph ph-rocket-launch text-base"></i>
-                Create Invoicy Workspace
+            <!-- Proprietary Invoicy Human Shield (Cloudflare / Turnstile style) -->
+            <x-human-shield action="register" />
+
+            <button type="submit" 
+                    class="w-full mt-2 py-3 px-4 font-bold rounded-lg text-sm shadow-md transition flex items-center justify-center gap-2"
+                    :class="isHumanVerified ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-lg cursor-pointer' : 'bg-slate-300 text-slate-600 cursor-not-allowed'">
+                <i class="ph text-base" :class="isHumanVerified ? 'ph-rocket-launch' : 'ph-lock-key'"></i>
+                <span x-text="isHumanVerified ? 'Create Invoicy Workspace' : 'Verify Humanity to Create Workspace'"></span>
             </button>
         </form>
 
