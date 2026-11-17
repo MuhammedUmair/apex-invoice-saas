@@ -48,14 +48,24 @@ Route::get('/app', function () {
 | Public Authentication Routes
 |--------------------------------------------------------------------------
 */
+// Dedicated Platform Super Admin Control Panel Route (/cp)
+// If authenticated as Super Admin -> forwards directly to /admin dashboard
+Route::get('/cp', function (\Illuminate\Http\Request $request) {
+    if (\Illuminate\Support\Facades\Auth::check()) {
+        if (\Illuminate\Support\Facades\Auth::user()->isSuperAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('dashboard');
+    }
+    return app(\App\Http\Controllers\AuthController::class)->showCpLogin($request);
+})->name('cp.login');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:15,1')->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
 
-    // Dedicated Platform Super Admin Control Panel Login (/cp)
-    Route::get('/cp', [AuthController::class, 'showCpLogin'])->name('cp.login');
     Route::post('/cp', [AuthController::class, 'cpLogin'])->middleware('throttle:15,1')->name('cp.login.post');
     Route::get('/cp/otp', [AuthController::class, 'showCpOtp'])->name('cp.otp');
     Route::post('/cp/otp', [AuthController::class, 'verifyCpOtp'])->middleware('throttle:10,1')->name('cp.otp.verify');
@@ -117,6 +127,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('invoices.send');
     Route::post('/invoices/{invoice}/reminder', [InvoiceController::class, 'sendReminder'])->name('invoices.reminder');
+    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
 
     // Automated Reminders & Future Scheduler Hub
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
@@ -210,6 +221,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'index'])->name('admin.coupons.index');
         Route::post('/admin/coupons/bulk-action', [\App\Http\Controllers\AdminCouponController::class, 'bulkAction'])->name('admin.coupons.bulk');
         Route::post('/admin/coupons', [\App\Http\Controllers\AdminCouponController::class, 'store'])->name('admin.coupons.store');
+        Route::put('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'update'])->name('admin.coupons.update');
         Route::post('/admin/coupons/{coupon}/toggle', [\App\Http\Controllers\AdminCouponController::class, 'toggle'])->name('admin.coupons.toggle');
         Route::delete('/admin/coupons/{coupon}', [\App\Http\Controllers\AdminCouponController::class, 'destroy'])->name('admin.coupons.destroy');
 

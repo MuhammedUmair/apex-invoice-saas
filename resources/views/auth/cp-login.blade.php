@@ -109,11 +109,10 @@
                         <span>Super Admin Email</span>
                         <span class="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Root Access</span>
                     </label>
-                    <input id="email" type="text" name="email" value="{{ old('email') }}" required autofocus
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
                            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                            data-lpignore="true" data-1p-ignore="true" data-form-type="other"
                            placeholder="superadmin@redmapleagency.com"
-                           readonly onfocus="this.removeAttribute('readonly');" onpointerdown="this.removeAttribute('readonly');"
                            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-white font-medium">
                 </div>
 
@@ -126,24 +125,23 @@
                     </div>
                     <div class="relative">
                         <input id="password" 
-                               type="text" 
+                               :type="showPass ? 'text' : 'password'" 
                                name="password" 
                                value="" 
                                required 
-                               autocomplete="off" 
+                               autocomplete="new-password" 
                                autocorrect="off" 
                                autocapitalize="off" 
                                spellcheck="false" 
                                data-lpignore="true" 
                                data-1p-ignore="true" 
                                data-form-type="other"
-                               readonly onfocus="this.removeAttribute('readonly');" onpointerdown="this.removeAttribute('readonly');"
-                               :style="showPass ? '-webkit-text-security: none; text-security: none;' : '-webkit-text-security: disc; text-security: disc;'"
-                               style="-webkit-text-security: disc; text-security: disc;"
+                               x-ref="pwdInput"
+                               x-init="$nextTick(() => { if ($refs.pwdInput) $refs.pwdInput.value = ''; })"
                                placeholder="Enter root password"
                                class="w-full pl-4 pr-11 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-white font-medium">
-                        <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1" title="Toggle password visibility">
-                            <i class="ph text-base" :class="showPass ? 'ph-eye-slash' : 'ph-eye'"></i>
+                        <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer" title="Toggle password visibility">
+                            <i class="ph text-base" :class="showPass ? 'ph-eye-slash text-amber-600' : 'ph-eye text-slate-400'"></i>
                         </button>
                     </div>
                 </div>

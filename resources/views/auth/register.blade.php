@@ -123,8 +123,11 @@
                 <div>
                     <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Strong Password *</label>
                     <div class="relative">
-                        <input id="password" :type="showPass1 ? 'text' : 'password'" name="password" x-model="password" required placeholder="Min 8 chars, Aa, 0-9, @"
-                               class="w-full pl-4 pr-11 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
+                        <input id="password" :type="showPass1 ? 'text' : 'password'" name="password" x-model="password" required 
+                               autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"
+                               data-lpignore="true" data-1p-ignore="true" data-form-type="other"
+                               placeholder="Min 8 chars, Aa, 0-9, @"
+                               class="w-full pl-4 pr-11 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
                         <button type="button" @click="showPass1 = !showPass1" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer" title="Toggle password visibility">
                             <i class="ph text-base" :class="showPass1 ? 'ph-eye-slash text-red-600' : 'ph-eye text-slate-400'"></i>
                         </button>
@@ -133,8 +136,11 @@
                 <div>
                     <label for="password_confirmation" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password *</label>
                     <div class="relative">
-                        <input id="password_confirmation" :type="showPass2 ? 'text' : 'password'" name="password_confirmation" required placeholder="Repeat password"
-                               class="w-full pl-4 pr-11 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
+                        <input id="password_confirmation" :type="showPass2 ? 'text' : 'password'" name="password_confirmation" required 
+                               autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false"
+                               data-lpignore="true" data-1p-ignore="true" data-form-type="other"
+                               placeholder="Repeat password"
+                               class="w-full pl-4 pr-11 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
                         <button type="button" @click="showPass2 = !showPass2" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer" title="Toggle password visibility">
                             <i class="ph text-base" :class="showPass2 ? 'ph-eye-slash text-red-600' : 'ph-eye text-slate-400'"></i>
                         </button>

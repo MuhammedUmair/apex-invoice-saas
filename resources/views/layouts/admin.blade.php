@@ -52,15 +52,89 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Light Theme Overrides */
+        body.theme-light {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        body.theme-light aside {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+        body.theme-light aside .border-slate-800 {
+            border-color: #f1f5f9 !important;
+        }
+        body.theme-light header {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+        body.theme-light main {
+            background-color: #f8fafc !important;
+        }
+        body.theme-light .bg-slate-950 {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        body.theme-light .bg-slate-900 {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        body.theme-light .bg-slate-800 {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #1e293b !important;
+        }
+        body.theme-light .text-white {
+            color: #0f172a !important;
+        }
+        body.theme-light .text-slate-100, body.theme-light .text-slate-200, body.theme-light .text-slate-300 {
+            color: #334155 !important;
+        }
+        body.theme-light .text-slate-400, body.theme-light .text-slate-500 {
+            color: #64748b !important;
+        }
+        body.theme-light .border-slate-800, body.theme-light .border-slate-700 {
+            border-color: #e2e8f0 !important;
+        }
+        body.theme-light input, body.theme-light select, body.theme-light textarea {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
+        }
+        body.theme-light table thead {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+        }
+        body.theme-light table tbody tr:hover {
+            background-color: #f8fafc !important;
+        }
     </style>
 </head>
 <body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950"
+      :class="theme === 'light' ? 'theme-light' : ''"
       x-data="{ 
           sidebarOpen: false,
           sidebarCollapsed: localStorage.getItem('admin_sidebar_collapsed') === 'true',
+          theme: localStorage.getItem('admin_theme') || 'dark',
           toggleSidebar() {
               this.sidebarCollapsed = !this.sidebarCollapsed;
               localStorage.setItem('admin_sidebar_collapsed', this.sidebarCollapsed);
+          },
+          toggleTheme() {
+              this.theme = this.theme === 'dark' ? 'light' : 'dark';
+              localStorage.setItem('admin_theme', this.theme);
+              if (this.theme === 'light') {
+                  document.body.classList.add('theme-light');
+              } else {
+                  document.body.classList.remove('theme-light');
+              }
+          },
+          init() {
+              if (this.theme === 'light') {
+                  document.body.classList.add('theme-light');
+              }
           }
       }">
 
@@ -91,18 +165,33 @@
             
             <!-- Branding Header -->
             <div class="h-16 flex items-center justify-between px-4 border-b border-slate-800">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-md shrink-0">
-                        <i class="ph ph-shield-check text-2xl font-bold"></i>
-                    </div>
-                    <div x-show="!sidebarCollapsed" class="transition-opacity duration-200">
-                        <div class="font-black text-sm tracking-tight text-white flex items-center gap-1.5">
-                            INVOICY <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-400 text-slate-950 font-extrabold uppercase">CP</span>
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 overflow-hidden" title="Super Admin Control Centre">
+                    @php
+                        $adminLogo = \App\Models\CmsContent::getLoginLogo();
+                    @endphp
+                    @if($adminLogo)
+                        <div class="w-10 h-10 rounded-xl bg-slate-800/80 p-1.5 flex items-center justify-center shrink-0 border border-slate-700">
+                            <img src="{{ $adminLogo }}" alt="RedMaple" class="max-h-full max-w-full object-contain">
                         </div>
-                        <div class="text-[10px] font-semibold text-slate-400 tracking-wider uppercase">Super Admin Suite</div>
+                    @else
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-rose-600 to-red-700 p-2 flex items-center justify-center text-white font-black shadow-md shrink-0">
+                            <!-- Official Canadian Red Maple Leaf Vector -->
+                            <svg class="w-full h-full text-white drop-shadow-sm" viewBox="0 0 900 900" fill="currentColor">
+                                <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                            </svg>
+                        </div>
+                    @endif
+                    <div x-show="!sidebarCollapsed" class="transition-opacity duration-200">
+                        <div class="font-black text-sm tracking-tight text-white flex items-center gap-1">
+                            <span class="text-red-500 font-black">REDMAPLE</span> <span class="font-black tracking-tight text-white">INVOICY</span>
+                        </div>
+                        <div class="text-[10px] font-semibold text-slate-400 tracking-wider uppercase flex items-center gap-1.5">
+                            <span>Control Centre</span>
+                            <span class="px-1 py-0.2 rounded text-[8px] bg-red-600 text-white font-black uppercase">SAAS</span>
+                        </div>
                     </div>
                 </a>
-                <button @click="toggleSidebar()" type="button" class="text-slate-400 hover:text-white p-1 rounded-lg transition" title="Toggle Sidebar">
+                <button @click="toggleSidebar()" type="button" class="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer" title="Toggle Sidebar">
                     <i :class="sidebarCollapsed ? 'ph ph-arrow-line-right' : 'ph ph-arrow-line-left'" class="text-lg"></i>
                 </button>
             </div>
@@ -386,6 +475,13 @@
                     <div class="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
                         <i class="ph ph-lock-key-open"></i> 2FA Secured
                     </div>
+
+                    <!-- Theme Switcher (Light / Dark) -->
+                    <button @click="toggleTheme()" type="button" 
+                            class="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-amber-400 transition flex items-center justify-center cursor-pointer shadow-xs"
+                            :title="theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+                        <i class="ph text-base" :class="theme === 'dark' ? 'ph-sun' : 'ph-moon'"></i>
+                    </button>
 
                     <!-- Switch to Tenant Workspace Link -->
                     <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5">

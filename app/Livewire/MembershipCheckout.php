@@ -111,6 +111,7 @@ class MembershipCheckout extends Component
                     'gateway' => 'promo_coupon',
                     'gateway_subscription_id' => 'promo_' . time(),
                     'status' => 'active',
+                    'trial_ends_at' => null,
                     'current_period_ends_at' => now()->addMonth(),
                 ]
             );

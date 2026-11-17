@@ -36,6 +36,9 @@ class AuthController extends Controller
         }
 
         if (Auth::check()) {
+            if (Auth::user()->isSuperAdmin()) {
+                return redirect()->route('admin.dashboard');
+            }
             return redirect()->route('dashboard');
         }
 
@@ -182,6 +185,9 @@ class AuthController extends Controller
         }
 
         if (Auth::check()) {
+            if (Auth::user()->isSuperAdmin()) {
+                return redirect()->route('admin.dashboard');
+            }
             return redirect()->route('dashboard');
         }
 
@@ -315,6 +321,9 @@ class AuthController extends Controller
         }
 
         if (Auth::check()) {
+            if (Auth::user()->isSuperAdmin()) {
+                return redirect()->route('admin.dashboard');
+            }
             return redirect()->route('dashboard');
         }
 
@@ -401,7 +410,7 @@ class AuthController extends Controller
             'ip' => $ip,
         ]);
 
-        return redirect()->intended(route('admin.subscriptions.index'));
+        return redirect()->intended(route('admin.dashboard'));
     }
 
     /**
@@ -482,6 +491,9 @@ class AuthController extends Controller
         }
 
         if (Auth::check()) {
+            if (Auth::user()->isSuperAdmin()) {
+                return redirect()->route('admin.dashboard');
+            }
             return redirect()->route('dashboard');
         }
         return view('auth.register');

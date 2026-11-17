@@ -68,7 +68,7 @@
                         class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
                     <i class="ph ph-paper-plane-tilt text-sm"></i> Send Emails
                 </button>
-                <button type="button" @click="submitBulk('delete', 'Permanently delete ' + selected.length + ' selected unpaid invoice(s)? This action cannot be undone.')" 
+                <button type="button" @click="submitBulk('delete', 'Permanently delete ' + selected.length + ' selected invoice(s)? This action cannot be undone.')" 
                         class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
                     <i class="ph ph-trash text-sm"></i> Delete
                 </button>
@@ -103,9 +103,9 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($invoices as $inv)
-                            <tr class="hover:bg-slate-50/60 transition" :class="selected.includes({{ $inv->id }}) ? 'bg-red-50/30' : ''">
+                            <tr class="hover:bg-slate-50/60 transition" :class="selected.includes('{{ $inv->id }}') ? 'bg-red-50/30' : ''">
                                 <td class="px-4 py-4 text-center">
-                                    <input type="checkbox" name="invoice_ids[]" value="{{ $inv->id }}" x-model.number="selected" class="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer">
+                                    <input type="checkbox" name="invoice_ids[]" value="{{ $inv->id }}" x-model="selected" class="rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer">
                                 </td>
                                 <td class="px-4 py-4">
                                     <a href="{{ route('invoices.show', $inv->id) }}" class="font-bold text-red-600 hover:underline">
@@ -191,6 +191,14 @@
                                     <a href="{{ route('invoices.portal', $inv->public_secure_token) }}" target="_blank" class="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600" title="Customer Portal Link">
                                         <i class="ph ph-arrow-square-out text-base"></i>
                                     </a>
+                                    <form action="{{ route('invoices.destroy', $inv->id) }}" method="POST" class="inline"
+                                          onsubmit="return confirm('Permanently delete invoice #{{ $inv->invoice_number }}? This cannot be undone.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-1.5 rounded-lg hover:bg-rose-50 text-rose-600" title="Delete Invoice">
+                                            <i class="ph ph-trash text-base"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

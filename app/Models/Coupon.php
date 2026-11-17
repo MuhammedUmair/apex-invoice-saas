@@ -101,6 +101,14 @@ class Coupon extends Model
      */
     public function calculateDiscountCents(int $amountCents): int
     {
+        // 100% Free Service Offer or 100% discount promotions (e.g. FREE100, Free Service grant)
+        if ($this->offer_type === 'service'
+            || ($this->discount_type === 'percent' && (float)$this->discount_value >= 100)
+            || stripos($this->service_name ?? '', '100% Free') !== false
+            || stripos($this->code, 'FREE100') !== false) {
+            return $amountCents;
+        }
+
         if ($this->discount_type === 'percent') {
             $discount = (int) round(($amountCents * (float)$this->discount_value) / 100);
             return min($discount, $amountCents);

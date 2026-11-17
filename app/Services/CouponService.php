@@ -179,7 +179,7 @@ class CouponService
 
         // Calculate discount or offer details
         $discountCents = 0;
-        if (($coupon->offer_type === 'discount' || empty($coupon->offer_type)) && $amountCents > 0) {
+        if ($amountCents > 0) {
             $discountCents = $coupon->calculateDiscountCents($amountCents);
         }
 
@@ -209,8 +209,25 @@ class CouponService
     {
         $subscription = $workspace->subscriptions()->first();
 
-        // 1. Extended trial days
-        if ($coupon->discount_type === 'trial_days' || $coupon->offer_type === 'trial') {
+        // 1. Check for 100% Free Service Offer or 100% Promo (e.g. FREE100) -> Upgrade from Trial to Active Full Service
+        $isFullServiceOr100 = $coupon->offer_type === 'service'
+            || ($coupon->discount_type === 'percent' && (float)$coupon->discount_value >= 100)
+            || stripos($coupon->service_name ?? '', '100% Free') !== false
+            || stripos($coupon->code, 'FREE100') !== false;
+
+        if ($isFullServiceOr100) {
+            $fullPlan = \App\Models\Plan::where('code', 'starter')->first() ?? \App\Models\Plan::where('price_cents', '>', 0)->first();
+            if ($fullPlan && $subscription) {
+                $subscription->update([
+                    'plan_id' => $fullPlan->id,
+                    'gateway' => 'promo_coupon',
+                    'gateway_subscription_id' => 'promo_' . $coupon->code . '_' . time(),
+                    'status' => 'active',
+                    'trial_ends_at' => null,
+                    'current_period_ends_at' => now()->addYear(),
+                ]);
+            }
+        } elseif ($coupon->discount_type === 'trial_days' || $coupon->offer_type === 'trial') {
             $extraDays = (int) ($coupon->discount_value ?: 30);
             if ($subscription) {
                 $base = $subscription->trial_ends_at ?: now();

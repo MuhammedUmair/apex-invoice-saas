@@ -381,7 +381,7 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'action' => 'required|string|in:mark_paid,mark_issued,send_emails,delete',
             'invoice_ids' => 'required|array|min:1',
-            'invoice_ids.*' => 'required|integer',
+            'invoice_ids.*' => 'required|string',
         ]);
 
         $workspaceId = Auth::user()->workspace_id;
@@ -475,16 +475,36 @@ class InvoiceController extends Controller
             return back()->with('message', "Dispatched {$successCount} invoice email(s) successfully." . ($failedCount > 0 ? " ({$failedCount} skipped due to missing email or delivery issue)" : ""));
         } elseif ($action === 'delete') {
             foreach ($invoices as $inv) {
-                if ($inv->status === 'paid') {
-                    continue;
-                }
                 $inv->items()->delete();
                 $inv->delete();
                 $count++;
             }
-            return back()->with('message', "Successfully deleted {$count} unpaid / draft invoice(s).");
+            return back()->with('message', "Successfully deleted {$count} invoice(s).");
         }
 
         return back();
+    }
+
+    /**
+     * Delete an individual invoice.
+     */
+    public function destroy(Invoice $invoice)
+    {
+        $workspaceId = Auth::user()->workspace_id;
+        if (!Auth::user()->isSuperAdmin() && $invoice->workspace_id !== $workspaceId) {
+            abort(403, 'Unauthorized access to this invoice.');
+        }
+
+        $invNum = $invoice->invoice_number;
+        $invoice->items()->delete();
+        $invoice->delete();
+
+        \App\Services\AuditService::log('invoice.deleted', null, null, [
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invNum,
+            'actor' => Auth::user()->email,
+        ]);
+
+        return redirect()->route('invoices.index')->with('message', "Invoice #{$invNum} successfully deleted.");
     }
 }

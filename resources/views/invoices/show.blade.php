@@ -130,6 +130,16 @@
                         <i class="ph ph-copy text-slate-500 text-sm"></i>
                         {{ __('Copy Portal Link') }}
                     </button>
+
+                    <form action="{{ route('invoices.destroy', $invoice->id) }}" method="POST" class="w-full"
+                          onsubmit="return confirm('Permanently delete invoice #{{ $invoice->invoice_number }}? This cannot be undone.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="w-full text-left px-4 py-2 hover:bg-rose-50 flex items-center gap-2 text-rose-600 font-semibold border-t border-slate-100">
+                            <i class="ph ph-trash text-rose-600 text-sm"></i>
+                            {{ __('Delete Invoice') }}
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

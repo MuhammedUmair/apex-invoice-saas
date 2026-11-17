@@ -146,7 +146,15 @@
                                :type="showPass ? 'text' : 'password'" 
                                name="password" 
                                required 
-                               autocomplete="current-password"
+                               autocomplete="new-password"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               data-lpignore="true"
+                               data-1p-ignore="true"
+                               data-form-type="other"
+                               x-ref="pwdInput"
+                               x-init="$nextTick(() => { if ($refs.pwdInput) $refs.pwdInput.value = ''; })"
                                placeholder="Enter your password"
                                class="w-full pl-4 pr-11 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
                         <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer" title="Toggle password visibility">
