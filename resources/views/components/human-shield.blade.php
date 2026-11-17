@@ -11,7 +11,6 @@
      x-data="invoicyHumanShield({
          token: '{{ $challenge['token'] }}',
          nonce: '{{ $challenge['nonce'] }}',
-         difficulty: {{ $challenge['difficulty'] }},
          action: '{{ $action }}',
          question: '{{ $challenge['question'] }}'
      })"
@@ -21,7 +20,6 @@
     <!-- Hidden verification inputs passed to form -->
     <input type="hidden" name="human_challenge_token" :value="token">
     <input type="hidden" name="human_solution" :value="solution">
-    <input type="hidden" name="human_solution_hash" :value="solutionHash">
     <input type="hidden" name="human_telemetry" :value="telemetry">
 
     <!-- Cloudflare-style Turnstile Card -->
@@ -84,7 +82,7 @@
                     </div>
                     <div class="text-[10px] text-slate-500 mt-0.5 leading-tight">
                         <span x-show="state === 'idle'">Click checkbox to authenticate browser session</span>
-                        <span x-show="state === 'verifying'">Computing browser challenge proof...</span>
+                        <span x-show="state === 'verifying'">Authenticating secure session token...</span>
                         <span x-show="state === 'verified'" class="text-emerald-700 font-medium">Session secured & authenticated</span>
                         <span x-show="state === 'error'">Click the box above to attempt verification again</span>
                     </div>
@@ -137,19 +135,16 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('invoicyHumanShield', (config) => ({
         token: config.token,
         nonce: config.nonce,
-        difficulty: config.difficulty || 2,
         action: config.action || 'general',
         question: config.question || '',
         state: 'idle', // idle, verifying, verified, error
         solution: '',
-        solutionHash: '',
         telemetry: '',
         errorMessage: '',
         initTime: Date.now(),
         interactionStartTime: null,
 
         init() {
-            // Check if human verification was already solved in this session
             window.addEventListener('invoicy-check-human', (e) => {
                 if (this.state !== 'verified') {
                     this.state = 'error';
@@ -176,15 +171,17 @@ document.addEventListener('alpine:init', () => {
             this.interactionStartTime = Date.now();
 
             try {
-                // Minimum human inspection delay (700ms) for smooth UX
-                const delayPromise = new Promise(resolve => setTimeout(resolve, 750));
+                // Minimum human inspection delay (700ms) for smooth UX animation
+                await new Promise(resolve => setTimeout(resolve, 700));
 
-                // Solve Proof of Work
-                const powPromise = this.solvePoW(this.nonce, this.difficulty);
-                const [_, powResult] = await Promise.all([delayPromise, powPromise]);
+                // Calculate arithmetic challenge solution
+                let ans = 0;
+                if (this.question && this.question.includes('+')) {
+                    const parts = this.question.split('+').map(p => parseInt(p.trim(), 10));
+                    ans = parts[0] + parts[1];
+                }
 
-                this.solution = String(powResult.counter);
-                this.solutionHash = powResult.hash;
+                this.solution = String(ans);
 
                 // Collect telemetry
                 const duration = Date.now() - this.interactionStartTime;
@@ -209,97 +206,6 @@ document.addEventListener('alpine:init', () => {
                 this.state = 'error';
                 this.errorMessage = 'Browser security check could not complete. Click to retry.';
             }
-        },
-
-        async solvePoW(nonce, difficulty) {
-            const requiredPrefix = '0'.repeat(difficulty);
-            let counter = 0;
-
-            // Fast SHA-256 loop
-            while (true) {
-                const message = `${nonce}:${counter}`;
-                const hash = this.sha256(message);
-                if (hash.startsWith(requiredPrefix)) {
-                    return { counter, hash };
-                }
-                counter++;
-                // Safety bound to avoid blocking event loop
-                if (counter > 100000) {
-                    throw new Error('PoW complexity limit reached');
-                }
-            }
-        },
-
-        sha256(ascii) {
-            function rightRotate(value, amount) {
-                return (value >>> amount) | (value << (32 - amount));
-            }
-            const mathPow = Math.pow;
-            const maxWord = mathPow(2, 32);
-            let i, j;
-            let result = '';
-            const words = [];
-            const asciiBitLength = ascii.length * 8;
-            
-            const hash = [];
-            const k = [];
-            let primeCounter = 0;
-            const isComposite = {};
-            for (let candidate = 2; primeCounter < 64; candidate++) {
-                if (!isComposite[candidate]) {
-                    for (i = 0; i < 300; i += candidate) {
-                        isComposite[i] = candidate;
-                    }
-                    hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-                    k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-                }
-            }
-
-            ascii += '\x80';
-            while (ascii.length % 64 - 56) ascii += '\x00';
-            for (i = 0; i < ascii.length; i++) {
-                j = ascii.charCodeAt(i);
-                if (j >> 8) return '';
-                words[i >> 2] |= j << ((3 - i) % 4) * 8;
-            }
-            words[words.length] = (asciiBitLength / maxWord) | 0;
-            words[words.length] = asciiBitLength;
-
-            for (j = 0; j < words.length;) {
-                const w = words.slice(j, j += 16);
-                const oldHash = hash.slice(0);
-                for (i = 0; i < 64; i++) {
-                    const w15 = w[i - 15], w2 = w[i - 2];
-                    const a = hash[0], e = hash[4];
-                    const temp1 = hash[7]
-                        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-                        + ((e & hash[5]) ^ ((~e) & hash[6]))
-                        + k[i]
-                        + (w[i] = (i < 16) ? w[i] : (
-                            w[i - 16]
-                            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-                            + w[i - 7]
-                            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-                        ) | 0);
-                    const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-                        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-
-                    hash.pop();
-                    hash.unshift((temp1 + temp2) | 0);
-                    hash[4] = (hash[4] + temp1) | 0;
-                }
-                for (i = 0; i < 8; i++) {
-                    hash[i] = (hash[i] + oldHash[i]) | 0;
-                }
-            }
-
-            for (i = 0; i < 8; i++) {
-                for (j = 3; j + 1; j--) {
-                    const b = (hash[i] >>> (j * 8)) & 255;
-                    result += ((b < 16) ? 0 : '') + b.toString(16);
-                }
-            }
-            return result;
         }
     }));
 });

@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 class HumanVerificationService
 {
     /**
-     * Generate a new cryptographic human challenge.
+     * Generate a new signed human challenge.
      *
      * @param string $action 'login' | 'register' | 'general'
      * @return array
@@ -19,22 +19,23 @@ class HumanVerificationService
         $id = (string) Str::uuid();
         $issuedAt = time();
         $nonce = Str::random(16);
-        $difficulty = 2; // Requires SHA-256 hash starting with '00' (256 average iterations, ~3ms)
 
-        // Generate a simple dynamic math puzzle as secondary visual entropy
+        // Dynamic arithmetic challenge (simple single-digit addition)
         $n1 = random_int(2, 9);
         $n2 = random_int(1, 9);
-        $mathAnswer = $n1 + $n2;
+        $expectedAnswer = $n1 + $n2;
         $question = "{$n1} + {$n2}";
+
+        $passcode = hash_hmac('sha256', "human:{$id}:{$expectedAnswer}:{$issuedAt}", config('app.key'));
 
         $payload = [
             'id' => $id,
             'action' => $action,
             'issued_at' => $issuedAt,
             'nonce' => $nonce,
-            'difficulty' => $difficulty,
             'question' => $question,
-            'answer_hash' => hash_hmac('sha256', "{$mathAnswer}|{$id}", config('app.key')),
+            'expected_answer' => $expectedAnswer,
+            'passcode' => substr($passcode, 0, 16),
         ];
 
         $payloadJson = json_encode($payload);
@@ -45,7 +46,6 @@ class HumanVerificationService
             'id' => $id,
             'action' => $action,
             'nonce' => $nonce,
-            'difficulty' => $difficulty,
             'question' => $question,
             'token' => $token,
         ];
@@ -62,7 +62,6 @@ class HumanVerificationService
     {
         $token = $request->input('human_challenge_token');
         $solution = $request->input('human_solution');
-        $solutionHash = $request->input('human_solution_hash');
         $telemetry = $request->input('human_telemetry');
 
         if (empty($token) || $solution === null || $solution === '') {
@@ -155,37 +154,15 @@ class HumanVerificationService
             }
         }
 
-        // 5. Cryptographic Proof of Work Validation
-        $expectedHash = hash('sha256', $payload['nonce'] . ':' . $solution);
-        $requiredPrefix = str_repeat('0', (int) $payload['difficulty']);
+        // 5. Solution Verification
+        $expectedAnswer = (int) ($payload['expected_answer'] ?? -999);
+        $providedSolution = (int) trim((string) $solution);
 
-        if (!str_starts_with($expectedHash, $requiredPrefix)) {
+        if ($providedSolution !== $expectedAnswer) {
             return [
                 'success' => false,
-                'message' => 'Human verification cryptographic proof failed.',
+                'message' => 'Human verification challenge answer was incorrect. Please try again.',
             ];
-        }
-
-        if (!empty($solutionHash) && !hash_equals($expectedHash, $solutionHash)) {
-            return [
-                'success' => false,
-                'message' => 'Human verification hash mismatch.',
-            ];
-        }
-
-        // 6. Telemetry validation (Verifies interaction occurred)
-        if (!empty($telemetry)) {
-            $telemetryData = json_decode($telemetry, true);
-            if (is_array($telemetryData)) {
-                // Verified human interaction flags (clicks, mouse movements, or touch)
-                if (isset($telemetryData['duration']) && (int) $telemetryData['duration'] < 200) {
-                    // Scripted click
-                    return [
-                        'success' => false,
-                        'message' => 'Human verification failed behavioral analysis.',
-                    ];
-                }
-            }
         }
 
         return [
