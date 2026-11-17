@@ -30,8 +30,11 @@ Route::get('/', function () {
     $host = request()->getHost();
 
     if (str_starts_with($host, 'invoicy.')) {
-        if (Auth::check()) {
+        if (Auth::guard('web')->check()) {
             return redirect()->route('dashboard');
+        }
+        if (Auth::guard('superadmin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
         return redirect()->route('login');
     }
@@ -51,25 +54,18 @@ Route::get('/app', function () {
 // Dedicated Platform Super Admin Control Panel Route (/cp)
 // If authenticated as Super Admin -> forwards directly to /admin dashboard
 Route::get('/cp', function (\Illuminate\Http\Request $request) {
-    if (\Illuminate\Support\Facades\Auth::check()) {
-        if (\Illuminate\Support\Facades\Auth::user()->isSuperAdmin()) {
-            return redirect()->route('admin.dashboard');
-        }
-        return redirect()->route('dashboard');
+    if (\Illuminate\Support\Facades\Auth::guard('superadmin')->check()) {
+        return redirect()->route('admin.dashboard');
     }
     return app(\App\Http\Controllers\AuthController::class)->showCpLogin($request);
 })->name('cp.login');
 
-Route::middleware('guest')->group(function () {
+// Tenant Authentication Routes (Guarded by 'web')
+Route::middleware('guest:web')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:15,1')->name('login.post');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
-
-    Route::post('/cp', [AuthController::class, 'cpLogin'])->middleware('throttle:15,1')->name('cp.login.post');
-    Route::get('/cp/otp', [AuthController::class, 'showCpOtp'])->name('cp.otp');
-    Route::post('/cp/otp', [AuthController::class, 'verifyCpOtp'])->middleware('throttle:10,1')->name('cp.otp.verify');
-    Route::post('/cp/otp/resend', [AuthController::class, 'resendCpOtp'])->middleware('throttle:5,1')->name('cp.otp.resend');
 
     // Password Reset with brute-force / email-bomb throttling
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
@@ -78,9 +74,20 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('password.update');
 });
 
-// Logout accepts both GET and POST to prevent 405 Method Not Allowed
+// Super Admin Authentication Routes (Guarded by 'superadmin')
+Route::middleware('guest:superadmin')->group(function () {
+    Route::post('/cp', [AuthController::class, 'cpLogin'])->middleware('throttle:15,1')->name('cp.login.post');
+    Route::get('/cp/otp', [AuthController::class, 'showCpOtp'])->name('cp.otp');
+    Route::post('/cp/otp', [AuthController::class, 'verifyCpOtp'])->middleware('throttle:10,1')->name('cp.otp.verify');
+    Route::post('/cp/otp/resend', [AuthController::class, 'resendCpOtp'])->middleware('throttle:5,1')->name('cp.otp.resend');
+});
+
+// Tenant Logout
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 Route::match(['get', 'post'], '/logout-beacon', [AuthController::class, 'logoutBeacon'])->name('logout.beacon');
+
+// Dedicated Super Admin Logout
+Route::match(['get', 'post'], '/admin/logout', [AuthController::class, 'adminLogout'])->name('admin.logout');
 
 // Account Email Verification Routes
 Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])

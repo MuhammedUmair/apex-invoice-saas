@@ -35,10 +35,9 @@ class AuthController extends Controller
             return $redirect;
         }
 
-        if (Auth::check()) {
-            if (Auth::user()->isSuperAdmin()) {
-                return redirect()->route('admin.dashboard');
-            }
+        // Only redirect away from /login if ALREADY authenticated as tenant (web guard).
+        // Super Admins logged into /cp are allowed to access /login to authenticate into a tenant account.
+        if (Auth::guard('web')->check()) {
             return redirect()->route('dashboard');
         }
 
@@ -77,7 +76,22 @@ class AuthController extends Controller
         $ipThrottleKey = 'login_ip_locked:' . $ip;
         $emailThrottleKey = 'login_attempt:' . $email . '|' . $ip;
 
-        // 1. Check if IP or Account is currently locked out (Item 1 & 2)
+        // 1. REJECT SUPER ADMIN LOGIN AT /login (Requirement 1)
+        // Super admins are strictly prohibited from logging in via /login (tenant portal only).
+        // Super admins must use the dedicated Control Panel at /cp.
+        $targetUser = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        if ($targetUser && $targetUser->isSuperAdmin()) {
+            \App\Services\AuditService::log('auth.superadmin_login_at_tenant_portal_rejected', null, null, [
+                'email' => $email,
+                'ip' => $ip,
+            ]);
+
+            return back()->withErrors([
+                'email' => 'Access Denied: Platform Super Administrators are not permitted to sign in through the tenant portal. Please sign in via the dedicated Control Panel at /cp.',
+            ])->onlyInput('email');
+        }
+
+        // 2. Check if IP or Account is currently locked out
         if (RateLimiter::tooManyAttempts($ipThrottleKey, 1) || RateLimiter::tooManyAttempts($emailThrottleKey, 3)) {
             $seconds = max(
                 RateLimiter::availableIn($ipThrottleKey),
@@ -96,14 +110,13 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt(['email' => $email, 'password' => $credentials['password']], $remember)) {
-            $user = Auth::user();
+        // Authenticate tenant into 'web' guard (isolated from superadmin guard session)
+        if (Auth::guard('web')->attempt(['email' => $email, 'password' => $credentials['password']], $remember)) {
+            $user = Auth::guard('web')->user();
 
             // Enforce email verification for team members
             if (!$user->isSuperAdmin() && empty($user->email_verified_at)) {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
+                Auth::guard('web')->logout();
 
                 return back()->withErrors([
                     'email' => 'Your email address is pending verification. Please click the activation link sent to your email, or ask your administrator to resend it.',
@@ -112,14 +125,9 @@ class AuthController extends Controller
 
             RateLimiter::clear($emailThrottleKey);
             RateLimiter::clear($ipThrottleKey);
-            $request->session()->regenerate();
 
-            \App\Services\AuditService::log('auth.login_success', Auth::user());
+            \App\Services\AuditService::log('auth.login_success', $user);
             \App\Models\LoginHistory::record($email, $user, 'successful');
-
-            if ($user->isSuperAdmin()) {
-                return redirect()->intended(route('admin.dashboard'));
-            }
 
             return redirect()->intended(route('dashboard'));
         }
@@ -184,11 +192,8 @@ class AuthController extends Controller
             return $redirect;
         }
 
-        if (Auth::check()) {
-            if (Auth::user()->isSuperAdmin()) {
-                return redirect()->route('admin.dashboard');
-            }
-            return redirect()->route('dashboard');
+        if (Auth::guard('superadmin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
 
         $ipThrottleKey = 'cp_ip_locked:' . $request->ip();
@@ -320,11 +325,8 @@ class AuthController extends Controller
             return $redirect;
         }
 
-        if (Auth::check()) {
-            if (Auth::user()->isSuperAdmin()) {
-                return redirect()->route('admin.dashboard');
-            }
-            return redirect()->route('dashboard');
+        if (Auth::guard('superadmin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
 
         $userId = session('cp_otp_user_id');
@@ -401,8 +403,10 @@ class AuthController extends Controller
         RateLimiter::clear('cp_ip_locked:' . $ip);
         RateLimiter::clear('cp_attempt:' . $email . '|' . $ip);
 
-        // Authenticate Super Admin session
-        Auth::login($user, false);
+        // Authenticate Super Admin session into dedicated guard
+        Auth::guard('superadmin')->login($user, false);
+        session(['super_admin_2fa_verified' => true]);
+        session(['superadmin_authenticated_id' => $user->id]);
         $request->session()->regenerate();
 
         \App\Services\AuditService::log('auth.cp_login_success', $user, null, [
@@ -490,11 +494,8 @@ class AuthController extends Controller
             return $redirect;
         }
 
-        if (Auth::check()) {
-            if (Auth::user()->isSuperAdmin()) {
-                return redirect()->route('admin.dashboard');
-            }
-            return redirect()->route('dashboard');
+        if (Auth::guard('superadmin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
         return view('auth.register');
     }
@@ -647,20 +648,36 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
+        Auth::guard('web')->logout();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route('login')->with('success', 'You have been signed out of your agency workspace.');
     }
 
     public function logoutBeacon(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
+        Auth::guard('web')->logout();
         $request->session()->regenerateToken();
 
-        return response()->json(['status' => 'logged_out', 'message' => 'Session terminated on browser/tab close.']);
+        return response()->json(['status' => 'logged_out', 'message' => 'Tenant session terminated.']);
+    }
+
+    /**
+     * Dedicated Super Admin Control Panel Logout.
+     */
+    public function adminLogout(Request $request)
+    {
+        Auth::guard('superadmin')->logout();
+        $request->session()->forget([
+            'super_admin_2fa_verified',
+            'superadmin_authenticated_id',
+            'super_admin_assisted_session',
+            'assisted_workspace_name',
+            'assisted_operator_email',
+        ]);
+        $request->session()->regenerateToken();
+
+        return redirect()->route('cp.login')->with('success', 'You have been securely signed out of the Super Admin Control Panel.');
     }
 
     public function showForgotPassword(Request $request)

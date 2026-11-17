@@ -438,11 +438,11 @@
                             </div>
                         </div>
                     </div>
-                    <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();"
+                    <a href="{{ route('admin.logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();"
                        class="text-slate-400 hover:text-rose-400 p-1.5 transition" title="Sign Out">
                         <i class="ph ph-sign-out text-base"></i>
                     </a>
-                    <form id="admin-logout-form" method="POST" action="{{ route('logout') }}" class="hidden">
+                    <form id="admin-logout-form" method="POST" action="{{ route('admin.logout') }}" class="hidden">
                         @csrf
                     </form>
                 </div>
@@ -509,7 +509,7 @@
                                 <i class="ph ph-fingerprint mr-2 text-violet-400"></i> Platform Audit Trail
                             </a>
                             <div class="border-t border-slate-800 my-1"></div>
-                            <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();"
+                            <a href="{{ route('admin.logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();"
                                class="block px-4 py-2 text-rose-400 hover:bg-rose-500/10 transition">
                                 <i class="ph ph-sign-out mr-2"></i> Sign Out
                             </a>
