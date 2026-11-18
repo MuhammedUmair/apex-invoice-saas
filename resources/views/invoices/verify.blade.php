@@ -22,14 +22,14 @@
 <body class="bg-slate-50 min-h-screen text-slate-900 flex flex-col justify-between antialiased">
 
     <!-- Top Header -->
-    <header class="bg-white border-b border-slate-200 py-4 px-6 sticky top-0 z-30 shadow-xs">
-        <div class="max-w-4xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3">
+    <header class="bg-white border-b border-slate-200 py-3 sm:py-4 px-4 sm:px-6 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-4">
+            <div class="flex items-center gap-2.5 sm:gap-3">
                 @if($sysLogo)
-                    <img src="{{ $sysLogo }}" alt="Logo" class="h-8 max-w-[140px] object-contain">
+                    <img src="{{ $sysLogo }}" alt="Logo" class="h-7 sm:h-8 max-w-[120px] sm:max-w-[140px] object-contain">
                 @else
-                    <div class="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-sm shadow-sm">
-                        <i class="ph ph-shield-check text-xl"></i>
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-sm shadow-sm shrink-0">
+                        <i class="ph ph-shield-check text-lg sm:text-xl"></i>
                     </div>
                 @endif
                 <div>
@@ -37,12 +37,12 @@
                         <span>Invoicy</span>
                         <span class="text-[10px] uppercase tracking-wider font-extrabold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">Trust Shield</span>
                     </div>
-                    <div class="text-[11px] text-slate-500 font-medium">Digital Document Authenticity Verification</div>
+                    <div class="text-[10px] sm:text-[11px] text-slate-500 font-medium">Digital Document Authenticity Verification</div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <div class="flex items-center gap-2 self-start sm:self-auto">
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     Cryptographically Validated
                 </span>

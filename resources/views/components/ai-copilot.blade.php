@@ -1,174 +1,187 @@
-<div x-data="{
-    isOpen: false,
-    isListening: false,
-    isSpeaking: false,
-    soundEnabled: true,
-    inputMessage: '',
-    messages: [
-        { sender: 'ai', text: 'Hello! I am your AI Agent. Ask me anything about your invoices, settings, recall option, or click the mic to speak a voice command!', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] }
-    ],
-    recognition: null,
-    synth: window.speechSynthesis || null,
+<script>
+(function() {
+    function initAiAgent() {
+        if (typeof Alpine !== 'undefined' && Alpine.data) {
+            Alpine.data('aiAgentComponent', () => ({
+                isOpen: false,
+                isListening: false,
+                isSpeaking: false,
+                soundEnabled: true,
+                inputMessage: '',
+                messages: [
+                    { sender: 'ai', text: 'Hello! I am your AI Agent. Ask me anything about your invoices, settings, recall option, or click the mic to speak a voice command!', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] }
+                ],
+                recognition: null,
+                synth: window.speechSynthesis || null,
 
-    init() {
-        this.initSpeech();
-        window.addEventListener('open-ai-copilot', () => {
-            this.isOpen = true;
-            this.scrollToBottom();
-        });
-    },
+                init() {
+                    this.initSpeech();
+                    window.addEventListener('open-ai-copilot', () => {
+                        this.isOpen = true;
+                        this.scrollToBottom();
+                    });
+                },
 
-    initSpeech() {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            try {
-                this.recognition = new SpeechRec();
-                this.recognition.continuous = false;
-                this.recognition.interimResults = false;
-                this.recognition.lang = 'en-US';
+                initSpeech() {
+                    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        try {
+                            this.recognition = new SpeechRec();
+                            this.recognition.continuous = false;
+                            this.recognition.interimResults = false;
+                            this.recognition.lang = 'en-US';
 
-                this.recognition.onstart = () => {
-                    this.isListening = true;
-                };
+                            this.recognition.onstart = () => {
+                                this.isListening = true;
+                            };
 
-                this.recognition.onresult = (event) => {
-                    this.isListening = false;
-                    if (event.results && event.results[0] && event.results[0][0]) {
-                        const transcript = event.results[0][0].transcript;
-                        this.inputMessage = transcript;
-                        this.sendMessage();
+                            this.recognition.onresult = (event) => {
+                                this.isListening = false;
+                                if (event.results && event.results[0] && event.results[0][0]) {
+                                    const transcript = event.results[0][0].transcript;
+                                    this.inputMessage = transcript;
+                                    this.sendMessage();
+                                }
+                            };
+
+                            this.recognition.onerror = (event) => {
+                                console.warn('Speech recognition notice:', event.error);
+                                this.isListening = false;
+                                if (event.error === 'not-allowed') {
+                                    this.messages.push({
+                                        sender: 'ai',
+                                        text: 'Microphone access was denied. Please allow microphone permissions in your browser address bar to speak voice commands, or simply type your message.'
+                                    });
+                                    this.scrollToBottom();
+                                }
+                            };
+
+                            this.recognition.onend = () => {
+                                this.isListening = false;
+                            };
+                        } catch (e) {
+                            console.warn('Speech recognition init error:', e);
+                        }
                     }
-                };
+                },
 
-                this.recognition.onerror = (event) => {
-                    console.warn('Speech recognition notice:', event.error);
-                    this.isListening = false;
-                    if (event.error === 'not-allowed') {
+                toggleVoice() {
+                    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                        alert('Voice recognition requires Google Chrome, Microsoft Edge, or Safari over HTTPS.');
+                        return;
+                    }
+
+                    if (!this.recognition) {
+                        this.initSpeech();
+                    }
+
+                    if (this.isListening) {
+                        try { this.recognition.stop(); } catch (e) {}
+                        this.isListening = false;
+                    } else {
+                        try {
+                            this.recognition.start();
+                            this.isListening = true;
+                        } catch (e) {
+                            try {
+                                this.recognition.abort();
+                                setTimeout(() => {
+                                    this.recognition.start();
+                                    this.isListening = true;
+                                }, 250);
+                            } catch (e2) {
+                                this.isListening = false;
+                            }
+                        }
+                    }
+                },
+
+                speak(text) {
+                    if (!this.soundEnabled || !this.synth) return;
+                    try {
+                        this.synth.cancel();
+                        const utter = new SpeechSynthesisUtterance(text);
+                        utter.rate = 1.0;
+                        utter.pitch = 1.0;
+                        utter.onstart = () => { this.isSpeaking = true; };
+                        utter.onend = () => { this.isSpeaking = false; };
+                        this.synth.speak(utter);
+                    } catch (e) {}
+                },
+
+                toggleSound() {
+                    this.soundEnabled = !this.soundEnabled;
+                    if (!this.soundEnabled && this.synth) {
+                        this.synth.cancel();
+                        this.isSpeaking = false;
+                    }
+                },
+
+                async sendMessage(customText = null) {
+                    const text = customText || this.inputMessage.trim();
+                    if (!text) return;
+
+                    this.messages.push({ sender: 'user', text: text });
+                    this.inputMessage = '';
+                    this.scrollToBottom();
+
+                    try {
+                        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                        const token = csrfMeta ? csrfMeta.getAttribute('content') : '{{ csrf_token() }}';
+
+                        const res = await fetch('{{ route('ai.copilot.chat') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': token
+                            },
+                            body: JSON.stringify({ message: text })
+                        });
+
+                        if (!res.ok) {
+                            throw new Error('HTTP ' + res.status);
+                        }
+
+                        const data = await res.json();
                         this.messages.push({
                             sender: 'ai',
-                            text: 'Microphone access was denied. Please allow microphone permissions in your browser address bar to speak voice commands, or simply type your message.'
+                            text: data.reply,
+                            action: data.action || null,
+                            suggestions: data.suggestions || []
                         });
                         this.scrollToBottom();
+
+                        this.speak(data.reply);
+
+                        if (data.action && data.action.type === 'navigate') {
+                            setTimeout(() => {
+                                window.location.href = data.action.url;
+                            }, 1600);
+                        }
+                    } catch (e) {
+                        console.error('AI Agent error:', e);
+                        this.messages.push({ sender: 'ai', text: 'I am here to help! Could you please rephrase or pick one of the suggestions below?', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] });
+                        this.scrollToBottom();
                     }
-                };
-
-                this.recognition.onend = () => {
-                    this.isListening = false;
-                };
-            } catch (e) {
-                console.warn('Speech recognition init error:', e);
-            }
-        }
-    },
-
-    toggleVoice() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice recognition requires Google Chrome, Microsoft Edge, or Safari over HTTPS.');
-            return;
-        }
-
-        if (!this.recognition) {
-            this.initSpeech();
-        }
-
-        if (this.isListening) {
-            try { this.recognition.stop(); } catch (e) {}
-            this.isListening = false;
-        } else {
-            try {
-                this.recognition.start();
-                this.isListening = true;
-            } catch (e) {
-                try {
-                    this.recognition.abort();
-                    setTimeout(() => {
-                        this.recognition.start();
-                        this.isListening = true;
-                    }, 250);
-                } catch (e2) {
-                    this.isListening = false;
-                }
-            }
-        }
-    },
-
-    speak(text) {
-        if (!this.soundEnabled || !this.synth) return;
-        try {
-            this.synth.cancel();
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.rate = 1.0;
-            utter.pitch = 1.0;
-            utter.onstart = () => { this.isSpeaking = true; };
-            utter.onend = () => { this.isSpeaking = false; };
-            this.synth.speak(utter);
-        } catch (e) {}
-    },
-
-    toggleSound() {
-        this.soundEnabled = !this.soundEnabled;
-        if (!this.soundEnabled && this.synth) {
-            this.synth.cancel();
-            this.isSpeaking = false;
-        }
-    },
-
-    async sendMessage(customText = null) {
-        const text = customText || this.inputMessage.trim();
-        if (!text) return;
-
-        this.messages.push({ sender: 'user', text: text });
-        this.inputMessage = '';
-        this.scrollToBottom();
-
-        try {
-            const csrfMeta = document.querySelector('meta[name=\"csrf-token\"]');
-            const token = csrfMeta ? csrfMeta.getAttribute('content') : '{{ csrf_token() }}';
-
-            const res = await fetch('{{ route('ai.copilot.chat') }}', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token
                 },
-                body: JSON.stringify({ message: text })
-            });
 
-            if (!res.ok) {
-                throw new Error('HTTP ' + res.status);
-            }
-
-            const data = await res.json();
-            this.messages.push({
-                sender: 'ai',
-                text: data.reply,
-                action: data.action || null,
-                suggestions: data.suggestions || []
-            });
-            this.scrollToBottom();
-
-            this.speak(data.reply);
-
-            if (data.action && data.action.type === 'navigate') {
-                setTimeout(() => {
-                    window.location.href = data.action.url;
-                }, 1600);
-            }
-        } catch (e) {
-            console.error('AI Agent error:', e);
-            this.messages.push({ sender: 'ai', text: 'I am here to help! Could you please rephrase or pick one of the suggestions below?', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] });
-            this.scrollToBottom();
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const container = document.getElementById('ai-chat-body');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    });
+                }
+            }));
+        } else {
+            document.addEventListener('alpine:init', initAiAgent, { once: true });
         }
-    },
-
-    scrollToBottom() {
-        this.$nextTick(() => {
-            const container = document.getElementById('ai-chat-body');
-            if (container) container.scrollTop = container.scrollHeight;
-        });
     }
-}" class="fixed bottom-6 right-6 z-50">
+    initAiAgent();
+})();
+</script>
+
+<div x-data="aiAgentComponent" class="fixed bottom-6 right-6 z-50">
 
     <!-- Floating Trigger Button -->
     <div x-show="!isOpen" x-cloak>

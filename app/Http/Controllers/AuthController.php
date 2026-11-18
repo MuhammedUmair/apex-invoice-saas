@@ -414,7 +414,10 @@ class AuthController extends Controller
             'ip' => $ip,
         ]);
 
-        return redirect()->intended(route('admin.dashboard'));
+        // Explicitly clear any stale tenant intended URL so superadmin goes directly to /admin
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('admin.dashboard');
     }
 
     /**
