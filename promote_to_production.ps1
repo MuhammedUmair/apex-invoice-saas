@@ -69,21 +69,68 @@ Write-Host "[4/5] Executing live production update and cache warmup..."
 $bridgeCode = @"
 <?php
 header('Content-Type: text/plain; charset=utf-8');
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 `$prodCore = '$ProdCore';
 `$zipPath = __DIR__ . '/invoicy_production_build.zip';
 
+echo "=== INVOICY PRODUCTION DEPLOYMENT ===\n";
+echo "Target Directory: `$prodCore\n\n";
+
+if (!file_exists(`$zipPath)) {
+    die("ERROR: invoicy_production_build.zip not found at `$zipPath\n");
+}
+
+// 1. Clean up stale backslash files in root
+echo "Cleaning up any stale backslash files in root...\n";
+foreach (scandir(`$prodCore) as `$f) {
+    if (strpos(`$f, '\\') !== false) {
+        @unlink(`$prodCore . '/' . `$f);
+        echo "Deleted: `$f\n";
+    }
+}
+
+// 2. Extract with Linux path normalization
+echo "Extracting files with Linux path normalization...\n";
 `$zip = new ZipArchive();
 if (`$zip->open(`$zipPath) === true) {
-    `$zip->extractTo(`$prodCore);
+    for (`$i = 0; `$i < `$zip->numFiles; `$i++) {
+        `$entry = `$zip->getNameIndex(`$i);
+        `$normalized = str_replace('\\', '/', `$entry);
+        `$dest = `$prodCore . '/' . `$normalized;
+
+        if (substr(`$normalized, -1) === '/') {
+            if (!is_dir(`$dest)) {
+                mkdir(`$dest, 0755, true);
+            }
+            continue;
+        }
+
+        `$destDir = dirname(`$dest);
+        if (!is_dir(`$destDir)) {
+            mkdir(`$destDir, 0755, true);
+        }
+
+        `$stream = `$zip->getStream(`$entry);
+        if (`$stream) {
+            `$fp = fopen(`$dest, 'wb');
+            while (!feof(`$stream)) {
+                fwrite(`$fp, fread(`$stream, 8192));
+            }
+            fclose(`$fp);
+            fclose(`$stream);
+        }
+    }
     `$zip->close();
     @unlink(`$zipPath);
-    echo "Production archive unpacked successfully.\n";
+    echo "Production archive unpacked and normalized successfully.\n";
 } else {
-    echo "FAILED to open production archive.\n";
+    die("FAILED to open production archive.\n");
 }
 
 if (file_exists(`$prodCore . '/vendor/autoload.php')) {
-    require `$prodCore . '/vendor/autoload.php';
+    require_once `$prodCore . '/vendor/autoload.php';
     `$app = require_once `$prodCore . '/bootstrap/app.php';
     `$kernel = `$app->make(Illuminate\Contracts\Http\Kernel::class);
     `$kernel->handle(Illuminate\Http\Request::capture());
