@@ -717,15 +717,43 @@
                                     </td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2 flex-wrap">
-                                            @if($alert->type === 'upgrade_request' && !empty($alert->metadata['requested_plan_id']) && $alert->workspace)
-                                                <form method="POST" action="{{ route('admin.workspaces.renew', $alert->workspace_id) }}" class="inline" onsubmit="return confirm('Approve and activate {{ $alert->metadata['requested_plan_name'] ?? 'Plan' }} for {{ addslashes($alert->workspace->name) }}?')">
-                                                    @csrf
-                                                    <input type="hidden" name="plan_id" value="{{ $alert->metadata['requested_plan_id'] }}">
-                                                    <input type="hidden" name="duration_months" value="1">
-                                                    <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition flex items-center gap-1">
-                                                        <i class="ph ph-check text-xs"></i> Approve Upgrade
-                                                    </button>
-                                                </form>
+                                            @if(in_array($alert->type, ['upgrade_request', 'downgrade_request']) && !empty($alert->metadata['requested_plan_id']) && $alert->workspace)
+                                                @php
+                                                    $reqStatus = $alert->metadata['status'] ?? 'pending';
+                                                    $actionType = $alert->metadata['request_type'] ?? ($alert->type === 'downgrade_request' ? 'downgrade' : 'upgrade');
+                                                    $actionTitle = ucfirst($actionType);
+                                                    $planName = $alert->metadata['requested_plan_name'] ?? 'Plan';
+                                                @endphp
+
+                                                @if($reqStatus === 'pending')
+                                                    <!-- Approve Button -->
+                                                    <form method="POST" action="{{ route('admin.subscriptions.requests.approve', $alert->id) }}" class="inline" onsubmit="return confirm('Approve and activate {{ $actionTitle }} to {{ $planName }} for {{ addslashes($alert->workspace->name) }}?')">
+                                                        @csrf
+                                                        <input type="hidden" name="duration_months" value="1">
+                                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition flex items-center gap-1 cursor-pointer">
+                                                            <i class="ph ph-check text-xs"></i> Approve {{ $actionTitle }}
+                                                        </button>
+                                                    </form>
+
+                                                    <!-- Reject Button -->
+                                                    <form method="POST" action="{{ route('admin.subscriptions.requests.reject', $alert->id) }}" class="inline" onsubmit="var r = prompt('Enter rejection reason (optional):', 'Payment verification was unsuccessful or request declined.'); if (r === null) return false; this.querySelector('input[name=reason]').value = r; return true;">
+                                                        @csrf
+                                                        <input type="hidden" name="reason" value="">
+                                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition flex items-center gap-1 cursor-pointer">
+                                                            <i class="ph ph-x text-xs"></i> Reject
+                                                        </button>
+                                                    </form>
+                                                @elseif($reqStatus === 'approved')
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        <i class="ph ph-check-circle"></i> {{ $actionTitle }} Approved
+                                                    </span>
+                                                @elseif($reqStatus === 'rejected')
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200" title="{{ $alert->metadata['rejection_reason'] ?? '' }}">
+                                                        <i class="ph ph-x-circle"></i> {{ $actionTitle }} Rejected
+                                                    </span>
+                                                @else
+                                                    <span class="text-xs text-slate-400 capitalize">{{ $reqStatus }}</span>
+                                                @endif
                                             @endif
 
                                             @if(!$alert->is_read)

@@ -194,6 +194,122 @@ class AdminSubscriptionController extends Controller
     }
 
     /**
+     * Approve Plan Change Request (Upgrade or Downgrade)
+     */
+    public function approveRequest(\App\Models\SubscriptionAlert $alert, Request $request, SubscriptionAlertService $alertService)
+    {
+        if (!in_array($alert->type, ['upgrade_request', 'downgrade_request'])) {
+            return back()->with('error', 'Invalid request type for approval.');
+        }
+
+        $workspace = $alert->workspace;
+        if (!$workspace) {
+            return back()->with('error', 'Associated workspace could not be found.');
+        }
+
+        $planId = $alert->metadata['requested_plan_id'] ?? null;
+        if (!$planId) {
+            return back()->with('error', 'Requested plan ID missing from alert metadata.');
+        }
+
+        $plan = Plan::findOrFail($planId);
+        $durationMonths = (int) $request->input('duration_months', 1);
+        $actionType = $alert->metadata['request_type'] ?? ($alert->type === 'downgrade_request' ? 'downgrade' : 'upgrade');
+        $actionTitle = ucfirst($actionType);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($workspace, $plan, $durationMonths, $alert, $actionType, $alertService) {
+            $sub = Subscription::where('workspace_id', $workspace->id)
+                ->lockForUpdate()
+                ->latest()
+                ->first();
+
+            $oldPlan = $sub?->plan;
+
+            if ($sub) {
+                $sub->update([
+                    'plan_id' => $plan->id,
+                    'status' => 'active',
+                    'gateway' => 'manual_admin',
+                    'gateway_subscription_id' => 'approved_req_' . time(),
+                    'canceled_at' => null,
+                    'trial_ends_at' => null,
+                    'current_period_ends_at' => now()->addMonths($durationMonths),
+                ]);
+            } else {
+                $sub = Subscription::create([
+                    'workspace_id' => $workspace->id,
+                    'plan_id' => $plan->id,
+                    'gateway' => 'manual_admin',
+                    'gateway_subscription_id' => 'approved_req_' . time(),
+                    'status' => 'active',
+                    'canceled_at' => null,
+                    'trial_ends_at' => null,
+                    'current_period_ends_at' => now()->addMonths($durationMonths),
+                ]);
+            }
+
+            // Update alert metadata to approved
+            $meta = $alert->metadata ?? [];
+            $meta['status'] = 'approved';
+            $meta['actioned_at'] = now()->toIso8601String();
+            $meta['actioned_by'] = auth()->user()->email ?? 'Super Admin';
+            $alert->metadata = $meta;
+            $alert->is_read = true;
+            $alert->save();
+
+            // Trigger Plan Change Notification
+            $alertService->notifyPlanChange($workspace, $oldPlan, $plan, 'manual_admin_approval', $plan->price_cents);
+
+            \App\Services\AuditService::log("admin.plan_{$actionType}_approved", $sub, [
+                'old_plan' => $oldPlan?->name,
+                'requested_plan' => $plan->name,
+                'alert_id' => $alert->id,
+                'admin_email' => auth()->user()->email,
+            ], [
+                'status' => 'active',
+                'months' => $durationMonths,
+            ], $workspace->id);
+        });
+
+        return back()->with('success', "{$actionTitle} request approved! Workspace '{$workspace->name}' is now active on {$plan->name}.")
+            ->withInput(['tab' => 'alerts']);
+    }
+
+    /**
+     * Reject Plan Change Request (Upgrade or Downgrade)
+     */
+    public function rejectRequest(\App\Models\SubscriptionAlert $alert, Request $request)
+    {
+        if (!in_array($alert->type, ['upgrade_request', 'downgrade_request'])) {
+            return back()->with('error', 'Invalid request type for rejection.');
+        }
+
+        $workspace = $alert->workspace;
+        $reason = $request->input('reason', 'Payment verification was unsuccessful or request declined by administrator.');
+        $actionType = $alert->metadata['request_type'] ?? ($alert->type === 'downgrade_request' ? 'downgrade' : 'upgrade');
+        $actionTitle = ucfirst($actionType);
+
+        $meta = $alert->metadata ?? [];
+        $meta['status'] = 'rejected';
+        $meta['rejection_reason'] = $reason;
+        $meta['actioned_at'] = now()->toIso8601String();
+        $meta['actioned_by'] = auth()->user()->email ?? 'Super Admin';
+        $alert->metadata = $meta;
+        $alert->is_read = true;
+        $alert->save();
+
+        \App\Services\AuditService::log("admin.plan_{$actionType}_rejected", null, [
+            'workspace_id' => $workspace?->id,
+            'alert_id' => $alert->id,
+            'reason' => $reason,
+            'admin_email' => auth()->user()->email,
+        ], null, $workspace?->id);
+
+        return back()->with('success', "{$actionTitle} request for '{$workspace?->name}' has been rejected.")
+            ->withInput(['tab' => 'alerts']);
+    }
+
+    /**
      * Suspend / Activate Tenant Workspace
      */
     public function toggleWorkspaceStatus(Workspace $workspace)

@@ -20,6 +20,7 @@ class MembershipCheckout extends Component
     public string $paymentNotes = '';
     public bool $requestSubmitted = false;
     public ?string $submittedPlanName = null;
+    public ?string $submittedAction = null;
 
     protected CouponService $couponService;
 
@@ -86,6 +87,11 @@ class MembershipCheckout extends Component
         $plan = Plan::findOrFail($this->selectedPlanId);
 
         $finalPriceCents = max(0, $plan->price_cents - $this->discountCents);
+        $currentSub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
+        $currentPlan = $currentSub?->plan;
+        $currentPrice = $currentPlan ? $currentPlan->price_cents : 0;
+        $isDowngrade = $currentPlan && ($plan->price_cents < $currentPrice);
+        $actionName = $isDowngrade ? 'downgrade' : 'upgrade';
 
         // Case 1: 100% Free Promotion via Valid Promotional Coupon
         if ($this->isCouponValid && $this->couponCode && $finalPriceCents === 0) {
@@ -128,7 +134,7 @@ class MembershipCheckout extends Component
             return redirect()->route('dashboard');
         }
 
-        // Case 2: Standard Paid Plan Upgrade Request (Option B - Manual Wire / Bank Invoice Approval)
+        // Case 2: Standard Paid Plan Upgrade or Downgrade Request (Option B - Manual Wire / Bank Invoice Approval)
         if ($this->isCouponValid && $this->couponCode) {
             $coupon = Coupon::where('code', strtoupper(trim($this->couponCode)))->first();
             if ($coupon) {
@@ -137,14 +143,14 @@ class MembershipCheckout extends Component
                     $workspace,
                     $plan->price_cents,
                     $plan->currency,
-                    'pending_upgrade_' . time(),
+                    'pending_' . $actionName . '_' . time(),
                     'wire_transfer'
                 );
             }
         }
 
-        // Dispatch Super Admin Upgrade Request Alert with customer notes
-        app(SubscriptionAlertService::class)->notifyUpgradeRequest(
+        // Dispatch Super Admin Plan Change Request Alert (handles both upgrade & downgrade)
+        app(SubscriptionAlertService::class)->notifyPlanChangeRequest(
             $workspace,
             $plan,
             $this->paymentNotes,
@@ -153,23 +159,53 @@ class MembershipCheckout extends Component
 
         $this->requestSubmitted = true;
         $this->submittedPlanName = $plan->name;
+        $this->submittedAction = $actionName;
 
-        session()->flash('upgrade_requested', "Your upgrade request for {$plan->name} has been submitted! Our billing team has been notified and will verify your wire transfer / manual payment before activating your account.");
+        session()->flash('plan_request_submitted', [
+            'action' => $actionName,
+            'plan_name' => $plan->name,
+            'message' => "Your {$actionName} request for {$plan->name} has been submitted! Our billing team has been notified and will verify your request before activating your account.",
+        ]);
+    }
+
+    public function cancelPendingRequest(string $alertId)
+    {
+        $workspace = Auth::user()->workspace;
+        $alert = \App\Models\SubscriptionAlert::where('id', $alertId)->where('workspace_id', $workspace->id)->first();
+        if ($alert && ($alert->metadata['status'] ?? '') === 'pending') {
+            $meta = $alert->metadata ?? [];
+            $meta['status'] = 'cancelled';
+            $meta['cancelled_at'] = now()->toIso8601String();
+            $alert->metadata = $meta;
+            $alert->is_read = true;
+            $alert->save();
+            session()->flash('success', 'Your pending plan change request has been cancelled.');
+        }
     }
 
     public function render()
     {
-        $currentSub = Auth::user()->workspace->currentSubscription;
+        $workspace = Auth::user()->workspace;
+        $currentSub = $workspace->currentSubscription ?? $workspace->subscriptions()->latest()->first();
         $currentPlan = $currentSub?->plan;
 
         $plans = Plan::where('is_active', true)->where('code', '!=', 'trial')->orderBy('price_cents')->get();
         $selectedPlan = $this->selectedPlanId ? Plan::find($this->selectedPlanId) : null;
 
         $finalPriceFormatted = '$0.00';
+        $isDowngrade = false;
         if ($selectedPlan) {
             $finalCents = max(0, $selectedPlan->price_cents - $this->discountCents);
             $finalPriceFormatted = '$' . number_format($finalCents / 100, 2);
+            $currentPrice = $currentPlan ? $currentPlan->price_cents : 0;
+            $isDowngrade = $currentPlan && ($selectedPlan->price_cents < $currentPrice);
         }
+
+        // Fetch latest plan request for this tenant workspace
+        $latestRequest = \App\Models\SubscriptionAlert::where('workspace_id', $workspace->id)
+            ->whereIn('type', ['upgrade_request', 'downgrade_request'])
+            ->latest()
+            ->first();
 
         return view('livewire.membership-checkout', [
             'currentSub' => $currentSub,
@@ -177,6 +213,8 @@ class MembershipCheckout extends Component
             'plans' => $plans,
             'selectedPlan' => $selectedPlan,
             'finalPriceFormatted' => $finalPriceFormatted,
+            'isDowngrade' => $isDowngrade,
+            'latestRequest' => $latestRequest,
         ]);
     }
 }

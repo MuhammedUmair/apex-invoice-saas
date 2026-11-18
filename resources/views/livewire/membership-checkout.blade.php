@@ -15,25 +15,98 @@
         @endif
     </div>
 
-    @if(session('upgrade_requested') || $requestSubmitted)
-        <!-- Upgrade Request Submitted Confirmation Card -->
+    <!-- Persistent Upgrade / Downgrade Request Status Banner (Requirement 2 & 3) -->
+    @if($latestRequest)
+        @php
+            $reqStatus = $latestRequest->metadata['status'] ?? 'pending';
+            $reqAction = ucfirst($latestRequest->metadata['request_type'] ?? ($latestRequest->type === 'downgrade_request' ? 'downgrade' : 'upgrade'));
+            $reqPlan = $latestRequest->metadata['requested_plan_name'] ?? 'Plan';
+            $reqPrice = $latestRequest->metadata['price_formatted'] ?? '';
+            $submittedDate = $latestRequest->created_at->format('M d, Y • h:i A');
+        @endphp
+
+        @if($reqStatus === 'pending')
+            <!-- Pending Request Alert Banner -->
+            <div class="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                        <i class="ph ph-hourglass-high animate-spin"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h4 class="font-bold text-amber-950 text-sm">Pending {{ $reqAction }} Request: {{ $reqPlan }}</h4>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-200 text-amber-900 tracking-wider">Awaiting Admin Approval</span>
+                        </div>
+                        <p class="text-xs text-amber-800 mt-1 leading-relaxed">
+                            You have submitted a {{ strtolower($reqAction) }} request to <strong>{{ $reqPlan }}</strong> ({{ $reqPrice }}) on {{ $submittedDate }}. Our billing team is currently verifying your payment / request. Your account will automatically update upon approval.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" wire:click="cancelPendingRequest('{{ $latestRequest->id }}')" 
+                        onclick="return confirm('Cancel this pending {{ strtolower($reqAction) }} request?');"
+                        class="px-3 py-1.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs transition shrink-0 whitespace-nowrap shadow-2xs">
+                    Cancel Request
+                </button>
+            </div>
+        @elseif($reqStatus === 'approved' && $latestRequest->updated_at->diffInDays() <= 7)
+            <!-- Approved Alert Banner -->
+            <div class="bg-emerald-50/90 border-2 border-emerald-300 rounded-2xl p-5 shadow-xs flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                    <i class="ph ph-check-circle font-bold"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <h4 class="font-bold text-emerald-950 text-sm">{{ $reqAction }} Request Approved!</h4>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 tracking-wider">Active</span>
+                    </div>
+                    <p class="text-xs text-emerald-800 mt-0.5">
+                        Your request to change to <strong>{{ $reqPlan }}</strong> was approved on {{ $latestRequest->updated_at->format('M d, Y') }}. Your workspace membership is now active!
+                    </p>
+                </div>
+            </div>
+        @elseif($reqStatus === 'rejected' && $latestRequest->updated_at->diffInDays() <= 7)
+            <!-- Declined Alert Banner -->
+            <div class="bg-rose-50/90 border-2 border-rose-300 rounded-2xl p-5 shadow-xs flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                    <i class="ph ph-warning-circle font-bold"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <h4 class="font-bold text-rose-950 text-sm">{{ $reqAction }} Request Declined</h4>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-200 text-rose-900 tracking-wider">Declined</span>
+                    </div>
+                    <p class="text-xs text-rose-800 mt-0.5">
+                        Your {{ strtolower($reqAction) }} request for <strong>{{ $reqPlan }}</strong> was declined by administration. Reason: <em>{{ $latestRequest->metadata['rejection_reason'] ?? 'Payment verification was unsuccessful. Please contact support.' }}</em>
+                    </p>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    @if(session('plan_request_submitted') || session('upgrade_requested') || $requestSubmitted)
+        @php
+            $submittedActionType = $submittedAction ?? (session('plan_request_submitted')['action'] ?? 'upgrade');
+            $submittedActionTitle = ucfirst($submittedActionType);
+            $submittedPlan = $submittedPlanName ?? (session('plan_request_submitted')['plan_name'] ?? ($selectedPlan->name ?? 'selected plan'));
+        @endphp
+        <!-- Request Submitted Confirmation Card (Requirement 3) -->
         <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-3xl p-8 max-w-2xl mx-auto shadow-sm text-center space-y-5">
             <div class="w-16 h-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-3xl mx-auto shadow-md">
                 <i class="ph ph-check-circle font-bold"></i>
             </div>
             <div>
-                <h3 class="text-xl font-black text-emerald-950">Upgrade Request Submitted!</h3>
+                <h3 class="text-xl font-black text-emerald-950">{{ $submittedActionTitle }} Request Submitted!</h3>
                 <p class="text-sm text-emerald-800 mt-1 max-w-md mx-auto">
-                    Your request to upgrade to <strong class="text-emerald-950">{{ $submittedPlanName ?? ($selectedPlan->name ?? 'selected plan') }}</strong> has been dispatched to our billing department.
+                    Your request to {{ $submittedActionType }} to <strong class="text-emerald-950">{{ $submittedPlan }}</strong> has been dispatched to our billing department.
                 </p>
             </div>
             <div class="bg-white/80 backdrop-blur rounded-2xl p-5 border border-emerald-100 text-left text-xs text-slate-600 space-y-2">
                 <div class="flex items-center gap-2 font-bold text-slate-800 text-sm pb-1 border-b border-emerald-50">
                     <i class="ph ph-info text-emerald-600 text-base"></i> What happens next?
                 </div>
-                <p>1. Our accounts team will verify your wire transfer or issue a commercial invoice to your registered email.</p>
-                <p>2. Once payment is confirmed, your administrator will activate your package.</p>
-                <p>3. You will receive an automated email confirmation once your account upgrade is live.</p>
+                <p>1. Our accounts team will verify your wire transfer or confirm your billing request.</p>
+                <p>2. Once verified, your administrator will activate your package.</p>
+                <p>3. You can check the live status anytime right here in the Plan & Billing section.</p>
             </div>
             <div class="pt-2">
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition">
@@ -140,34 +213,37 @@
                         <div>
                             <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Offline Wire Transfer & Commercial Invoicing</h4>
                             <p class="text-xs text-slate-500 mt-0.5">
-                                Plan upgrades are verified through manual bank transfer or invoice settlement. Submitting this request will alert our finance administration to activate your plan upon payment receipt.
+                                Plan upgrades and downgrades are verified through manual bank transfer or invoice settlement. Submitting this request will alert our finance administration to update your plan upon verification.
                             </p>
                         </div>
                     </div>
 
                     <!-- Payment Reference / Notes Input -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Payment Reference or Wire Notes (Optional)</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Payment Reference or Request Notes (Optional)</label>
                         <input type="text" wire:model="paymentNotes" placeholder="e.g. Wire transfer ref #12345, or PO #98765"
                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-red-500">
                     </div>
                 </div>
 
-                <!-- Submit Button -->
+                <!-- Submit Button (Requirement 1 & 3) -->
                 <div>
                     <button type="button" wire:click="processCheckout" 
-                            class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                            class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
                         @if($discountCents >= $selectedPlan->price_cents)
                             <i class="ph ph-ticket text-base"></i>
                             Activate Free via Promo Coupon ($0.00)
+                        @elseif($isDowngrade)
+                            <i class="ph ph-trend-down text-base"></i>
+                            Submit Downgrade Request to {{ $selectedPlan->name }} ({{ $finalPriceFormatted }}/mo)
                         @else
-                            <i class="ph ph-paper-plane-tilt text-base"></i>
+                            <i class="ph ph-trend-up text-base"></i>
                             Submit Upgrade Request to {{ $selectedPlan->name }} ({{ $finalPriceFormatted }}/mo)
                         @endif
                     </button>
 
                     <p class="text-center text-[11px] text-slate-400 mt-2">
-                        No immediate card charge is made. Our billing administration will review your request and confirm payment before plan activation.
+                        No immediate card charge is made. Our billing administration will review your {{ $isDowngrade ? 'downgrade' : 'upgrade' }} request before plan activation.
                     </p>
                 </div>
             </div>

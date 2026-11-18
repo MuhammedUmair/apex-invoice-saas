@@ -221,6 +221,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/subscriptions/alerts/{alert}/read', [AdminSubscriptionController::class, 'markAlertRead'])->name('admin.subscriptions.alerts.read');
         Route::post('/admin/subscriptions/check-expirations', [AdminSubscriptionController::class, 'runExpirationCheck'])->name('admin.subscriptions.check_expirations');
         Route::post('/admin/subscriptions/{workspace}/renew', [AdminSubscriptionController::class, 'renewWorkspace'])->name('admin.workspaces.renew');
+        Route::post('/admin/subscriptions/requests/{alert}/approve', [AdminSubscriptionController::class, 'approveRequest'])->name('admin.subscriptions.requests.approve');
+        Route::post('/admin/subscriptions/requests/{alert}/reject', [AdminSubscriptionController::class, 'rejectRequest'])->name('admin.subscriptions.requests.reject');
         Route::post('/admin/subscriptions/{workspace}/toggle', [AdminSubscriptionController::class, 'toggleWorkspaceStatus'])->name('admin.workspaces.toggle');
         Route::post('/admin/subscriptions/{workspace}/status', [AdminSubscriptionController::class, 'updateWorkspaceStatus'])->name('admin.workspaces.status');
         Route::post('/admin/subscriptions/{workspace}/owner', [AdminSubscriptionController::class, 'updateOwnerContact'])->name('admin.workspaces.owner');
