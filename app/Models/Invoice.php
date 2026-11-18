@@ -268,4 +268,25 @@ class Invoice extends Model
     {
         return number_format($this->total_with_surcharge_cents / 100, 2) . ' ' . $this->currency;
     }
+
+    public function getVerificationUrlAttribute(): string
+    {
+        return route('invoices.verify', $this->public_secure_token);
+    }
+
+    public function getQrCodeSvgAttribute(): string
+    {
+        return \App\Services\QrCodeService::svg($this->verification_url, 120);
+    }
+
+    public function getQrCodeDataUriAttribute(): string
+    {
+        return \App\Services\QrCodeService::dataUri($this->verification_url, 120);
+    }
+
+    public function getCryptographicFingerprintAttribute(): string
+    {
+        $hash = hash('sha256', "{$this->invoice_number}|{$this->total_cents}|{$this->workspace_id}|{$this->public_secure_token}");
+        return strtoupper(implode('-', str_split(substr($hash, 0, 20), 4)));
+    }
 }

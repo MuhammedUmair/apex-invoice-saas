@@ -46,6 +46,9 @@ class InvoiceBuilder extends Component
     // Direct Email Dispatch on Publish
     public bool $sendEmailToClient = true;
 
+    // Interactive Pre-Dispatch Review Modal (Item 3)
+    public bool $showReviewModal = false;
+
     // Future Invoice Planning / Scheduling
     public bool $isScheduled = false;
     public string $scheduledPublishDate = '';
@@ -635,6 +638,53 @@ class InvoiceBuilder extends Component
         $this->subtotal = $calcs['subtotal_cents'] / 100;
         $this->taxAmount = $calcs['tax_cents'] / 100;
         $this->totalAmount = $calcs['total_cents'] / 100;
+    }
+
+    /**
+     * Trigger interactive pre-dispatch review screen before issuing/emailing invoice (Item 3).
+     */
+    public function requestPublishReview()
+    {
+        $rules = [
+            'issueDate' => 'required|date',
+            'dueDate' => 'required|date|after_or_equal:issueDate',
+            'currency' => 'required|string|size:3',
+            'items.*.description' => 'nullable|string',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.rate' => 'required|numeric|min:0',
+        ];
+
+        if ($this->isWalkin) {
+            $rules['walkinName'] = 'required|string|max:255';
+            $rules['walkinEmail'] = 'nullable|email|max:255';
+        } else {
+            $rules['clientId'] = 'required|exists:clients,id';
+        }
+
+        if ($this->isScheduled) {
+            $rules['scheduledPublishDate'] = 'required|date|after_or_equal:today';
+        }
+
+        $this->validate($rules);
+
+        if (empty($this->items)) {
+            $this->addError('items', 'Please add at least one line item to the invoice.');
+            return;
+        }
+
+        $this->calculateTotals();
+        $this->showReviewModal = true;
+    }
+
+    public function closeReviewModal()
+    {
+        $this->showReviewModal = false;
+    }
+
+    public function confirmAndPublish()
+    {
+        $this->showReviewModal = false;
+        $this->saveInvoice('issued');
     }
 
     public function saveInvoice(string $status = 'issued')

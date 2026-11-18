@@ -134,7 +134,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('invoices.send');
     Route::post('/invoices/{invoice}/reminder', [InvoiceController::class, 'sendReminder'])->name('invoices.reminder');
+    Route::post('/invoices/{invoice}/recall', [InvoiceController::class, 'recall'])->name('invoices.recall');
     Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+
+    // Comprehensive Help Center & Interactive Visual Guides
+    Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help.index');
+
+    // Invoicy AI Copilot (Text & Voice Commands)
+    Route::post('/api/ai/copilot', [App\Http\Controllers\AiAssistantController::class, 'chat'])->name('ai.copilot.chat');
 
     // Automated Reminders & Future Scheduler Hub
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
@@ -324,6 +331,10 @@ Route::prefix('invoices/p')->middleware('throttle:60,1')->group(function () {
 
 // Invisible 1x1 GIF Email Open Tracking Beacon (Item 13)
 Route::get('/invoices/track/{token}/open.gif', [InvoiceController::class, 'trackEmailOpen'])->name('invoices.track.open');
+
+// Authentic Verification Routes (QR Code Scan & Digital Seal)
+Route::get('/verify/invoice/{token}', [InvoiceController::class, 'verifyInvoice'])->name('invoices.verify');
+Route::get('/v/{token}', [InvoiceController::class, 'verifyInvoice'])->name('invoices.verify.short');
 
 /*
 |--------------------------------------------------------------------------

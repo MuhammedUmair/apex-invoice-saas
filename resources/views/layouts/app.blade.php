@@ -219,6 +219,14 @@
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Documentation') }}</span>
                 </a>
 
+                <a href="{{ route('help.index') }}" 
+                   :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('help.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   :title="sidebarCollapsed ? '{{ __('Help & Guide') }}' : ''">
+                    <i class="ph ph-question text-lg {{ request()->routeIs('help.*') ? '!text-white' : 'text-emerald-400' }} shrink-0"></i>
+                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('Help & Guide') }}</span>
+                </a>
+
                 @if(!auth()->user() || !auth()->user()->isStaff())
                 <a href="{{ route('settings.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
@@ -567,6 +575,8 @@
             });
         })();
     </script>
+
+    <x-ai-copilot />
 
     @livewireScripts
 </body>

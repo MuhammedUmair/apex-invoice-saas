@@ -188,9 +188,15 @@
                                     <a href="{{ route('invoices.show', $inv->id) }}" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600" title="View Details">
                                         <i class="ph ph-eye text-base"></i>
                                     </a>
-                                    <a href="{{ route('invoices.portal', $inv->public_secure_token) }}" target="_blank" class="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600" title="Customer Portal Link">
-                                        <i class="ph ph-arrow-square-out text-base"></i>
-                                    </a>
+                                    @if($inv->status !== 'draft')
+                                        <a href="{{ route('invoices.portal', $inv->public_secure_token) }}" target="_blank" class="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600" title="Customer Portal Link">
+                                            <i class="ph ph-arrow-square-out text-base"></i>
+                                        </a>
+                                    @else
+                                        <span class="p-1.5 text-slate-300 cursor-not-allowed" title="Public Customer Portal disabled for saved draft invoices">
+                                            <i class="ph ph-arrow-square-out text-base"></i>
+                                        </span>
+                                    @endif
                                     <form action="{{ route('invoices.destroy', $inv->id) }}" method="POST" class="inline"
                                           onsubmit="return confirm('Permanently delete invoice #{{ $inv->invoice_number }}? This cannot be undone.');">
                                         @csrf

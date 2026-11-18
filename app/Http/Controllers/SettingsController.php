@@ -308,7 +308,17 @@ class SettingsController extends Controller
                 }
             }
 
-            \Illuminate\Support\Facades\Mail::raw("This is a live test email from your Invoicy by RedMaple system confirming your SMTP connection is operating with 100% success!", function ($message) use ($targetEmail) {
+            $smtpData = [
+                'workspaceName' => $workspace?->name ?: 'RedMaple Agency',
+                'smtpHost' => config('mail.mailers.smtp.host'),
+                'smtpPort' => config('mail.mailers.smtp.port'),
+                'smtpEncryption' => config('mail.mailers.smtp.encryption'),
+                'smtpUsername' => config('mail.mailers.smtp.username'),
+                'fromAddress' => config('mail.from.address'),
+                'fromName' => config('mail.from.name'),
+            ];
+
+            \Illuminate\Support\Facades\Mail::send('emails.smtp-test', $smtpData, function ($message) use ($targetEmail) {
                 $message->to($targetEmail)->subject('Invoicy by RedMaple - Live SMTP Test Successful');
             });
 

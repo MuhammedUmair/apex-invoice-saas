@@ -307,6 +307,29 @@
                 </div>
             </div>
         @endif
+        <!-- Official Verification QR Code Seal -->
+        <div class="bg-slate-50 rounded-2xl border border-slate-200 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="p-2 bg-white border border-slate-200 rounded-xl shrink-0 shadow-2xs">
+                    <img src="{{ $invoice->qr_code_data_uri }}" alt="QR Code" class="w-16 h-16 rounded-md">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-red-700 bg-red-100/60 px-2 py-0.5 rounded">
+                            <i class="ph ph-shield-check text-xs"></i> {{ __('Official Verification Seal') }}
+                        </span>
+                        <span class="text-xs font-mono font-bold text-slate-500">{{ $invoice->cryptographic_fingerprint }}</span>
+                    </div>
+                    <div class="text-xs text-slate-600 mt-1">
+                        {{ __('Scan to confirm this document\'s authentic registration and payment status with the issuer.') }}
+                    </div>
+                </div>
+            </div>
+            <a href="{{ route('invoices.verify', $invoice->public_secure_token) }}" target="_blank"
+               class="px-4 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-xs font-bold rounded-xl transition shadow-2xs shrink-0 flex items-center gap-1.5">
+                <i class="ph ph-seal-check text-red-600 text-sm"></i> {{ __('Verify Authenticity') }}
+            </a>
+        </div>
     </div>
 </div>
 @endsection

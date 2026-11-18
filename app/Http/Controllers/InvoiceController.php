@@ -216,12 +216,27 @@ class InvoiceController extends Controller
             abort(410, 'Security Notice: This invoice portal access token has expired. Please contact the vendor for a refreshed link.');
         }
 
-        // Track customer view & engagement (Item 13)
-        if (!$invoice->viewed_at) {
+        // 2. Disable Public Portal for Draft Invoices (Item 2)
+        if ($invoice->status === 'draft') {
+            abort(403, 'Document Access Restricted: This invoice is currently in saved draft status and has not yet been published or issued by the agency.');
+        }
+
+        // 3. Disable Public Portal for Empty Invoices (Item 2)
+        if ($invoice->items->isEmpty()) {
+            abort(403, 'Document Access Restricted: This invoice contains no line items and cannot be viewed online.');
+        }
+
+        // Track customer view & engagement (Item 13 & Item 5)
+        $isFirstView = empty($invoice->viewed_at);
+        if ($isFirstView) {
             $invoice->viewed_at = now();
         }
         $invoice->view_count = ($invoice->view_count ?? 0) + 1;
         $invoice->save();
+
+        if ($isFirstView) {
+            $this->notifySenderOfInvoiceOpen($invoice, 'portal');
+        }
 
         return view('invoices.customer-portal', compact('invoice'));
     }
@@ -300,6 +315,16 @@ class InvoiceController extends Controller
             abort(410, 'Security Notice: This PDF download token has expired.');
         }
 
+        // Disable PDF View for Draft Invoices (Item 2)
+        if ($invoice->status === 'draft') {
+            abort(403, 'Document Access Restricted: PDF generation is disabled for saved draft invoices until issued.');
+        }
+
+        // Disable PDF View for Empty Invoices (Item 2)
+        if ($invoice->items->isEmpty()) {
+            abort(403, 'Document Access Restricted: This invoice contains no line items and cannot be downloaded as PDF.');
+        }
+
         if ($invoice->is_pdf_password_protected) {
             // Check if token is currently locked out from too many failed PIN attempts (Item 6)
             if ($invoice->isPinLocked()) {
@@ -351,7 +376,8 @@ class InvoiceController extends Controller
             ->first();
 
         if ($invoice) {
-            if (!$invoice->email_opened_at) {
+            $isFirstOpen = empty($invoice->email_opened_at);
+            if ($isFirstOpen) {
                 $invoice->email_opened_at = now();
             }
             $invoice->email_opens_count = ($invoice->email_opens_count ?? 0) + 1;
@@ -362,6 +388,10 @@ class InvoiceController extends Controller
                 'invoice_number' => $invoice->invoice_number,
                 'ip' => request()->ip(),
             ]);
+
+            if ($isFirstOpen && $invoice->status !== 'draft') {
+                $this->notifySenderOfInvoiceOpen($invoice, 'email');
+            }
         }
 
         $gif1x1 = base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
@@ -371,6 +401,113 @@ class InvoiceController extends Controller
             'Pragma' => 'no-cache',
             'Expires' => '0',
         ]);
+    }
+
+    /**
+     * Notify agency sender when customer views/opens their invoice (Item 5).
+     */
+    protected function notifySenderOfInvoiceOpen(Invoice $invoice, string $channel = 'portal'): void
+    {
+        try {
+            $creator = $invoice->creator;
+            $workspace = $invoice->workspace;
+            $recipientEmail = $creator?->email ?? $workspace?->owner?->email ?? $workspace?->users()?->first()?->email;
+
+            if (!$recipientEmail) {
+                return;
+            }
+
+            \App\Services\AuditService::log('invoice.client_viewed_notification', $invoice, null, [
+                'recipient_notified' => $recipientEmail,
+                'channel' => $channel,
+                'client' => $invoice->client?->name ?? 'Client',
+                'viewed_at' => now()->toIso8601String(),
+            ]);
+
+            $subject = "👁️ Client Viewed Invoice #{$invoice->invoice_number} ({$invoice->formatted_total})";
+            $data = [
+                'invoice' => $invoice,
+                'channel' => $channel,
+                'clientName' => $invoice->client?->name ?? $invoice->client_snapshot['name'] ?? 'Client',
+                'clientCompany' => $invoice->client?->company_name ?? $invoice->client_snapshot['company_name'] ?? null,
+                'timestamp' => now()->format('M d, Y • h:i A T'),
+                'ipAddress' => request()->ip(),
+                'userAgent' => request()->userAgent(),
+                'invoiceUrl' => route('invoices.show', $invoice->id),
+            ];
+
+            \Illuminate\Support\Facades\Mail::send('emails.invoice-viewed-alert', $data, function ($message) use ($recipientEmail, $subject) {
+                $message->to($recipientEmail)->subject($subject);
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to notify sender on invoice open: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Recall / Pull Back an issued invoice if issued with mistakes (Item 4).
+     */
+    public function recall(Invoice $invoice, Request $request)
+    {
+        $user = Auth::user();
+        if ($invoice->workspace_id !== $user->workspace_id && !$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($invoice->status === 'paid') {
+            return back()->with('error', 'Cannot recall an invoice that has already been paid in full.');
+        }
+
+        $reason = trim($request->input('recall_reason', 'Invoice requires corrections and was pulled back by sender.'));
+        $notifyClient = $request->boolean('notify_client', true);
+
+        // Invalidate public access by rotating secure token
+        $invoice->public_secure_token = \Illuminate\Support\Str::random(64);
+        $previousStatus = $invoice->status;
+        $invoice->status = 'draft';
+        $invoice->save();
+
+        \App\Services\AuditService::log('invoice.recalled', $invoice, null, [
+            'recalled_by' => $user->name,
+            'reason' => $reason,
+            'previous_status' => $previousStatus,
+        ]);
+
+        $clientEmail = $invoice->client?->email ?? $invoice->client_snapshot['email'] ?? null;
+        if ($notifyClient && !empty($clientEmail)) {
+            try {
+                $mailData = [
+                    'invoice' => $invoice,
+                    'reason' => $reason,
+                    'workspace' => $invoice->workspace,
+                ];
+                \Illuminate\Support\Facades\Mail::send('emails.invoice-recalled', $mailData, function ($message) use ($clientEmail, $invoice) {
+                    $message->to($clientEmail)->subject("Correction Notice: Invoice #{$invoice->invoice_number} has been recalled by {$invoice->workspace?->name}");
+                });
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not dispatch recall email: " . $e->getMessage());
+            }
+        }
+
+        return redirect()->route('invoices.show', $invoice->id)->with('success', "Invoice #{$invoice->invoice_number} has been successfully recalled. The previous customer link is revoked, and the invoice is now in Draft mode for editing.");
+    }
+
+    /**
+     * Public authentic verification endpoint for QR code scans.
+     */
+    public function verifyInvoice(string $token)
+    {
+        $invoice = Invoice::withoutGlobalScopes()
+            ->where('public_secure_token', $token)
+            ->with(['client', 'items', 'workspace'])
+            ->firstOrFail();
+
+        \App\Services\AuditService::log('invoice.qr_verified', $invoice, null, [
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        return view('invoices.verify', compact('invoice'));
     }
 
     /**

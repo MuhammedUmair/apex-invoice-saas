@@ -207,6 +207,26 @@
         </div>
     @endif
 
+    <!-- Authentic Verification & QR Code -->
+    <table style="width: 100%; border-collapse: collapse; margin-top: 25px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <tr>
+            <td style="width: 105px; vertical-align: middle; text-align: center; padding-right: 15px;">
+                <img src="{{ $invoice->qr_code_data_uri }}" alt="Verification QR Code" style="width: 90px; height: 90px; border: 1px solid #cbd5e1; padding: 4px; background: #ffffff; border-radius: 6px; display: block; margin: 0 auto;">
+            </td>
+            <td style="vertical-align: middle;">
+                <div style="font-size: 11px; font-weight: 800; color: #dc2626; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">
+                    &#128737; {{ __('OFFICIAL DIGITAL AUTHENTICITY SEAL') }}
+                </div>
+                <div style="font-size: 11px; color: #334155; line-height: 1.4;">
+                    {{ __('Scan this QR code with any mobile camera or QR reader to verify the authenticity, issuer credentials, and uncompromised status of this commercial invoice.') }}
+                </div>
+                <div style="margin-top: 5px; font-size: 10px; font-family: monospace; color: #64748b;">
+                    {{ __('Cryptographic Fingerprint') }}: <strong style="color: #0f172a;">{{ $invoice->cryptographic_fingerprint }}</strong> &bull; {{ __('Status') }}: <span style="font-weight: bold; color: #166534; text-transform: uppercase;">{{ $invoice->status }}</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
     <div style="text-align: center; margin-top: 40px; padding-top: 15px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8;">
         {{ __('Generated securely via') }} <strong>Invoicy by RedMaple</strong>
     </div>

@@ -9,9 +9,9 @@
             <a href="{{ route('invoices.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-semibold text-xs shadow-xs transition">
                 {{ __('Cancel') }}
             </a>
-            <button type="button" wire:click="saveInvoice('issued')" class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+            <button type="button" wire:click="requestPublishReview" class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
                 <i class="ph ph-paper-plane-tilt text-sm"></i>
-                {{ __('Issue Invoice') }}
+                {{ __('Issue & Publish Invoice') }}
             </button>
         </div>
     </div>
@@ -37,7 +37,7 @@
         </div>
     @endif
 
-    <form wire:submit.prevent="saveInvoice('issued')">
+    <form wire:submit.prevent="requestPublishReview">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <!-- ========================================== -->
             <!-- LEFT MAIN COLUMN (lg:col-span-8)           -->
@@ -732,4 +732,146 @@
             </div>
         </div>
     </form>
+
+    <!-- Pre-Dispatch Review Modal (Item 3) -->
+    @if($showReviewModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 my-8 space-y-6">
+            
+            <!-- Modal Header -->
+            <div class="flex items-start justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100 shadow-inner">
+                        <i class="ph ph-file-text text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-800">
+                                Pre-Dispatch Review
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono">{{ $currency }}</span>
+                        </div>
+                        <h3 class="text-lg font-black text-slate-900 mt-0.5">{{ __('Review Invoice Before Publishing') }}</h3>
+                        <p class="text-xs text-slate-500">{{ __('Please verify customer recipient and financial terms before issuing.') }}</p>
+                    </div>
+                </div>
+                <button type="button" wire:click="closeReviewModal" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Client & Meta Summary -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                        <i class="ph ph-user text-slate-500"></i> {{ __('Client Recipient') }}
+                    </div>
+                    @php
+                        $selectedClient = !$isWalkin && $clientId ? \App\Models\Client::find($clientId) : null;
+                    @endphp
+                    <div class="font-bold text-slate-900 text-sm">
+                        {{ $isWalkin ? ($walkinName ?: __('Walk-in Customer')) : ($selectedClient?->company_name ?? $selectedClient?->name ?? __('Client')) }}
+                    </div>
+                    <div class="text-xs text-slate-500 mt-0.5">
+                        {{ $isWalkin ? ($walkinEmail ?: __('No email provided')) : ($selectedClient?->email ?? __('No email')) }}
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                        <i class="ph ph-calendar text-slate-500"></i> {{ __('Billing Terms') }}
+                    </div>
+                    <div class="text-xs text-slate-700 space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">{{ __('Issue Date') }}:</span>
+                            <span class="font-bold text-slate-900">{{ $issueDate ?: date('Y-m-d') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">{{ __('Due Date') }}:</span>
+                            <span class="font-bold text-slate-900">{{ $dueDate ?: date('Y-m-d') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items Table Preview -->
+            <div class="border border-slate-200 rounded-2xl overflow-hidden max-h-52 overflow-y-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]">
+                        <tr>
+                            <th class="py-2.5 px-4">{{ __('Item') }}</th>
+                            <th class="py-2.5 px-3 text-center">{{ __('Qty') }}</th>
+                            <th class="py-2.5 px-3 text-right">{{ __('Rate') }}</th>
+                            <th class="py-2.5 px-4 text-right">{{ __('Total') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($items as $itm)
+                            <tr>
+                                <td class="py-2 px-4 font-semibold text-slate-900">{{ $itm['description'] ?: __('Item') }}</td>
+                                <td class="py-2 px-3 text-center text-slate-600">{{ $itm['quantity'] }} {{ $itm['unit'] ?? '' }}</td>
+                                <td class="py-2 px-3 text-right text-slate-600">{{ number_format((float)($itm['rate'] ?? 0), 2) }}</td>
+                                <td class="py-2 px-4 text-right font-bold text-slate-900">
+                                    {{ number_format(((int)($itm['quantity'] ?? 1)) * ((float)($itm['rate'] ?? 0)), 2) }} {{ $currency }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Financial Totals Summary -->
+            <div class="bg-red-50/50 border border-red-100 rounded-2xl p-4 space-y-2 text-xs">
+                <div class="flex justify-between text-slate-600">
+                    <span>{{ __('Subtotal') }}:</span>
+                    <span class="font-bold text-slate-900">{{ number_format($subtotal, 2) }} {{ $currency }}</span>
+                </div>
+                @if($discountAmount > 0)
+                <div class="flex justify-between text-emerald-600">
+                    <span>{{ __('Discount') }}:</span>
+                    <span class="font-bold">-{{ number_format($discountAmount, 2) }} {{ $currency }}</span>
+                </div>
+                @endif
+                <div class="flex justify-between text-slate-600">
+                    <span>{{ __('Tax') }} ({{ number_format($taxRate, 2) }}%):</span>
+                    <span class="font-bold text-slate-900">+{{ number_format($taxAmount, 2) }} {{ $currency }}</span>
+                </div>
+                <div class="pt-2 border-t border-red-200 flex justify-between items-center text-sm font-black">
+                    <span class="text-slate-900">{{ __('Final Total Due') }}:</span>
+                    <span class="text-xl text-red-600">{{ number_format($totalAmount, 2) }} {{ $currency }}</span>
+                </div>
+            </div>
+
+            <!-- Email Notification Preference -->
+            <div class="p-4 rounded-2xl border border-slate-200 bg-white">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" wire:model="sendEmailToClient" class="w-4 h-4 rounded text-red-600 focus:ring-red-500">
+                    <div class="text-xs">
+                        <span class="font-bold text-slate-900 block">{{ __('Dispatch invoice directly to customer email upon publish') }}</span>
+                        <span class="text-slate-500">{{ __('Customer will receive official invoice link and PDF attachment.') }}</span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 gap-3">
+                <button type="button" wire:click="closeReviewModal"
+                        class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold text-xs shadow-2xs transition">
+                    <i class="ph ph-arrow-left"></i> {{ __('Back to Edit') }}
+                </button>
+
+                <button type="button" wire:click="confirmAndPublish" wire:loading.attr="disabled"
+                        class="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-md transition flex items-center gap-2">
+                    <span wire:loading.remove wire:target="confirmAndPublish">
+                        <i class="ph ph-paper-plane-tilt text-sm"></i> {{ __('Confirm & Issue Now') }}
+                    </span>
+                    <span wire:loading wire:target="confirmAndPublish" class="flex items-center gap-2">
+                        <i class="ph ph-spinner animate-spin text-sm"></i> {{ __('Publishing & Sending...') }}
+                    </span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+    @endif
 </div>

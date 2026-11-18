@@ -6,7 +6,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ showCreditModal: false }">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ showCreditModal: false, showRecallModal: false, openActions: false }">
     <!-- Top Action Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
@@ -81,6 +81,14 @@
                 <i class="ph ph-arrow-square-out text-base"></i> {{ __('Pay Portal') }}
             </a>
 
+            @if($invoice->status !== 'draft' && $invoice->status !== 'paid')
+                <button @click="showRecallModal = true" type="button"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold rounded-xl transition shadow-xs"
+                        title="{{ __('Recall invoice and revert to draft for corrections') }}">
+                    <i class="ph ph-arrow-counter-clockwise text-base text-amber-600"></i> {{ __('Recall / Pull Back') }}
+                </button>
+            @endif
+
             <!-- More Actions Dropdown Menu -->
             <div class="relative">
                 <button @click="openActions = !openActions" @click.outside="openActions = false" type="button"
@@ -124,6 +132,14 @@
                         {{ __('Issue Credit Note') }}
                     </button>
 
+                    @if($invoice->status !== 'draft' && $invoice->status !== 'paid')
+                        <button @click="showRecallModal = true; openActions = false" type="button"
+                                class="w-full text-left px-4 py-2 hover:bg-amber-50 flex items-center gap-2 text-amber-700 font-semibold border-t border-slate-100">
+                            <i class="ph ph-arrow-counter-clockwise text-amber-600 text-sm"></i>
+                            {{ __('Recall / Pull Back Invoice') }}
+                        </button>
+                    @endif
+
                     <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied!');"
                             @click="openActions = false" type="button"
                             class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-600 font-medium">
@@ -145,6 +161,7 @@
         </div>
     </div>
 
+    @if($invoice->status !== 'draft' && $invoice->items->isNotEmpty())
     <!-- Customer Link Share Banner -->
     <div class="bg-red-50/70 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="text-xs text-red-900">
@@ -160,6 +177,44 @@
                 class="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-lg shadow-sm whitespace-nowrap">
             {{ __('Copy Link') }}
         </button>
+    </div>
+    @else
+    <!-- Draft Notice Banner (Item 2) -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-xs text-amber-900">
+        <i class="ph ph-lock-key text-xl text-amber-600 shrink-0"></i>
+        <div class="flex-1">
+            <span class="font-bold block">{{ __('Public Portal & PDF Download Disabled') }}</span>
+            <span>{{ __('This invoice is saved as a Draft. Public customer URLs and PDF downloads are locked until you issue and publish the invoice.') }}</span>
+        </div>
+        <a href="{{ route('invoices.edit', $invoice->id) }}" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shrink-0 transition">
+            {{ __('Edit & Publish') }}
+        </a>
+    </div>
+    @endif
+
+    <!-- Authentic Verification & QR Code Card (Item 6 / Authentic Verification) -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5">
+        <div class="flex items-center gap-4">
+            <div class="p-2 bg-slate-50 border border-slate-200 rounded-xl shrink-0 shadow-inner">
+                <img src="{{ $invoice->qr_code_data_uri }}" alt="Verification QR Code" class="w-20 h-20 rounded-lg">
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 border border-red-200">
+                        <i class="ph ph-shield-check text-xs"></i> {{ __('Official Verification QR Code') }}
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono font-bold">{{ $invoice->cryptographic_fingerprint }}</span>
+                </div>
+                <h4 class="text-sm font-bold text-slate-900 mt-1">{{ __('Authentic Commercial Document Seal') }}</h4>
+                <p class="text-xs text-slate-500 max-w-md">{{ __('Scan this QR code with any smartphone camera to verify this invoice\'s cryptographic authenticity and current payment status.') }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <a href="{{ route('invoices.verify', $invoice->public_secure_token) }}" target="_blank"
+               class="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+                <i class="ph ph-shield-check text-sm text-red-400"></i> {{ __('Open Verification Screen') }}
+            </a>
+        </div>
     </div>
 
     <!-- Automated Milestone Reminders Timeline Card -->
@@ -407,6 +462,64 @@
                     <button type="submit"
                             class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm">
                         {{ __('Confirm & Issue Credit Note') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recall Invoice Modal (Item 4) -->
+    <div x-show="showRecallModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <i class="ph ph-arrow-counter-clockwise text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">{{ __('Recall / Pull Back Invoice') }}</h3>
+                        <p class="text-xs text-slate-500">Invoice #{{ $invoice->invoice_number }}</p>
+                    </div>
+                </div>
+                <button @click="showRecallModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('invoices.recall', $invoice->id) }}" class="space-y-4">
+                @csrf
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 leading-relaxed">
+                    <strong>{{ __('What happens when you recall:') }}</strong><br>
+                    &bull; {{ __('The current public online link and PDF download token are immediately revoked.') }}<br>
+                    &bull; {{ __('The invoice status is reverted back to') }} <strong>{{ __('Draft') }}</strong> {{ __('mode so you can correct items and pricing.') }}<br>
+                    &bull; {{ __('If selected below, an automated correction notice will be emailed to your client.') }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Reason for Recall') }} *</label>
+                    <select name="recall_reason" required class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 bg-white">
+                        <option value="Correction needed on line items or pricing">{{ __('Correction needed on line items or pricing') }}</option>
+                        <option value="Invoice dispatched with incorrect customer details">{{ __('Invoice dispatched with incorrect customer details') }}</option>
+                        <option value="Invoice issued in error or duplicated">{{ __('Invoice issued in error or duplicated') }}</option>
+                        <option value="Client requested changes prior to payment">{{ __('Client requested changes prior to payment') }}</option>
+                    </select>
+                </div>
+
+                @if($invoice->client && !empty($invoice->client->email))
+                <div class="pt-2">
+                    <label class="flex items-start gap-2 cursor-pointer text-xs text-slate-700">
+                        <input type="checkbox" name="notify_client" value="1" checked class="mt-0.5 rounded text-amber-600 focus:ring-amber-500">
+                        <span>{{ __('Send correction notice email to client') }} (<strong>{{ $invoice->client->email }}</strong>) {{ __('informing them the invoice has been retracted for updates.') }}</span>
+                    </label>
+                </div>
+                @endif
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showRecallModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
+                        {{ __('Cancel') }}
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-sm">
+                        {{ __('Confirm Recall & Revert to Draft') }}
                     </button>
                 </div>
             </form>
