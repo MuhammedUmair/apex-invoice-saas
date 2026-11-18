@@ -45,6 +45,11 @@ class EnsureSuperAdmin
             ]);
         }
 
+        // Synchronize authenticated Super Admin context into guards and views
+        Auth::shouldUse('superadmin');
+        Auth::guard('superadmin')->setUser($superAdminUser);
+        view()->share('currentSuperAdmin', $superAdminUser);
+
         if ($permission && !$superAdminUser->hasAdminPermission($permission)) {
             abort(403, "Access Denied: Your administrator role does not have permission to access '{$permission}'.");
         }

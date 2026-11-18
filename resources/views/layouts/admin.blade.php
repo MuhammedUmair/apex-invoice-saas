@@ -1,3 +1,6 @@
+@php
+    $adminUser = $currentSuperAdmin ?? auth('superadmin')->user() ?? auth()->user();
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-slate-900">
 <head>
@@ -429,12 +432,12 @@
                 <div class="flex items-center justify-between" :class="sidebarCollapsed ? 'justify-center flex-col gap-2' : ''">
                     <div class="flex items-center gap-2.5 overflow-hidden">
                         <div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow-xs">
-                            {{ substr(auth()->user()->name ?? 'A', 0, 1) }}
+                            {{ substr($adminUser?->name ?? 'A', 0, 1) }}
                         </div>
                         <div class="text-xs truncate" x-show="!sidebarCollapsed">
-                            <div class="font-bold text-white truncate max-w-[130px]">{{ auth()->user()->name }}</div>
+                            <div class="font-bold text-white truncate max-w-[130px]">{{ $adminUser?->name ?? 'Super Admin' }}</div>
                             <div class="text-[10px] text-amber-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                                <i class="ph ph-shield-check text-xs"></i> {{ auth()->user()->getAdminRoleLabel() }}
+                                <i class="ph ph-shield-check text-xs"></i> {{ $adminUser?->getAdminRoleLabel() ?? 'Super Admin' }}
                             </div>
                         </div>
                     </div>
@@ -492,15 +495,15 @@
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center gap-2 focus:outline-none">
                             <div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold flex items-center justify-center text-xs">
-                                {{ substr(auth()->user()->name ?? 'A', 0, 1) }}
+                                {{ substr($adminUser?->name ?? 'A', 0, 1) }}
                             </div>
                             <i class="ph ph-caret-down text-slate-400 text-xs"></i>
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak
                              class="absolute right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-800 py-2 shadow-2xl z-50 text-xs">
                             <div class="px-4 py-2 border-b border-slate-800">
-                                <div class="font-bold text-white">{{ auth()->user()->name }}</div>
-                                <div class="text-[11px] text-slate-400 truncate">{{ auth()->user()->email }}</div>
+                                <div class="font-bold text-white">{{ $adminUser?->name ?? 'Super Admin' }}</div>
+                                <div class="text-[11px] text-slate-400 truncate">{{ $adminUser?->email ?? 'superadmin@redmapleagency.com' }}</div>
                             </div>
                             <a href="{{ route('admin.security.admins') }}" class="block px-4 py-2 text-slate-300 hover:bg-slate-800 hover:text-white transition">
                                 <i class="ph ph-shield-star mr-2 text-amber-400"></i> Admin Roles & Access
