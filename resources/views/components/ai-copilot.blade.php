@@ -5,72 +5,104 @@
     soundEnabled: true,
     inputMessage: '',
     messages: [
-        { sender: 'ai', text: 'Hello! I am your Invoicy AI Copilot. Ask me anything about your invoices, settings, recall option, or say a voice command!', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] }
+        { sender: 'ai', text: 'Hello! I am your AI Agent. Ask me anything about your invoices, settings, recall option, or click the mic to speak a voice command!', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] }
     ],
     recognition: null,
     synth: window.speechSynthesis || null,
 
     init() {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            this.recognition = new SpeechRec();
-            this.recognition.continuous = false;
-            this.recognition.interimResults = false;
-            this.recognition.lang = 'en-US';
-
-            this.recognition.onstart = () => {
-                this.isListening = true;
-            };
-
-            this.recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                this.inputMessage = transcript;
-                this.sendMessage();
-            };
-
-            this.recognition.onerror = (event) => {
-                console.warn('Speech recognition error:', event.error);
-                this.isListening = false;
-            };
-
-            this.recognition.onend = () => {
-                this.isListening = false;
-            };
-        }
-
+        this.initSpeech();
         window.addEventListener('open-ai-copilot', () => {
             this.isOpen = true;
+            this.scrollToBottom();
         });
     },
 
+    initSpeech() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            try {
+                this.recognition = new SpeechRec();
+                this.recognition.continuous = false;
+                this.recognition.interimResults = false;
+                this.recognition.lang = 'en-US';
+
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                };
+
+                this.recognition.onresult = (event) => {
+                    this.isListening = false;
+                    if (event.results && event.results[0] && event.results[0][0]) {
+                        const transcript = event.results[0][0].transcript;
+                        this.inputMessage = transcript;
+                        this.sendMessage();
+                    }
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.warn('Speech recognition notice:', event.error);
+                    this.isListening = false;
+                    if (event.error === 'not-allowed') {
+                        this.messages.push({
+                            sender: 'ai',
+                            text: 'Microphone access was denied. Please allow microphone permissions in your browser address bar to speak voice commands, or simply type your message.'
+                        });
+                        this.scrollToBottom();
+                    }
+                };
+
+                this.recognition.onend = () => {
+                    this.isListening = false;
+                };
+            } catch (e) {
+                console.warn('Speech recognition init error:', e);
+            }
+        }
+    },
+
     toggleVoice() {
-        if (!this.recognition) {
-            alert('Voice commands are supported in modern browsers (Chrome, Edge, Safari). Please enable microphone permissions.');
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Voice recognition requires Google Chrome, Microsoft Edge, or Safari over HTTPS.');
             return;
         }
 
+        if (!this.recognition) {
+            this.initSpeech();
+        }
+
         if (this.isListening) {
-            this.recognition.stop();
+            try { this.recognition.stop(); } catch (e) {}
             this.isListening = false;
         } else {
-            this.isListening = true;
             try {
                 this.recognition.start();
+                this.isListening = true;
             } catch (e) {
-                this.isListening = false;
+                try {
+                    this.recognition.abort();
+                    setTimeout(() => {
+                        this.recognition.start();
+                        this.isListening = true;
+                    }, 250);
+                } catch (e2) {
+                    this.isListening = false;
+                }
             }
         }
     },
 
     speak(text) {
         if (!this.soundEnabled || !this.synth) return;
-        this.synth.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = 1.0;
-        utter.pitch = 1.0;
-        utter.onstart = () => { this.isSpeaking = true; };
-        utter.onend = () => { this.isSpeaking = false; };
-        this.synth.speak(utter);
+        try {
+            this.synth.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 1.0;
+            utter.pitch = 1.0;
+            utter.onstart = () => { this.isSpeaking = true; };
+            utter.onend = () => { this.isSpeaking = false; };
+            this.synth.speak(utter);
+        } catch (e) {}
     },
 
     toggleSound() {
@@ -90,15 +122,22 @@
         this.scrollToBottom();
 
         try {
+            const csrfMeta = document.querySelector('meta[name=\"csrf-token\"]');
+            const token = csrfMeta ? csrfMeta.getAttribute('content') : '{{ csrf_token() }}';
+
             const res = await fetch('{{ route('ai.copilot.chat') }}', {
                 method: 'POST',
                 headers: {
-                    'Content-Sc': 'application/json',
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify({ message: text })
             });
+
+            if (!res.ok) {
+                throw new Error('HTTP ' + res.status);
+            }
 
             const data = await res.json();
             this.messages.push({
@@ -117,7 +156,8 @@
                 }, 1600);
             }
         } catch (e) {
-            this.messages.push({ sender: 'ai', text: 'Sorry, I encountered a temporary connection issue. Please try again.' });
+            console.error('AI Agent error:', e);
+            this.messages.push({ sender: 'ai', text: 'I am here to help! Could you please rephrase or pick one of the suggestions below?', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] });
             this.scrollToBottom();
         }
     },
@@ -141,7 +181,7 @@
                 <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
             </div>
             <span class="text-xs font-black tracking-tight flex items-center gap-1.5">
-                <span>Invoicy AI Copilot</span>
+                <span>AI Agent</span>
                 <i class="ph ph-microphone text-sm opacity-90"></i>
             </span>
         </button>
@@ -161,10 +201,10 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-black text-white flex items-center gap-1.5">
-                        <span>Invoicy AI Copilot</span>
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                        <span>AI Agent</span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                     </h3>
-                    <p class="text-[10px] text-slate-300 font-medium">Text & Voice Intelligent Assistant</p>
+                    <p class="text-[10px] text-slate-300 font-medium">Text & Hands-Free Voice Assistant</p>
                 </div>
             </div>
 
@@ -182,9 +222,9 @@
         <!-- Listening Bar Indicator -->
         <div x-show="isListening" x-cloak class="bg-red-600 text-white text-[11px] font-bold py-1.5 px-3 flex items-center justify-between animate-pulse">
             <span class="flex items-center gap-2">
-                <i class="ph ph-waveform text-sm"></i> Listening to your voice command...
+                <i class="ph ph-waveform text-sm"></i> Listening... Speak your command now
             </span>
-            <button @click="toggleVoice()" class="text-xs uppercase underline">Stop</button>
+            <button @click="toggleVoice()" type="button" class="text-xs uppercase underline">Stop</button>
         </div>
 
         <!-- Chat Conversation Messages -->
@@ -197,7 +237,7 @@
                         
                         <template x-if="msg.action && msg.action.type === 'navigate'">
                             <div class="pt-1.5">
-                                <a :href="msg.action.url" class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700 transition">
+                                <a :href="msg.action.url" class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700 transition shadow-xs">
                                     <i class="ph ph-arrow-square-out"></i> Proceed Now
                                 </a>
                             </div>
@@ -222,11 +262,11 @@
         <div class="p-3 bg-white border-t border-slate-200">
             <form @submit.prevent="sendMessage()" class="flex items-center gap-2">
                 <button @click="toggleVoice()" type="button" :class="isListening ? 'bg-red-600 text-white animate-bounce' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
-                        class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition" title="Hold to speak voice command">
+                        class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition" title="Click to speak voice command">
                     <i class="ph ph-microphone text-lg"></i>
                 </button>
 
-                <input type="text" x-model="inputMessage" placeholder="Ask AI or speak command..."
+                <input type="text" x-model="inputMessage" placeholder="Ask AI Agent or click mic to speak..."
                        class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 transition">
 
                 <button type="submit" class="w-10 h-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shrink-0 transition shadow-sm">

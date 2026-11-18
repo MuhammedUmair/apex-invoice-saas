@@ -271,7 +271,8 @@ class Invoice extends Model
 
     public function getVerificationUrlAttribute(): string
     {
-        return route('invoices.verify', $this->public_secure_token);
+        $baseUrl = config('app.url', 'https://invoicy.redmapleagency.com');
+        return rtrim($baseUrl, '/') . '/v/' . $this->public_secure_token;
     }
 
     public function getQrCodeSvgAttribute(): string

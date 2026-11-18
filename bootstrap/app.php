@@ -56,6 +56,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'webhooks/*',
             'logout-beacon',
+            'api/ai/copilot',
+            '*/api/ai/copilot',
+            '*/api/*',
+            'api/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

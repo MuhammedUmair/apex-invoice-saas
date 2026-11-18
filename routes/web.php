@@ -140,9 +140,6 @@ Route::middleware('auth')->group(function () {
     // Comprehensive Help Center & Interactive Visual Guides
     Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help.index');
 
-    // Invoicy AI Copilot (Text & Voice Commands)
-    Route::post('/api/ai/copilot', [App\Http\Controllers\AiAssistantController::class, 'chat'])->name('ai.copilot.chat');
-
     // Automated Reminders & Future Scheduler Hub
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');
     Route::post('/reminders/run', [ReminderController::class, 'runCycle'])->name('reminders.run');
@@ -335,6 +332,11 @@ Route::get('/invoices/track/{token}/open.gif', [InvoiceController::class, 'track
 // Authentic Verification Routes (QR Code Scan & Digital Seal)
 Route::get('/verify/invoice/{token}', [InvoiceController::class, 'verifyInvoice'])->name('invoices.verify');
 Route::get('/v/{token}', [InvoiceController::class, 'verifyInvoice'])->name('invoices.verify.short');
+
+// AI Agent Endpoint (Text & Hands-Free Voice Commands)
+Route::match(['get', 'post'], '/api/ai/copilot', [App\Http\Controllers\AiAssistantController::class, 'chat'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->name('ai.copilot.chat');
 
 /*
 |--------------------------------------------------------------------------

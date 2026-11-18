@@ -125,7 +125,7 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-sparkle text-base text-red-600"></i>
-                    <span>10. Invoicy AI Copilot (Voice & Text)</span>
+                    <span>10. AI Agent (Voice & Text)</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -136,9 +136,9 @@
                     <div class="font-bold text-red-900 flex items-center gap-1.5 mb-1">
                         <i class="ph ph-microphone text-sm text-red-600"></i> Need instant help?
                     </div>
-                    <p class="text-slate-600 text-[11px] mb-2">Click the Invoicy AI Copilot icon at the bottom right to ask any question via voice or text!</p>
+                    <p class="text-slate-600 text-[11px] mb-2">Click the AI Agent icon at the bottom right to ask any question via voice or text!</p>
                     <button @click="$dispatch('open-ai-copilot')" type="button" class="w-full py-1.5 bg-red-600 text-white font-bold rounded-lg text-[11px] hover:bg-red-700 transition">
-                        Launch AI Copilot
+                        Launch AI Agent
                     </button>
                 </div>
             </div>
@@ -439,21 +439,21 @@
                 </div>
             </div>
 
-            <!-- Section 10: Invoicy AI Copilot -->
+            <!-- Section 10: AI Agent -->
             <div x-show="activeTab === 'ai'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-sparkle"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Invoicy AI Copilot (Text & Voice Commands)</h2>
-                        <p class="text-xs text-slate-500">Your intelligent financial co-pilot ready 24/7.</p>
+                        <h2 class="text-xl font-black text-slate-900">AI Agent (Text & Voice Commands)</h2>
+                        <p class="text-xs text-slate-500">Your intelligent financial assistant ready 24/7.</p>
                     </div>
                 </div>
 
                 <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
                     <p>
-                        Invoicy includes an enterprise AI Copilot with both text and hands-free voice commands.
+                        Invoicy includes an enterprise AI Agent with both text and hands-free voice commands.
                     </p>
                     <div class="p-4 rounded-2xl bg-slate-900 text-white space-y-2">
                         <div class="text-[11px] font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
