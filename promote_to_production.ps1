@@ -14,6 +14,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $repo = $PSScriptRoot
+Set-Location $repo
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $snapshotName = "restore_point_prod_$timestamp.zip"
 $backupDir = Join-Path $repo "restore_points"
@@ -24,7 +25,7 @@ Write-Host "==========================================" -ForegroundColor Red
 
 # 1. Pre-flight checks
 Write-Host "[1/5] Running pre-flight checks..."
-$gitStatus = git status --porcelain
+$gitStatus = git -C $repo status --porcelain
 if ($gitStatus) {
     Write-Warning "Uncommitted local changes detected in repository. Consider committing or stashing before production promotion."
 }
@@ -40,7 +41,8 @@ $pkgDir = Join-Path $repo "prod_build_tmp"
 if (Test-Path $pkgDir) { Remove-Item -Recurse -Force $pkgDir }
 New-Item -ItemType Directory -Path $pkgDir | Out-Null
 
-$trackedFiles = git ls-files
+$trackedFiles = git -C $repo ls-files
+Write-Host "Found $($trackedFiles.Count) tracked files to deploy to production." -ForegroundColor Cyan
 foreach ($f in $trackedFiles) {
     if ($f -match '^\.env' -or $f -match '^\.git' -or $f -match '\.zip$') { continue }
     $src = Join-Path $repo $f
