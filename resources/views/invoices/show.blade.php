@@ -6,7 +6,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ showCreditModal: false, showRecallModal: false, openActions: false }">
+<div class="w-full space-y-6" x-data="{ showCreditModal: false, showRecallModal: false, openActions: false }">
     <!-- Top Action Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
@@ -18,146 +18,173 @@
                     @elseif($invoice->status === 'issued') bg-blue-100 text-blue-800
                     @elseif($invoice->status === 'sent') bg-sky-100 text-sky-800
                     @elseif($invoice->status === 'cancelled') bg-rose-100 text-rose-800
+                    @elseif($invoice->status === 'draft') bg-amber-100 text-amber-800 border border-amber-300
                     @else bg-slate-100 text-slate-800 @endif">
                     {{ __($invoice->status) }}
                 </span>
 
-                @if($invoice->sent_at)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200" title="Dispatched on {{ $invoice->sent_at->format('M d, Y h:i A') }}">
-                        <i class="ph ph-envelope-simple-check text-xs text-sky-600"></i> {{ __('Emailed') }} {{ $invoice->sent_at->format('M d') }}
+                @if($invoice->status === 'draft')
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <i class="ph ph-lock-key text-xs text-amber-600"></i> {{ __('Unpublished Draft') }}
                     </span>
                 @else
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="This invoice has not yet been emailed to the client.">
-                        <i class="ph ph-envelope-simple text-xs"></i> {{ __('Not Emailed') }}
-                    </span>
-                @endif
+                    @if($invoice->sent_at)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200" title="Dispatched on {{ $invoice->sent_at->format('M d, Y h:i A') }}">
+                            <i class="ph ph-envelope-simple-check text-xs text-sky-600"></i> {{ __('Emailed') }} {{ $invoice->sent_at->format('M d') }}
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="This invoice has not yet been emailed to the client.">
+                            <i class="ph ph-envelope-simple text-xs"></i> {{ __('Not Emailed') }}
+                        </span>
+                    @endif
 
-                @if($invoice->email_opened_at)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200" title="First opened on {{ $invoice->email_opened_at->format('M d, Y h:i A') }}">
-                        <i class="ph ph-envelope-open text-xs text-emerald-600"></i> {{ __('Email Opened') }} ({{ $invoice->email_opens_count }}x)
-                    </span>
-                @endif
+                    @if($invoice->email_opened_at)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200" title="First opened on {{ $invoice->email_opened_at->format('M d, Y h:i A') }}">
+                            <i class="ph ph-envelope-open text-xs text-emerald-600"></i> {{ __('Email Opened') }} ({{ $invoice->email_opens_count }}x)
+                        </span>
+                    @endif
 
-                @if($invoice->viewed_at)
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200" title="Client visited portal / downloaded PDF on {{ $invoice->viewed_at->format('M d, Y h:i A') }}">
-                        <i class="ph ph-eye text-xs text-indigo-600"></i> {{ __('Viewed by Client') }} ({{ $invoice->view_count }}x)
-                    </span>
+                    @if($invoice->viewed_at)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200" title="Client visited portal / downloaded PDF on {{ $invoice->viewed_at->format('M d, Y h:i A') }}">
+                            <i class="ph ph-eye text-xs text-indigo-600"></i> {{ __('Viewed by Client') }} ({{ $invoice->view_count }}x)
+                        </span>
+                    @endif
                 @endif
             </div>
             <p class="text-xs text-slate-500 mt-1">{{ __('Issued') }} {{ $invoice->issue_date->format('F d, Y') }} &bull; {{ __('Due') }} {{ $invoice->due_date->format('F d, Y') }}</p>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap" x-data="{ openActions: false }">
-            <!-- Language Switcher Form for Invoice -->
-            <form action="{{ route('invoices.language', $invoice->id) }}" method="POST" class="inline-flex items-center">
-                @csrf
-                <div class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 transition" title="{{ __('Change Invoice Document Language') }}">
-                    <i class="ph ph-translate text-sm text-red-600"></i>
-                    <select name="language" onchange="this.form.submit()" class="bg-transparent border-0 text-xs font-bold text-slate-800 focus:ring-0 cursor-pointer pr-3 py-0">
-                        <option value="en" {{ ($invoice->language ?: $currentLocale) === 'en' ? 'selected' : '' }}>🇺🇸 EN</option>
-                        <option value="ur" {{ ($invoice->language ?: $currentLocale) === 'ur' ? 'selected' : '' }}>🇵🇰 اردو</option>
-                        <option value="ar" {{ ($invoice->language ?: $currentLocale) === 'ar' ? 'selected' : '' }}>🇦🇪 العربية</option>
-                        <option value="tr" {{ ($invoice->language ?: $currentLocale) === 'tr' ? 'selected' : '' }}>🇹🇷 TR</option>
-                        <option value="hi" {{ ($invoice->language ?: $currentLocale) === 'hi' ? 'selected' : '' }}>🇮🇳 HI</option>
-                        <option value="es" {{ ($invoice->language ?: $currentLocale) === 'es' ? 'selected' : '' }}>🇪🇸 ES</option>
-                        <option value="fr" {{ ($invoice->language ?: $currentLocale) === 'fr' ? 'selected' : '' }}>🇫🇷 FR</option>
-                        <option value="de" {{ ($invoice->language ?: $currentLocale) === 'de' ? 'selected' : '' }}>🇩🇪 DE</option>
-                    </select>
-                </div>
-            </form>
-
+        <div class="flex items-center gap-2 flex-wrap" x-data="{ openActions: false }">
+            <!-- Edit / Revise Button (Always active) -->
             <a href="{{ route('invoices.edit', $invoice->id) }}"
-               class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-xs transition">
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-xs transition">
                 <i class="ph ph-pencil-simple text-base text-slate-500"></i> {{ __('Revise') }}
             </a>
 
-            <a href="{{ route('invoices.pdf.download', ['token' => $invoice->public_secure_token, 'lang' => $invoice->language ?: $currentLocale]) }}" target="_blank"
-               class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition">
-                <i class="ph ph-file-pdf text-base text-slate-300"></i> {{ __('PDF') }}
-            </a>
+            @if($invoice->status === 'draft')
+                <!-- Issue & Publish Button for Draft Invoices -->
+                <form action="{{ route('invoices.publish', $invoice->id) }}" method="POST" class="inline"
+                      onsubmit="return confirm('Officially issue and publish invoice #{{ $invoice->invoice_number }}? This will activate the PDF, online payment portal, and verification QR code.');">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                        <i class="ph ph-paper-plane-tilt text-base"></i> {{ __('Issue & Publish') }}
+                    </button>
+                </form>
 
-            <a href="{{ route('invoices.portal', ['token' => $invoice->public_secure_token, 'lang' => $invoice->language ?: $currentLocale]) }}" target="_blank"
-               class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                <i class="ph ph-arrow-square-out text-base"></i> {{ __('Pay Portal') }}
-            </a>
+                <!-- PDF Button (Disabled for Drafts) -->
+                <span class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-400 text-xs font-bold rounded-xl border border-slate-200 cursor-not-allowed opacity-60"
+                      title="{{ __('PDF download is disabled for draft invoices until published.') }}">
+                    <i class="ph ph-file-pdf text-base text-slate-400"></i> {{ __('PDF') }}
+                </span>
 
-            @if($invoice->status !== 'draft' && $invoice->status !== 'paid')
-                <button @click="showRecallModal = true" type="button"
-                        class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold rounded-xl transition shadow-xs"
-                        title="{{ __('Recall invoice and revert to draft for corrections') }}">
-                    <i class="ph ph-arrow-counter-clockwise text-base text-amber-600"></i> {{ __('Recall / Pull Back') }}
-                </button>
+                <!-- Pay Portal Button (Disabled for Drafts) -->
+                <span class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-400 text-xs font-bold rounded-xl border border-slate-200 cursor-not-allowed opacity-60"
+                      title="{{ __('Payment portal is disabled for draft invoices until published.') }}">
+                    <i class="ph ph-arrow-square-out text-base text-slate-400"></i> {{ __('Pay Portal') }}
+                </span>
+            @else
+                <!-- Active PDF Button -->
+                <a href="{{ route('invoices.pdf.download', ['token' => $invoice->public_secure_token, 'lang' => $invoice->language ?: $currentLocale]) }}" target="_blank"
+                   class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition">
+                    <i class="ph ph-file-pdf text-base text-slate-300"></i> {{ __('PDF') }}
+                </a>
+
+                <!-- Active Pay Portal Button -->
+                <a href="{{ route('invoices.portal', ['token' => $invoice->public_secure_token, 'lang' => $invoice->language ?: $currentLocale]) }}" target="_blank"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                    <i class="ph ph-arrow-square-out text-base"></i> {{ __('Pay Portal') }}
+                </a>
+
+                @if($invoice->status !== 'paid')
+                    <button @click="showRecallModal = true" type="button"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold rounded-xl transition shadow-xs"
+                            title="{{ __('Recall invoice and revert to draft for corrections') }}">
+                        <i class="ph ph-arrow-counter-clockwise text-base text-amber-600"></i> {{ __('Recall / Pull Back') }}
+                    </button>
+                @endif
+
+                <!-- More Actions Dropdown Menu (Only active for published invoices) -->
+                <div class="relative">
+                    <button @click="openActions = !openActions" @click.outside="openActions = false" type="button"
+                            class="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition">
+                        <span>{{ __('More') }}</span>
+                        <i class="ph ph-caret-down text-xs"></i>
+                    </button>
+
+                    <div x-show="openActions" x-cloak 
+                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                        
+                        @if($invoice->client && !empty($invoice->client->email))
+                            <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="w-full"
+                                  onsubmit="return confirm('{{ $invoice->sent_at ? "This invoice was already emailed to {$invoice->client->email} on " . $invoice->sent_at->format('M d, Y h:i A') . ". Do you want to send it again?" : "Send invoice #{$invoice->invoice_number} to {$invoice->client->email}?" }}');">
+                                @csrf
+                                <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700 font-semibold">
+                                    <span class="flex items-center gap-2">
+                                        <i class="ph ph-paper-plane-tilt {{ $invoice->sent_at ? 'text-blue-600' : 'text-emerald-600' }} text-sm"></i>
+                                        <span>{{ $invoice->sent_at ? __('Resend to Client Email') : __('Send to Client Email') }}</span>
+                                    </span>
+                                    @if($invoice->sent_at)
+                                        <span class="text-[10px] text-slate-400 font-normal">{{ __('Sent') }}</span>
+                                    @endif
+                                </button>
+                            </form>
+                        @endif
+
+                        @if($invoice->due_cents > 0)
+                            <form action="{{ route('invoices.reminder', $invoice->id) }}" method="POST" class="w-full">
+                                @csrf
+                                <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold">
+                                    <i class="ph ph-bell-ringing text-amber-600 text-sm"></i>
+                                    {{ __('Send Payment Reminder') }}
+                                </button>
+                            </form>
+                        @endif
+
+                        <button @click="showCreditModal = true; openActions = false" type="button"
+                                class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-rose-700 font-semibold border-t border-slate-100">
+                            <i class="ph ph-arrow-u-up-left text-rose-600 text-sm"></i>
+                            {{ __('Issue Credit Note') }}
+                        </button>
+
+                        @if($invoice->status !== 'paid')
+                            <button @click="showRecallModal = true; openActions = false" type="button"
+                                    class="w-full text-left px-4 py-2 hover:bg-amber-50 flex items-center gap-2 text-amber-700 font-semibold border-t border-slate-100">
+                                <i class="ph ph-arrow-counter-clockwise text-amber-600 text-sm"></i>
+                                {{ __('Recall / Pull Back Invoice') }}
+                            </button>
+                        @endif
+
+                        <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied!');"
+                                @click="openActions = false" type="button"
+                                class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-600 font-medium">
+                            <i class="ph ph-copy text-slate-500 text-sm"></i>
+                            {{ __('Copy Portal Link') }}
+                        </button>
+
+                        <form action="{{ route('invoices.destroy', $invoice->id) }}" method="POST" class="w-full"
+                              onsubmit="return confirm('Permanently delete invoice #{{ $invoice->invoice_number }}? This cannot be undone.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-rose-50 flex items-center gap-2 text-rose-600 font-semibold border-t border-slate-100">
+                                <i class="ph ph-trash text-rose-600 text-sm"></i>
+                                {{ __('Delete Invoice') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
             @endif
 
-            <!-- More Actions Dropdown Menu -->
-            <div class="relative">
-                <button @click="openActions = !openActions" @click.outside="openActions = false" type="button"
-                        class="inline-flex items-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 transition">
-                    <span>{{ __('More') }}</span>
-                    <i class="ph ph-caret-down text-xs"></i>
-                </button>
-
-                <div x-show="openActions" x-cloak 
-                     class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
-                    
-                    @if($invoice->client && !empty($invoice->client->email))
-                        <form action="{{ route('invoices.send', $invoice->id) }}" method="POST" class="w-full"
-                              onsubmit="return confirm('{{ $invoice->sent_at ? "This invoice was already emailed to {$invoice->client->email} on " . $invoice->sent_at->format('M d, Y h:i A') . ". Do you want to send it again?" : "Send invoice #{$invoice->invoice_number} to {$invoice->client->email}?" }}');">
-                            @csrf
-                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700 font-semibold">
-                                <span class="flex items-center gap-2">
-                                    <i class="ph ph-paper-plane-tilt {{ $invoice->sent_at ? 'text-blue-600' : 'text-emerald-600' }} text-sm"></i>
-                                    <span>{{ $invoice->sent_at ? __('Resend to Client Email') : __('Send to Client Email') }}</span>
-                                </span>
-                                @if($invoice->sent_at)
-                                    <span class="text-[10px] text-slate-400 font-normal">{{ __('Sent') }}</span>
-                                @endif
-                            </button>
-                        </form>
-                    @endif
-
-                    @if($invoice->due_cents > 0)
-                        <form action="{{ route('invoices.reminder', $invoice->id) }}" method="POST" class="w-full">
-                            @csrf
-                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-semibold">
-                                <i class="ph ph-bell-ringing text-amber-600 text-sm"></i>
-                                {{ __('Send Payment Reminder') }}
-                            </button>
-                        </form>
-                    @endif
-
-                    <button @click="showCreditModal = true; openActions = false" type="button"
-                            class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-rose-700 font-semibold border-t border-slate-100">
-                        <i class="ph ph-arrow-u-up-left text-rose-600 text-sm"></i>
-                        {{ __('Issue Credit Note') }}
+            @if($invoice->status === 'draft')
+                <!-- Delete button for Drafts -->
+                <form action="{{ route('invoices.destroy', $invoice->id) }}" method="POST" class="inline"
+                      onsubmit="return confirm('Permanently delete draft invoice #{{ $invoice->invoice_number }}?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition" title="Delete Draft">
+                        <i class="ph ph-trash text-base"></i> {{ __('Delete') }}
                     </button>
-
-                    @if($invoice->status !== 'draft' && $invoice->status !== 'paid')
-                        <button @click="showRecallModal = true; openActions = false" type="button"
-                                class="w-full text-left px-4 py-2 hover:bg-amber-50 flex items-center gap-2 text-amber-700 font-semibold border-t border-slate-100">
-                            <i class="ph ph-arrow-counter-clockwise text-amber-600 text-sm"></i>
-                            {{ __('Recall / Pull Back Invoice') }}
-                        </button>
-                    @endif
-
-                    <button onclick="navigator.clipboard.writeText('{{ route('invoices.portal', $invoice->public_secure_token) }}'); alert('Customer portal link copied!');"
-                            @click="openActions = false" type="button"
-                            class="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-600 font-medium">
-                        <i class="ph ph-copy text-slate-500 text-sm"></i>
-                        {{ __('Copy Portal Link') }}
-                    </button>
-
-                    <form action="{{ route('invoices.destroy', $invoice->id) }}" method="POST" class="w-full"
-                          onsubmit="return confirm('Permanently delete invoice #{{ $invoice->invoice_number }}? This cannot be undone.');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="w-full text-left px-4 py-2 hover:bg-rose-50 flex items-center gap-2 text-rose-600 font-semibold border-t border-slate-100">
-                            <i class="ph ph-trash text-rose-600 text-sm"></i>
-                            {{ __('Delete Invoice') }}
-                        </button>
-                    </form>
-                </div>
-            </div>
+                </form>
+            @endif
         </div>
     </div>
 
@@ -192,6 +219,7 @@
     </div>
     @endif
 
+    @if($invoice->status !== 'draft')
     <!-- Authentic Verification & QR Code Card (Item 6 / Authentic Verification) -->
     <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-5">
         <div class="flex items-center gap-4">
@@ -258,6 +286,7 @@
             </div>
         @endif
     </div>
+    @endif
 
     <!-- Invoice Content Paper -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8 relative overflow-hidden" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">

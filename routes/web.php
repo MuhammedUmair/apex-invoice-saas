@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
     Route::post('/invoices/{invoice}/language', [InvoiceController::class, 'updateLanguage'])->name('invoices.language');
     Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
+    Route::post('/invoices/{invoice}/publish', [InvoiceController::class, 'publish'])->name('invoices.publish');
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('invoices.send');
     Route::post('/invoices/{invoice}/reminder', [InvoiceController::class, 'sendReminder'])->name('invoices.reminder');
     Route::post('/invoices/{invoice}/recall', [InvoiceController::class, 'recall'])->name('invoices.recall');
@@ -139,6 +140,14 @@ Route::middleware('auth')->group(function () {
 
     // Comprehensive Help Center & Interactive Visual Guides
     Route::get('/help', [App\Http\Controllers\HelpController::class, 'index'])->name('help.index');
+
+    // Consumer Support Tickets (24-Hour SLA Turnaround Guarantee - Request 12)
+    Route::get('/support', [\App\Http\Controllers\SupportTicketController::class, 'index'])->name('support.index');
+    Route::get('/support/create', [\App\Http\Controllers\SupportTicketController::class, 'create'])->name('support.create');
+    Route::post('/support', [\App\Http\Controllers\SupportTicketController::class, 'store'])->name('support.store');
+    Route::get('/support/{ticket}', [\App\Http\Controllers\SupportTicketController::class, 'show'])->name('support.show');
+    Route::post('/support/{ticket}/reply', [\App\Http\Controllers\SupportTicketController::class, 'reply'])->name('support.reply');
+    Route::post('/support/{ticket}/close', [\App\Http\Controllers\SupportTicketController::class, 'close'])->name('support.close');
 
     // Automated Reminders & Future Scheduler Hub
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders.index');

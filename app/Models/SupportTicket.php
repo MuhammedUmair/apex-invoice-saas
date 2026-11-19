@@ -20,7 +20,12 @@ class SupportTicket extends Model
         'category',
         'priority',
         'status',
+        'sla_due_at',
         'assigned_to_user_id',
+    ];
+
+    protected $casts = [
+        'sla_due_at' => 'datetime',
     ];
 
     public function workspace(): BelongsTo
@@ -67,5 +72,38 @@ class SupportTicket extends Model
             'in_progress' => 'bg-indigo-100 text-indigo-800 border-indigo-300',
             default => 'bg-amber-100 text-amber-800 border-amber-300',
         };
+    }
+
+    /**
+     * Check if the 24-hour turnaround SLA has expired.
+     */
+    public function isSlaBreached(): bool
+    {
+        if (in_array($this->status, ['resolved', 'closed'])) {
+            return false;
+        }
+
+        if (!$this->sla_due_at) {
+            return false;
+        }
+
+        return $this->sla_due_at->isPast();
+    }
+
+    /**
+     * Get human-readable SLA remaining time.
+     */
+    public function getSlaRemainingAttribute(): string
+    {
+        if (in_array($this->status, ['resolved', 'closed'])) {
+            return 'Resolved within SLA';
+        }
+
+        $due = $this->sla_due_at ?? $this->created_at->addHours(24);
+        if ($due->isPast()) {
+            return 'Overdue by ' . $due->diffForHumans(null, true);
+        }
+
+        return $due->diffForHumans(null, false, false, 2);
     }
 }

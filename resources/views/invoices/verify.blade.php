@@ -23,7 +23,7 @@
 
     <!-- Top Header -->
     <header class="bg-white border-b border-slate-200 py-3 sm:py-4 px-4 sm:px-6 sticky top-0 z-30 shadow-xs">
-        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-4">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div class="flex items-center gap-2.5 sm:gap-3">
                 @if($sysLogo)
                     <img src="{{ $sysLogo }}" alt="Logo" class="h-7 sm:h-8 max-w-[120px] sm:max-w-[140px] object-contain">
@@ -33,7 +33,7 @@
                     </div>
                 @endif
                 <div>
-                    <div class="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+                    <div class="text-sm font-black tracking-tight text-slate-900 flex items-center gap-1.5 flex-wrap">
                         <span>Invoicy</span>
                         <span class="text-[10px] uppercase tracking-wider font-extrabold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">Trust Shield</span>
                     </div>
@@ -41,10 +41,10 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 self-start sm:self-auto">
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Cryptographically Validated
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end pt-1 sm:pt-0">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                    <span>Cryptographically Validated</span>
                 </span>
             </div>
         </div>

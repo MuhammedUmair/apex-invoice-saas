@@ -43,8 +43,11 @@ class InvoiceBuilder extends Component
     public bool $isPdfPasswordProtected = false;
     public string $pdfPassword = '';
 
-    // Direct Email Dispatch on Publish
-    public bool $sendEmailToClient = true;
+    // Direct Email Dispatch on Publish (Default: false to prevent accidental dispatches)
+    public bool $sendEmailToClient = false;
+
+    // Industry Filter for Service Presets (Request 8)
+    public string $presetIndustryFilter = 'all';
 
     // Interactive Pre-Dispatch Review Modal (Item 3)
     public bool $showReviewModal = false;
@@ -116,41 +119,356 @@ class InvoiceBuilder extends Component
     ];
 
     public array $presets = [
+        // Generic / Core
         'consulting' => [
             'name' => 'Consulting & Professional Advisory',
             'rate' => 100.00,
             'unit' => 'Hour',
             'category' => 'Consulting',
+            'industry' => 'general',
         ],
         'web_dev' => [
             'name' => 'Web Design & Software Development',
             'rate' => 750.00,
             'unit' => 'Project',
             'category' => 'Development',
-        ],
-        'retainer' => [
-            'name' => 'Monthly Retainer & Technical Support',
-            'rate' => 500.00,
-            'unit' => 'Month',
-            'category' => 'Retainer',
+            'industry' => 'general',
         ],
         'labor' => [
             'name' => 'Custom Technical Labor / Implementation',
             'rate' => 75.00,
             'unit' => 'Hour',
             'category' => 'Labor',
+            'industry' => 'general',
         ],
-        'marketing' => [
-            'name' => 'SEO Optimization & Digital Marketing',
-            'rate' => 250.00,
-            'unit' => 'Package',
-            'category' => 'Marketing',
+
+        // 1. Computer Shop
+        'computer_diagnostics' => [
+            'name' => 'Computer & Laptop Hardware Diagnostics',
+            'rate' => 50.00,
+            'unit' => 'Diagnosis',
+            'category' => 'Diagnostics',
+            'industry' => 'computer_shop',
         ],
-        'product' => [
-            'name' => 'General Merchandise / Goods Supply',
+        'computer_laptop_repair' => [
+            'name' => 'Laptop Motherboard & Display Component Repair',
+            'rate' => 120.00,
+            'unit' => 'Service',
+            'category' => 'Repair',
+            'industry' => 'computer_shop',
+        ],
+        'computer_os_install' => [
+            'name' => 'Clean Windows / Linux OS Installation & Drivers',
+            'rate' => 65.00,
+            'unit' => 'Setup',
+            'category' => 'Software',
+            'industry' => 'computer_shop',
+        ],
+        'computer_ram_ssd' => [
+            'name' => 'High-Speed NVMe SSD & RAM Memory Upgrade',
+            'rate' => 110.00,
+            'unit' => 'Upgrade',
+            'category' => 'Hardware',
+            'industry' => 'computer_shop',
+        ],
+        'computer_virus_clean' => [
+            'name' => 'Deep Malware, Trojan & Ransomware Clean',
+            'rate' => 75.00,
+            'unit' => 'Service',
+            'category' => 'Security',
+            'industry' => 'computer_shop',
+        ],
+        'computer_data_recovery' => [
+            'name' => 'Storage Data Recovery & Secure Backup Setup',
+            'rate' => 160.00,
+            'unit' => 'Drive',
+            'category' => 'Data',
+            'industry' => 'computer_shop',
+        ],
+        'computer_custom_build' => [
+            'name' => 'Custom Gaming & Deep Learning Workstation Build',
+            'rate' => 180.00,
+            'unit' => 'Unit',
+            'category' => 'Assembly',
+            'industry' => 'computer_shop',
+        ],
+
+        // 2. Transportation
+        'trans_ftl' => [
+            'name' => 'Full Truckload (FTL) Regional Freight Haul',
+            'rate' => 1250.00,
+            'unit' => 'Trip',
+            'category' => 'Freight',
+            'industry' => 'transportation',
+        ],
+        'trans_ltl' => [
+            'name' => 'Less-Than-Truckload (LTL) Pallet Cargo Dispatch',
+            'rate' => 320.00,
+            'unit' => 'Pallet',
+            'category' => 'Cargo',
+            'industry' => 'transportation',
+        ],
+        'trans_intercity' => [
+            'name' => 'Inter-City Dedicated Courier Dispatch',
+            'rate' => 480.00,
+            'unit' => 'Route',
+            'category' => 'Courier',
+            'industry' => 'transportation',
+        ],
+        'trans_cold_chain' => [
+            'name' => 'Temperature-Controlled Cold-Chain Haulage',
+            'rate' => 1400.00,
+            'unit' => 'Shipment',
+            'category' => 'Refrigerated',
+            'industry' => 'transportation',
+        ],
+        'trans_port_drayage' => [
+            'name' => 'Intermodal Port Container Drayage Transfer',
+            'rate' => 550.00,
+            'unit' => 'Container',
+            'category' => 'Intermodal',
+            'industry' => 'transportation',
+        ],
+        'trans_last_mile' => [
+            'name' => 'Same-Day Urgent Last-Mile Route Delivery',
+            'rate' => 95.00,
+            'unit' => 'Route',
+            'category' => 'Last Mile',
+            'industry' => 'transportation',
+        ],
+
+        // 3. Limousine Taxi
+        'limo_airport_vip' => [
+            'name' => 'VIP Airport Chauffeur & Meet-and-Greet',
+            'rate' => 140.00,
+            'unit' => 'Transfer',
+            'category' => 'Airport',
+            'industry' => 'limousine_taxi',
+        ],
+        'limo_hourly_chauffeur' => [
+            'name' => 'Hourly Executive Luxury Sedan Chauffeur',
+            'rate' => 85.00,
+            'unit' => 'Hour',
+            'category' => 'Hourly',
+            'industry' => 'limousine_taxi',
+        ],
+        'limo_full_day_hire' => [
+            'name' => 'Full-Day Premium Black Car Chauffeur Service',
+            'rate' => 650.00,
+            'unit' => 'Day',
+            'category' => 'Day Hire',
+            'industry' => 'limousine_taxi',
+        ],
+        'limo_wedding_escort' => [
+            'name' => 'Presidential Stretch Limousine Wedding Escort',
+            'rate' => 550.00,
+            'unit' => 'Event',
+            'category' => 'Events',
+            'industry' => 'limousine_taxi',
+        ],
+        'limo_corporate_delegation' => [
+            'name' => 'Corporate Executive Delegation Van Shuttle',
+            'rate' => 380.00,
+            'unit' => 'Service',
+            'category' => 'Corporate',
+            'industry' => 'limousine_taxi',
+        ],
+        'limo_point_to_point' => [
+            'name' => 'Point-to-Point City Luxury Transfer',
+            'rate' => 110.00,
+            'unit' => 'Trip',
+            'category' => 'Transfer',
+            'industry' => 'limousine_taxi',
+        ],
+
+        // 4. Industrial
+        'ind_preventive_maint' => [
+            'name' => 'Heavy Machinery Preventive Maintenance',
+            'rate' => 650.00,
+            'unit' => 'Inspection',
+            'category' => 'Maintenance',
+            'industry' => 'industrial',
+        ],
+        'ind_cnc_precision' => [
+            'name' => 'Precision CNC Milling & Lathe Machining',
+            'rate' => 135.00,
+            'unit' => 'Hour',
+            'category' => 'Machining',
+            'industry' => 'industrial',
+        ],
+        'ind_pipe_welding' => [
+            'name' => 'Certified High-Pressure Pipe TIG/MIG Welding',
+            'rate' => 95.00,
+            'unit' => 'Hour',
+            'category' => 'Welding',
+            'industry' => 'industrial',
+        ],
+        'ind_panel_assembly' => [
+            'name' => 'Industrial Electrical PLC & Control Panel Assembly',
+            'rate' => 1850.00,
+            'unit' => 'Unit',
+            'category' => 'Electrical',
+            'industry' => 'industrial',
+        ],
+        'ind_hydraulic_overhaul' => [
+            'name' => 'Hydraulic Cylinder & Pump Seal Overhaul',
+            'rate' => 780.00,
+            'unit' => 'Service',
+            'category' => 'Hydraulics',
+            'industry' => 'industrial',
+        ],
+        'ind_safety_audit' => [
+            'name' => 'Industrial Workplace & OSHA Plant Safety Audit',
+            'rate' => 1200.00,
+            'unit' => 'Audit',
+            'category' => 'Safety',
+            'industry' => 'industrial',
+        ],
+
+        // 5. Construction
+        'const_foundation' => [
+            'name' => 'Concrete Foundation & Footing Pouring',
+            'rate' => 3200.00,
+            'unit' => 'Project',
+            'category' => 'Foundation',
+            'industry' => 'construction',
+        ],
+        'const_steel_framing' => [
+            'name' => 'Structural Steel Beam & Truss Erection',
+            'rate' => 2100.00,
+            'unit' => 'Ton',
+            'category' => 'Framing',
+            'industry' => 'construction',
+        ],
+        'const_drywall' => [
+            'name' => 'Drywall Boarding, Taping & Skim Plastering',
             'rate' => 45.00,
-            'unit' => 'Item',
-            'category' => 'Product',
+            'unit' => 'Sq Meter',
+            'category' => 'Finishing',
+            'industry' => 'construction',
+        ],
+        'const_flooring' => [
+            'name' => 'Commercial Epoxy / Ceramic Tile Installation',
+            'rate' => 60.00,
+            'unit' => 'Sq Meter',
+            'category' => 'Flooring',
+            'industry' => 'construction',
+        ],
+        'const_rough_plumbing' => [
+            'name' => 'Rough-in Commercial Plumbing & Drainage',
+            'rate' => 1450.00,
+            'unit' => 'Phase',
+            'category' => 'Plumbing',
+            'industry' => 'construction',
+        ],
+        'const_electrical_wiring' => [
+            'name' => 'Main Electrical Panel & Conduit Wiring',
+            'rate' => 1600.00,
+            'unit' => 'Phase',
+            'category' => 'Electrical',
+            'industry' => 'construction',
+        ],
+        'const_site_excavation' => [
+            'name' => 'Heavy Site Grading, Trenching & Earthmoving',
+            'rate' => 175.00,
+            'unit' => 'Hour',
+            'category' => 'Excavation',
+            'industry' => 'construction',
+        ],
+
+        // 6. Distributor
+        'dist_pallet_supply' => [
+            'name' => 'Wholesale Bulk Pallet Distribution',
+            'rate' => 850.00,
+            'unit' => 'Pallet',
+            'category' => 'Wholesale',
+            'industry' => 'distributor',
+        ],
+        'dist_fmcg_pack' => [
+            'name' => 'Fast-Moving Consumer Goods (FMCG) Case Pack',
+            'rate' => 1950.00,
+            'unit' => 'Lot',
+            'category' => 'FMCG',
+            'industry' => 'distributor',
+        ],
+        'dist_warehousing' => [
+            'name' => 'Secure Pallet Racking & Warehousing',
+            'rate' => 55.00,
+            'unit' => 'Month',
+            'category' => 'Storage',
+            'industry' => 'distributor',
+        ],
+        'dist_cross_dock' => [
+            'name' => 'Cross-Dock Logistics & Sorting Transfer',
+            'rate' => 240.00,
+            'unit' => 'Inbound',
+            'category' => 'Cross-Dock',
+            'industry' => 'distributor',
+        ],
+        'dist_repackaging' => [
+            'name' => 'Automated SKU Barcode Label & Repack',
+            'rate' => 0.50,
+            'unit' => 'Unit',
+            'category' => 'Packaging',
+            'industry' => 'distributor',
+        ],
+        'dist_route_delivery' => [
+            'name' => 'Scheduled Weekly Supermarket Route Delivery',
+            'rate' => 750.00,
+            'unit' => 'Store',
+            'category' => 'Distribution',
+            'industry' => 'distributor',
+        ],
+
+        // 7. Marketing Agency
+        'mkt_brand_strategy' => [
+            'name' => 'Full Brand Identity, Guidelines & Logo Suite',
+            'rate' => 1400.00,
+            'unit' => 'Package',
+            'category' => 'Branding',
+            'industry' => 'marketing_agency',
+        ],
+        'mkt_paid_ads' => [
+            'name' => 'Multi-Platform Paid Search & Social Ad Management',
+            'rate' => 1100.00,
+            'unit' => 'Month',
+            'category' => 'Paid Media',
+            'industry' => 'marketing_agency',
+        ],
+        'mkt_seo_retainer' => [
+            'name' => 'Technical On-Page & Off-Page SEO Retainer',
+            'rate' => 850.00,
+            'unit' => 'Month',
+            'category' => 'SEO',
+            'industry' => 'marketing_agency',
+        ],
+        'mkt_social_content' => [
+            'name' => 'Monthly High-Impact Social Content & Reels',
+            'rate' => 750.00,
+            'unit' => 'Month',
+            'category' => 'Social',
+            'industry' => 'marketing_agency',
+        ],
+        'mkt_landing_page' => [
+            'name' => 'Conversion-Optimized Sales Landing Page',
+            'rate' => 950.00,
+            'unit' => 'Page',
+            'category' => 'Web Design',
+            'industry' => 'marketing_agency',
+        ],
+        'mkt_video_production' => [
+            'name' => 'Commercial Promotional Video Shoot & Edit',
+            'rate' => 1650.00,
+            'unit' => 'Video',
+            'category' => 'Production',
+            'industry' => 'marketing_agency',
+        ],
+        'mkt_email_funnel' => [
+            'name' => 'Automated Email Welcome & Retention Funnels',
+            'rate' => 650.00,
+            'unit' => 'Funnel',
+            'category' => 'Automation',
+            'industry' => 'marketing_agency',
         ],
     ];
 
@@ -716,13 +1034,18 @@ class InvoiceBuilder extends Component
 
         // Resolve or create Client
         if ($this->isWalkin) {
+            $walkEmail = !empty($this->walkinEmail) ? trim($this->walkinEmail) : null;
+            $searchCriteria = [
+                'workspace_id' => $workspace->id,
+                'name' => $this->walkinName ?: 'Walk-in Customer',
+            ];
+            if (!empty($walkEmail)) {
+                $searchCriteria['email'] = $walkEmail;
+            }
             $client = Client::firstOrCreate(
+                $searchCriteria,
                 [
-                    'workspace_id' => $workspace->id,
-                    'name' => $this->walkinName ?: 'Walk-in Customer',
-                    'email' => $this->walkinEmail ?: 'walkin_' . time() . '@redmapleagency.com',
-                ],
-                [
+                    'email' => $walkEmail,
                     'phone' => $this->walkinPhone,
                     'address' => $this->walkinAddress,
                     'country_code' => $this->countryTaxCode ?: 'US',
@@ -878,8 +1201,8 @@ class InvoiceBuilder extends Component
             ]);
         }
 
-        // Option 13: Direct Email Dispatch to registered client on publish
-        if ($status !== 'draft' && !$this->isScheduled && $this->sendEmailToClient && !empty($client->email)) {
+        // Option 13: Direct Email Dispatch to registered client on publish (Never on drafts, never to dummy walkin emails)
+        if ($status !== 'draft' && !$this->isScheduled && $this->sendEmailToClient && !empty($client->email) && !str_starts_with($client->email, 'walkin_')) {
             $currentUser = Auth::user();
 
             // 1. Phishing & Spam Relay Prevention: Require Verified Email

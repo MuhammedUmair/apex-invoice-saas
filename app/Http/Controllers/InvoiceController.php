@@ -62,9 +62,29 @@ class InvoiceController extends Controller
         return view('invoices.edit', compact('invoice'));
     }
 
+    public function publish(Invoice $invoice)
+    {
+        if ($invoice->status !== 'draft') {
+            return back()->with('info', 'This invoice has already been published.');
+        }
+
+        $invoice->update([
+            'status' => 'issued',
+        ]);
+
+        \App\Services\AuditService::log('invoice.published', $invoice);
+
+        return back()->with('message', "Invoice #{$invoice->invoice_number} has been officially issued & published! PDF downloads, customer payment portal, and verification QR codes are now active.");
+    }
+
     public function sendEmail(Invoice $invoice)
     {
         $invoice->load(['client', 'workspace']);
+
+        // Explicitly block email dispatch for draft invoices
+        if ($invoice->status === 'draft') {
+            return back()->with('error', 'Draft invoices cannot be emailed to clients. Please issue and publish the invoice first.');
+        }
 
         // 1. Phishing & Spam Relay Prevention: Require Verified Email (Item 4)
         if (!Auth::user()->hasVerifiedEmail()) {
@@ -218,7 +238,7 @@ class InvoiceController extends Controller
 
         // 2. Disable Public Portal for Draft Invoices (Item 2)
         if ($invoice->status === 'draft') {
-            abort(403, 'Document Access Restricted: This invoice is currently in saved draft status and has not yet been published or issued by the agency.');
+            return response()->view('invoices.draft-portal', compact('invoice'), 403);
         }
 
         // 3. Disable Public Portal for Empty Invoices (Item 2)
@@ -501,6 +521,11 @@ class InvoiceController extends Controller
             ->where('public_secure_token', $token)
             ->with(['client', 'items', 'workspace'])
             ->firstOrFail();
+
+        // Draft invoices cannot be officially verified
+        if ($invoice->status === 'draft') {
+            return response()->view('invoices.draft-verify', compact('invoice'), 403);
+        }
 
         \App\Services\AuditService::log('invoice.qr_verified', $invoice, null, [
             'ip' => request()->ip(),

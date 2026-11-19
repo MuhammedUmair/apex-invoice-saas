@@ -214,32 +214,40 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Quick Presets (Multi-Click Quantity Increment Supported) -->
-                <div class="bg-rose-50/30 border border-rose-100 rounded-2xl p-4">
-                    <div class="flex items-center gap-2 mb-2.5">
-                        <i class="ph ph-lightning text-rose-500 text-base"></i>
-                        <h4 class="text-xs font-bold text-slate-800">{{ __('Quick Presets') }}</h4>
-                        <span class="text-[10px] text-slate-400 font-normal">({{ __('click multiple times to increase quantity') }})</span>
+                <!-- Row 2: Industry Service Presets (Request 8 - 7 Industries Supported) -->
+                <div class="bg-rose-50/40 border border-rose-200/70 rounded-2xl p-4 space-y-3" x-data="{ activeIndustry: 'all' }">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-rose-200/50">
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-lightning text-rose-600 text-base"></i>
+                            <h4 class="text-xs font-bold text-slate-900">{{ __('1-Click Industry Service Presets') }}</h4>
+                            <span class="text-[10px] text-slate-500">({{ __('click to add / increase quantity') }})</span>
+                        </div>
+
+                        <!-- Industry Tab Filters -->
+                        <div class="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 text-[11px] font-bold">
+                            <button type="button" @click="activeIndustry = 'all'" :class="activeIndustry === 'all' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">All</button>
+                            <button type="button" @click="activeIndustry = 'computer_shop'" :class="activeIndustry === 'computer_shop' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Computer Shop</button>
+                            <button type="button" @click="activeIndustry = 'transportation'" :class="activeIndustry === 'transportation' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Transportation</button>
+                            <button type="button" @click="activeIndustry = 'limousine_taxi'" :class="activeIndustry === 'limousine_taxi' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Limo & Taxi</button>
+                            <button type="button" @click="activeIndustry = 'industrial'" :class="activeIndustry === 'industrial' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Industrial</button>
+                            <button type="button" @click="activeIndustry = 'construction'" :class="activeIndustry === 'construction' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Construction</button>
+                            <button type="button" @click="activeIndustry = 'distributor'" :class="activeIndustry === 'distributor' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Distributor</button>
+                            <button type="button" @click="activeIndustry = 'marketing_agency'" :class="activeIndustry === 'marketing_agency' ? 'bg-red-600 text-white shadow-2xs' : 'bg-white text-slate-700 hover:bg-rose-100/60'" class="px-2.5 py-1 rounded-lg border border-rose-200 transition shrink-0">Marketing</button>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button type="button" wire:click="addPresetItem('consulting')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> Consulting ($100/hr)
-                        </button>
-                        <button type="button" wire:click="addPresetItem('web_dev')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> Web Design ($750)
-                        </button>
-                        <button type="button" wire:click="addPresetItem('retainer')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> Monthly Retainer ($500)
-                        </button>
-                        <button type="button" wire:click="addPresetItem('labor')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> Technical Labor ($75/hr)
-                        </button>
-                        <button type="button" wire:click="addPresetItem('marketing')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> Marketing ($250)
-                        </button>
-                        <button type="button" wire:click="addPresetItem('product')" class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-700 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/70 transition shadow-2xs flex items-center gap-1 active:scale-95">
-                            <span class="text-rose-500 font-bold">+</span> Merchandise ($45)
-                        </button>
+
+                    <!-- Preset Buttons Grouped by Industry -->
+                    <div class="flex flex-wrap items-center gap-2 max-h-48 overflow-y-auto pr-1">
+                        @foreach($presets as $key => $p)
+                            <button type="button"
+                                    x-show="activeIndustry === 'all' || activeIndustry === '{{ $p['industry'] ?? 'general' }}'"
+                                    wire:click="addPresetItem('{{ $key }}')"
+                                    class="text-xs bg-white hover:bg-red-600 hover:text-white text-slate-800 font-semibold px-3 py-1.5 rounded-xl border border-rose-200/80 transition shadow-2xs flex items-center gap-1 active:scale-95 group">
+                                <span class="text-rose-500 group-hover:text-white font-bold">+</span>
+                                <span>{{ $p['name'] }}</span>
+                                <span class="text-slate-400 group-hover:text-red-100 font-mono text-[11px]">({{ number_format($p['rate'], 2) }} {{ $currency }}/{{ $p['unit'] }})</span>
+                            </button>
+                        @endforeach
                     </div>
                 </div>
 
@@ -280,17 +288,30 @@
                                             <select wire:key="service-select-{{ $idx }}"
                                                     wire:model.live="items.{{ $idx }}.service_id"
                                                     class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-red-500">
-                                                <option value="">-- {{ __('Select Catalog Service or Custom') }} --</option>
-                                                <optgroup label="Quick Presets">
-                                                    <option value="preset_consulting" @selected(($item['service_id'] ?? '') === 'preset_consulting')>Consulting & Professional Advisory</option>
-                                                    <option value="preset_web_dev" @selected(($item['service_id'] ?? '') === 'preset_web_dev')>Web Design & Software Development</option>
-                                                    <option value="preset_retainer" @selected(($item['service_id'] ?? '') === 'preset_retainer')>Monthly Retainer & Technical Support</option>
-                                                    <option value="preset_labor" @selected(($item['service_id'] ?? '') === 'preset_labor')>Custom Technical Labor / Implementation</option>
-                                                    <option value="preset_marketing" @selected(($item['service_id'] ?? '') === 'preset_marketing')>SEO Optimization & Digital Marketing</option>
-                                                    <option value="preset_product" @selected(($item['service_id'] ?? '') === 'preset_product')>General Merchandise / Goods Supply</option>
-                                                </optgroup>
+                                                <option value="">-- {{ __('Select Catalog Service or Preset') }} --</option>
+                                                @php
+                                                    $industriesList = [
+                                                        'computer_shop' => 'Computer Shop Presets',
+                                                        'transportation' => 'Transportation Presets',
+                                                        'limousine_taxi' => 'Limousine & Taxi Presets',
+                                                        'industrial' => 'Industrial Presets',
+                                                        'construction' => 'Construction Presets',
+                                                        'distributor' => 'Distributor Presets',
+                                                        'marketing_agency' => 'Marketing Agency Presets',
+                                                        'general' => 'General / Core Presets',
+                                                    ];
+                                                @endphp
+                                                @foreach($industriesList as $indKey => $indLabel)
+                                                    <optgroup label="{{ $indLabel }}">
+                                                        @foreach($presets as $pKey => $pVal)
+                                                            @if(($pVal['industry'] ?? 'general') === $indKey)
+                                                                <option value="preset_{{ $pKey }}" @selected(($item['service_id'] ?? '') === 'preset_' . $pKey)>{{ $pVal['name'] }}</option>
+                                                            @endif
+                                                        @endforeach
+                                                    </optgroup>
+                                                @endforeach
                                                 @if($services->count() > 0)
-                                                    <optgroup label="{{ __('Catalog Services') }}">
+                                                    <optgroup label="{{ __('Agency Catalog Services') }}">
                                                         @foreach($services as $s)
                                                             <option value="{{ $s->id }}" @selected(($item['service_id'] ?? '') == $s->id)>{{ $s->name }}</option>
                                                         @endforeach
@@ -588,7 +609,7 @@
 
                     <!-- Action Buttons -->
                     <div class="pt-3 space-y-2.5">
-                        <button type="submit" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <button type="button" wire:click="requestPublishReview" class="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center justify-center gap-2">
                             <i class="ph ph-paper-plane-tilt text-sm"></i>
                             {{ __('Issue & Publish Invoice') }}
                         </button>

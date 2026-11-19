@@ -66,7 +66,7 @@ class CouponService
         if ($coupon->expires_at && $coupon->expires_at->isPast()) {
             return [
                 'valid' => false,
-                'message' => 'This promo code has expired.',
+                'message' => "This promo code expired on {$coupon->expires_at->format('M d, Y h:i A')} (decided time duration ended).",
                 'coupon' => $coupon,
                 'discount_cents' => 0,
             ];
@@ -191,6 +191,8 @@ class CouponService
             'discount_amount' => round($discountCents / 100, 2),
             'offer_type' => $coupon->offer_type ?: 'discount',
             'service_name' => $coupon->service_name,
+            'expires_at_human' => $coupon->expires_at ? $coupon->expires_at->diffForHumans() : 'Never expires',
+            'time_remaining' => $coupon->expires_at ? $coupon->expires_at->diffForHumans(now(), ['parts' => 2, 'syntax' => \Carbon\CarbonInterface::DIFF_RELATIVE_TO_NOW]) : null,
         ];
     }
 

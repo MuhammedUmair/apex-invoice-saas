@@ -270,7 +270,19 @@
                                     {{ $coupon->times_redeemed }} / {{ $coupon->max_redemptions ?: '∞' }}
                                 </td>
                                 <td class="px-3 py-3.5 align-middle text-slate-400">
-                                    {{ $coupon->expires_at ? $coupon->expires_at->format('M d, Y') : __('Never') }}
+                                    @if($coupon->expires_at)
+                                        @if($coupon->expires_at->isPast())
+                                            <span class="inline-flex items-center gap-1 text-rose-400 font-bold text-xs" title="Expired at {{ $coupon->expires_at->format('M d, Y h:i A') }}">
+                                                <i class="ph ph-warning-circle"></i> {{ __('Expired') }} ({{ $coupon->expires_at->diffForHumans() }})
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 text-emerald-400 font-medium text-xs" title="Expires at {{ $coupon->expires_at->format('M d, Y h:i A') }}">
+                                                <i class="ph ph-clock"></i> {{ $coupon->expires_at->diffForHumans() }}
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="text-slate-500 font-medium">{{ __('Never') }}</span>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-3.5 text-center align-middle">
                                     <form method="POST" action="{{ route('admin.coupons.toggle', $coupon->id) }}">
@@ -282,6 +294,13 @@
                                 </td>
                                 <td class="px-4 py-3.5 text-right align-middle">
                                     <div class="flex items-center justify-end gap-1.5">
+                                        <!-- Share Promo Button (Request 14) -->
+                                        <button type="button" 
+                                                onclick="const msg = '🎉 Use promo code {{ $coupon->code }} on Invoicy to get {{ $coupon->discount_type === 'percent' ? $coupon->discount_value . '% OFF' : ($coupon->offer_type === 'service' ? 'free ' . $coupon->service_name : '$' . $coupon->discount_value . ' discount') }}! {{ $coupon->expires_at ? '⏰ Valid until: ' . $coupon->expires_at->format('M d, Y h:i A') . ' (' . $coupon->expires_at->diffForHumans() . ').' : '' }} Link: {{ url('/register') }}'; navigator.clipboard.writeText(msg); alert('Promo share message with decided duration copied to clipboard!');" 
+                                                class="p-1.5 text-slate-400 hover:text-sky-400 rounded-lg hover:bg-slate-800 transition" 
+                                                title="Share Promo Code with Expiry Duration">
+                                            <i class="ph ph-share-network text-base"></i>
+                                        </button>
                                         <button type="button" @click="editCoupon({{ json_encode($coupon) }})" class="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-800 transition" title="Edit Coupon">
                                             <i class="ph ph-pencil-simple text-base"></i>
                                         </button>
@@ -455,16 +474,33 @@
                     </div>
                 </div>
 
-                <!-- Description & Expiry -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Description, Decided Time Duration & Expiry (Request 14) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" x-data="{ durationType: 'custom' }">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Min Spend Amount ($)') }}</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Min Spend ($)') }}</label>
                         <input type="number" step="0.01" min="0" name="min_purchase" placeholder="0"
                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white placeholder-slate-400 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Expiry Date') }}</label>
-                        <input type="date" name="expires_at"
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Decided Time Duration') }}</label>
+                        <select name="duration_preset" x-model="durationType"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none">
+                            <option value="custom">{{ __('Custom Date & Time') }}</option>
+                            <option value="never">{{ __('No Expiry (Never)') }}</option>
+                            <option value="1_hour">{{ __('1 Hour (Flash)') }}</option>
+                            <option value="6_hours">{{ __('6 Hours') }}</option>
+                            <option value="12_hours">{{ __('12 Hours') }}</option>
+                            <option value="24_hours">{{ __('24 Hours (1 Day)') }}</option>
+                            <option value="48_hours">{{ __('48 Hours (2 Days)') }}</option>
+                            <option value="3_days">{{ __('3 Days') }}</option>
+                            <option value="7_days">{{ __('7 Days (1 Week)') }}</option>
+                            <option value="14_days">{{ __('14 Days (2 Weeks)') }}</option>
+                            <option value="30_days">{{ __('30 Days (1 Month)') }}</option>
+                        </select>
+                    </div>
+                    <div x-show="durationType === 'custom'">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Specific Date & Time') }}</label>
+                        <input type="datetime-local" name="expires_at"
                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none">
                     </div>
                 </div>
@@ -596,16 +632,33 @@
                     </div>
                 </div>
 
-                <!-- Description & Expiry -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Description, Decided Time Duration & Expiry (Request 14) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" x-data="{ durationType: 'custom' }">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Min Spend Amount ($)') }}</label>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Min Spend ($)') }}</label>
                         <input type="number" step="0.01" min="0" name="min_purchase" x-model="editingCoupon.min_purchase" placeholder="0"
                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white placeholder-slate-400 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Expiry Date') }}</label>
-                        <input type="date" name="expires_at" x-model="editingCoupon.expires_at"
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Decided Time Duration') }}</label>
+                        <select name="duration_preset" x-model="durationType"
+                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none">
+                            <option value="custom">{{ __('Custom Date & Time') }}</option>
+                            <option value="never">{{ __('No Expiry (Never)') }}</option>
+                            <option value="1_hour">{{ __('1 Hour (Flash)') }}</option>
+                            <option value="6_hours">{{ __('6 Hours') }}</option>
+                            <option value="12_hours">{{ __('12 Hours') }}</option>
+                            <option value="24_hours">{{ __('24 Hours (1 Day)') }}</option>
+                            <option value="48_hours">{{ __('48 Hours (2 Days)') }}</option>
+                            <option value="3_days">{{ __('3 Days') }}</option>
+                            <option value="7_days">{{ __('7 Days (1 Week)') }}</option>
+                            <option value="14_days">{{ __('14 Days (2 Weeks)') }}</option>
+                            <option value="30_days">{{ __('30 Days (1 Month)') }}</option>
+                        </select>
+                    </div>
+                    <div x-show="durationType === 'custom'">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Specific Expiry Date') }}</label>
+                        <input type="datetime-local" name="expires_at" x-model="editingCoupon.expires_at"
                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none">
                     </div>
                 </div>

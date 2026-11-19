@@ -227,6 +227,17 @@
                     <span x-show="!sidebarCollapsed" class="truncate">{{ __('Help & Guide') }}</span>
                 </a>
 
+                <a href="{{ route('support.index') }}" 
+                   :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
+                   class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('support.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                   :title="sidebarCollapsed ? '{{ __('Support Desk (24h SLA)') }}' : ''">
+                    <i class="ph ph-headset text-lg {{ request()->routeIs('support.*') ? '!text-white' : 'text-indigo-400' }} shrink-0"></i>
+                    <span x-show="!sidebarCollapsed" class="truncate flex items-center justify-between w-full">
+                        <span>{{ __('Support Desk') }}</span>
+                        <span class="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">24h SLA</span>
+                    </span>
+                </a>
+
                 @if(!auth()->user() || !auth()->user()->isStaff())
                 <a href="{{ route('settings.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"

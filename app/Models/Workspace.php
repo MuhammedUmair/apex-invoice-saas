@@ -193,4 +193,88 @@ class Workspace extends Model
 
         $this->save();
     }
+
+    /**
+     * Check if custom Stripe payment gateway is configured and active.
+     */
+    public function hasConfiguredStripe(): bool
+    {
+        $keys = $this->stripe_keys_encrypted;
+        if (empty($keys) || !is_array($keys)) {
+            return false;
+        }
+        return !empty($keys['publishable_key']) && !empty($keys['secret_key']);
+    }
+
+    /**
+     * Check if custom PayPal payment gateway is configured and active.
+     */
+    public function hasConfiguredPaypal(): bool
+    {
+        $keys = $this->paypal_keys_encrypted;
+        if (empty($keys) || !is_array($keys)) {
+            return false;
+        }
+        return !empty($keys['client_id']) && !empty($keys['secret']);
+    }
+
+    /**
+     * Check if Bank transfer remittance details are configured.
+     */
+    public function hasConfiguredBankDetails(): bool
+    {
+        $bank = is_array($this->bank_details) ? $this->bank_details : (json_decode($this->bank_details, true) ?? []);
+        return !empty($bank['bank_name']) && !empty($bank['account_number']);
+    }
+
+    /**
+     * Check if any online payment method (Stripe or PayPal) is configured for this workspace,
+     * or if superadmin/system fallback payment gateway is available when owner is superadmin.
+     */
+    public function hasOnlinePaymentConfigured(): bool
+    {
+        if ($this->hasConfiguredStripe() || $this->hasConfiguredPaypal()) {
+            return true;
+        }
+
+        // For SuperAdmin workspace, check if system-level gateway credentials are set in environment
+        $owner = $this->users()->first();
+        if ($owner && method_exists($owner, 'isSuperAdmin') && $owner->isSuperAdmin()) {
+            $systemStripe = !empty(config('services.stripe.key')) && !empty(config('services.stripe.secret'));
+            $systemPaypal = !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.secret'));
+            return $systemStripe || $systemPaypal;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if Stripe is available (either workspace or superadmin system fallback).
+     */
+    public function isStripeAvailable(): bool
+    {
+        if ($this->hasConfiguredStripe()) {
+            return true;
+        }
+        $owner = $this->users()->first();
+        if ($owner && method_exists($owner, 'isSuperAdmin') && $owner->isSuperAdmin()) {
+            return !empty(config('services.stripe.key')) && !empty(config('services.stripe.secret'));
+        }
+        return false;
+    }
+
+    /**
+     * Check if PayPal is available (either workspace or superadmin system fallback).
+     */
+    public function isPaypalAvailable(): bool
+    {
+        if ($this->hasConfiguredPaypal()) {
+            return true;
+        }
+        $owner = $this->users()->first();
+        if ($owner && method_exists($owner, 'isSuperAdmin') && $owner->isSuperAdmin()) {
+            return !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.secret'));
+        }
+        return false;
+    }
 }

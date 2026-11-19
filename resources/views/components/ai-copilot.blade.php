@@ -7,9 +7,14 @@
                 isListening: false,
                 isSpeaking: false,
                 soundEnabled: true,
+                speechLang: 'en-US',
                 inputMessage: '',
                 messages: [
-                    { sender: 'ai', text: 'Hello! I am your AI Agent. Ask me anything about your invoices, settings, recall option, or click the mic to speak a voice command!', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] }
+                    { 
+                        sender: 'ai', 
+                        text: 'Hello! I am your AI Agent. Ask me anything about your invoices, settings, recall option, support tickets, or click the mic to speak a voice command in your language!', 
+                        suggestions: ['Create new invoice', 'Open Support Desk', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] 
+                    }
                 ],
                 recognition: null,
                 synth: window.speechSynthesis || null,
@@ -29,7 +34,7 @@
                             this.recognition = new SpeechRec();
                             this.recognition.continuous = false;
                             this.recognition.interimResults = false;
-                            this.recognition.lang = 'en-US';
+                            this.recognition.lang = this.speechLang || 'en-US';
 
                             this.recognition.onstart = () => {
                                 this.isListening = true;
@@ -50,7 +55,7 @@
                                 if (event.error === 'not-allowed') {
                                     this.messages.push({
                                         sender: 'ai',
-                                        text: 'Microphone access was denied. Please allow microphone permissions in your browser address bar to speak voice commands, or simply type your message.'
+                                        text: 'Microphone permission was not allowed. Please click the mic or lock icon in your browser address bar to allow microphone access, or simply type your message.'
                                     });
                                     this.scrollToBottom();
                                 }
@@ -65,10 +70,26 @@
                     }
                 },
 
-                toggleVoice() {
+                async toggleVoice() {
                     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                        alert('Voice recognition requires Google Chrome, Microsoft Edge, or Safari over HTTPS.');
+                        alert('Voice recognition requires Google Chrome, Microsoft Edge, or Safari over a secure connection.');
                         return;
+                    }
+
+                    // Explicitly trigger browser microphone permission dialog (Request 9)
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            stream.getTracks().forEach(track => track.stop());
+                        } catch (err) {
+                            console.warn('Microphone permission check error:', err);
+                            this.messages.push({
+                                sender: 'ai',
+                                text: 'Microphone permission was denied by your browser. Please allow microphone permissions in your browser address bar to use voice commands.'
+                            });
+                            this.scrollToBottom();
+                            return;
+                        }
                     }
 
                     if (!this.recognition) {
@@ -80,6 +101,7 @@
                         this.isListening = false;
                     } else {
                         try {
+                            this.recognition.lang = this.speechLang || 'en-US';
                             this.recognition.start();
                             this.isListening = true;
                         } catch (e) {
@@ -101,6 +123,7 @@
                     try {
                         this.synth.cancel();
                         const utter = new SpeechSynthesisUtterance(text);
+                        utter.lang = this.speechLang || 'en-US';
                         utter.rate = 1.0;
                         utter.pitch = 1.0;
                         utter.onstart = () => { this.isSpeaking = true; };
@@ -144,6 +167,13 @@
                         }
 
                         const data = await res.json();
+                        if (data.lang) {
+                            this.speechLang = data.lang;
+                            if (this.recognition) {
+                                this.recognition.lang = data.lang;
+                            }
+                        }
+
                         this.messages.push({
                             sender: 'ai',
                             text: data.reply,
@@ -161,7 +191,11 @@
                         }
                     } catch (e) {
                         console.error('AI Agent error:', e);
-                        this.messages.push({ sender: 'ai', text: 'I am here to help! Could you please rephrase or pick one of the suggestions below?', suggestions: ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings'] });
+                        this.messages.push({ 
+                            sender: 'ai', 
+                            text: 'I am here to help! Could you please rephrase or pick one of the suggestions below?', 
+                            suggestions: ['Create new invoice', 'Open Support Desk', 'How do I recall an invoice?', 'Go to settings'] 
+                        });
                         this.scrollToBottom();
                     }
                 },
@@ -183,19 +217,15 @@
 
 <div x-data="aiAgentComponent" class="fixed bottom-6 right-6 z-50">
 
-    <!-- Floating Trigger Button -->
+    <!-- Floating Trigger Button (No Icon, Font-Weight: 700 - Request 10) -->
     <div x-show="!isOpen" x-cloak>
         <button @click="isOpen = true; scrollToBottom()" type="button"
-                class="group flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-full shadow-2xl transition duration-300 transform hover:scale-105 border-2 border-white/20">
-            <div class="relative">
-                <svg width="20" height="20" viewBox="0 0 900 900" fill="#ffffff">
-                    <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                </svg>
-                <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
-            </div>
-            <span class="text-xs font-black tracking-tight flex items-center gap-1.5">
-                <span>AI Agent</span>
-                <i class="ph ph-microphone text-sm opacity-90"></i>
+                style="font-weight: 700;"
+                class="group flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-full shadow-2xl transition duration-300 transform hover:scale-105 border-2 border-white/20">
+            <span class="text-xs font-bold tracking-wider flex items-center gap-2">
+                <i class="ph ph-microphone text-base text-white"></i>
+                <span class="font-bold">AI Agent</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-ping"></span>
             </span>
         </button>
     </div>
@@ -204,20 +234,15 @@
     <div x-show="isOpen" x-cloak
          class="w-[360px] sm:w-[420px] h-[550px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
         
-        <!-- Header -->
+        <!-- Header (No Icon, Font-Weight: 700 - Request 10) -->
         <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 text-white p-4 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl bg-red-600/30 border border-red-500/40 flex items-center justify-center text-white">
-                    <svg width="18" height="18" viewBox="0 0 900 900" fill="#ffffff">
-                        <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
-                    </svg>
-                </div>
                 <div>
-                    <h3 class="text-sm font-black text-white flex items-center gap-1.5">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2" style="font-weight: 700;">
                         <span>AI Agent</span>
                         <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                     </h3>
-                    <p class="text-[10px] text-slate-300 font-medium">Text & Hands-Free Voice Assistant</p>
+                    <p class="text-[11px] text-slate-200 font-bold" style="font-weight: 700;">Text & Hands-Free Voice Assistant</p>
                 </div>
             </div>
 
@@ -233,24 +258,24 @@
         </div>
 
         <!-- Listening Bar Indicator -->
-        <div x-show="isListening" x-cloak class="bg-red-600 text-white text-[11px] font-bold py-1.5 px-3 flex items-center justify-between animate-pulse">
+        <div x-show="isListening" x-cloak class="bg-red-600 text-white text-[11px] font-bold py-1.5 px-3 flex items-center justify-between animate-pulse" style="font-weight: 700;">
             <span class="flex items-center gap-2">
                 <i class="ph ph-waveform text-sm"></i> Listening... Speak your command now
             </span>
-            <button @click="toggleVoice()" type="button" class="text-xs uppercase underline">Stop</button>
+            <button @click="toggleVoice()" type="button" class="text-xs uppercase underline font-bold">Stop</button>
         </div>
 
-        <!-- Chat Conversation Messages -->
+        <!-- Chat Conversation Messages (Font-Weight: 700 across texts) -->
         <div id="ai-chat-body" class="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/60 text-xs">
             <template x-for="(msg, idx) in messages" :key="idx">
                 <div :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'" class="flex">
                     <div :class="msg.sender === 'user' ? 'bg-red-600 text-white rounded-tr-xs' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-2xs'"
                          class="max-w-[85%] rounded-2xl p-3.5 space-y-2">
-                        <div x-text="msg.text" class="leading-relaxed"></div>
+                        <div x-text="msg.text" class="leading-relaxed font-bold" style="font-weight: 700;"></div>
                         
                         <template x-if="msg.action && msg.action.type === 'navigate'">
                             <div class="pt-1.5">
-                                <a :href="msg.action.url" class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700 transition shadow-xs">
+                                <a :href="msg.action.url" class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 text-white rounded-lg font-bold text-[10px] hover:bg-red-700 transition shadow-xs" style="font-weight: 700;">
                                     <i class="ph ph-arrow-square-out"></i> Proceed Now
                                 </a>
                             </div>
@@ -260,7 +285,8 @@
                             <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5">
                                 <template x-for="sug in msg.suggestions" :key="sug">
                                     <button @click="sendMessage(sug)" type="button"
-                                            class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-600 text-[10px] font-medium border border-slate-200 transition">
+                                            style="font-weight: 700;"
+                                            class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-700 text-[10px] font-bold border border-slate-200 transition">
                                         <span x-text="sug"></span>
                                     </button>
                                 </template>
@@ -271,7 +297,7 @@
             </template>
         </div>
 
-        <!-- Input Box -->
+        <!-- Input Box (Font-Weight: 700) -->
         <div class="p-3 bg-white border-t border-slate-200">
             <form @submit.prevent="sendMessage()" class="flex items-center gap-2">
                 <button @click="toggleVoice()" type="button" :class="isListening ? 'bg-red-600 text-white animate-bounce' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'"
@@ -280,7 +306,8 @@
                 </button>
 
                 <input type="text" x-model="inputMessage" placeholder="Ask AI Agent or click mic to speak..."
-                       class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500 transition">
+                       style="font-weight: 700;"
+                       class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-500 transition">
 
                 <button type="submit" class="w-10 h-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shrink-0 transition shadow-sm">
                     <i class="ph ph-paper-plane-tilt text-base"></i>

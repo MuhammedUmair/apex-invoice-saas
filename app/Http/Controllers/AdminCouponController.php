@@ -55,6 +55,28 @@ class AdminCouponController extends Controller
 
         $code = strtoupper(preg_replace('/[^A-Za-z0-9_-]/', '', $data['code']));
 
+        // Calculate expires_at based on decided time duration preset or custom datetime (Request 14)
+        $durationPreset = $request->input('duration_preset', 'custom');
+        $expiresAt = null;
+        if (!empty($durationPreset) && !in_array($durationPreset, ['never', 'custom'])) {
+            $expiresAt = match ($durationPreset) {
+                '1_hour' => now()->addHour(),
+                '6_hours' => now()->addHours(6),
+                '12_hours' => now()->addHours(12),
+                '24_hours' => now()->addHours(24),
+                '48_hours' => now()->addHours(48),
+                '3_days' => now()->addDays(3),
+                '7_days' => now()->addDays(7),
+                '14_days' => now()->addDays(14),
+                '30_days' => now()->addDays(30),
+                default => null,
+            };
+        } elseif ($durationPreset === 'never') {
+            $expiresAt = null;
+        } elseif (!empty($data['expires_at'])) {
+            $expiresAt = \Carbon\Carbon::parse($data['expires_at']);
+        }
+
         // Map offer_type to coupon fields
         $discountType = 'fixed';
         $discountValue = 0.00;
@@ -107,7 +129,7 @@ class AdminCouponController extends Controller
             'target' => $data['target'],
             'min_purchase_cents' => (int) round(((float) ($data['min_purchase'] ?? 0)) * 100),
             'max_redemptions' => $data['max_redemptions'] ?? null,
-            'expires_at' => $data['expires_at'] ?? null,
+            'expires_at' => $expiresAt,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -132,6 +154,28 @@ class AdminCouponController extends Controller
         ]);
 
         $code = strtoupper(preg_replace('/[^A-Za-z0-9_-]/', '', $data['code']));
+
+        // Calculate expires_at based on decided time duration preset or custom datetime (Request 14)
+        $durationPreset = $request->input('duration_preset', 'custom');
+        $expiresAt = null;
+        if (!empty($durationPreset) && !in_array($durationPreset, ['never', 'custom'])) {
+            $expiresAt = match ($durationPreset) {
+                '1_hour' => now()->addHour(),
+                '6_hours' => now()->addHours(6),
+                '12_hours' => now()->addHours(12),
+                '24_hours' => now()->addHours(24),
+                '48_hours' => now()->addHours(48),
+                '3_days' => now()->addDays(3),
+                '7_days' => now()->addDays(7),
+                '14_days' => now()->addDays(14),
+                '30_days' => now()->addDays(30),
+                default => null,
+            };
+        } elseif ($durationPreset === 'never') {
+            $expiresAt = null;
+        } elseif (!empty($data['expires_at'])) {
+            $expiresAt = \Carbon\Carbon::parse($data['expires_at']);
+        }
 
         $discountType = 'fixed';
         $discountValue = 0.00;
@@ -184,7 +228,7 @@ class AdminCouponController extends Controller
             'target' => $data['target'],
             'min_purchase_cents' => (int) round(((float) ($data['min_purchase'] ?? 0)) * 100),
             'max_redemptions' => $data['max_redemptions'] ?? null,
-            'expires_at' => $data['expires_at'] ?? null,
+            'expires_at' => $expiresAt,
             'is_active' => $request->boolean('is_active', true),
         ]);
 

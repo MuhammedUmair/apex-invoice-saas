@@ -36,6 +36,23 @@ class PaymentController extends Controller
         }
 
         $gateway = $request->input('gateway', 'stripe'); // stripe or paypal
+
+        // Enforce Payment Gateway Configuration (Request 13): Both SuperAdmin and Tenant
+        if ($gateway === 'stripe' && !$invoice->isStripeAvailable()) {
+            return redirect()->route('invoices.portal', $token)
+                ->withErrors(['payment' => 'Stripe credit card processing is not configured for this invoice issuer.']);
+        }
+
+        if ($gateway === 'paypal' && !$invoice->isPaypalAvailable()) {
+            return redirect()->route('invoices.portal', $token)
+                ->withErrors(['payment' => 'PayPal processing is not configured for this invoice issuer.']);
+        }
+
+        if (!$invoice->hasPaymentConfigured()) {
+            return redirect()->route('invoices.portal', $token)
+                ->withErrors(['payment' => 'Online payment processing is not configured for this invoice.']);
+        }
+
         $amountCents = (int) $request->input('amount_cents', $invoice->due_cents);
 
         // Generate or retrieve idempotency key

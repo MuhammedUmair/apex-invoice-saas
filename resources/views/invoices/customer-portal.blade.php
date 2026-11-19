@@ -136,8 +136,14 @@
         </div>
     @endif
 
-    <!-- Dual Payment Gateways (Stripe & PayPal) or Trial Notice -->
+    <!-- Payment Processing Options or Trial/Remittance Notice (Request 13) -->
     @if($invoice->due_cents > 0)
+        @php
+            $hasOnlinePayment = $invoice->hasPaymentConfigured();
+            $hasStripe = $invoice->isStripeAvailable();
+            $hasPaypal = $invoice->isPaypalAvailable();
+        @endphp
+
         @if($invoice->isTrialInvoice())
             <div class="bg-amber-50 rounded-2xl border-2 border-dashed border-amber-300 shadow-sm p-6 sm:p-8 space-y-3">
                 <div class="flex items-center gap-3">
@@ -154,12 +160,13 @@
                     <span>{{ __('For settlement or official inquiries, please contact the issuing vendor directly using their registered agency contact details or remittance instructions below.') }}</span>
                 </div>
             </div>
-        @else
+        @elseif($hasOnlinePayment)
             <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">
                 <h3 class="font-bold text-slate-900 text-base">{{ __('Select Online Payment Method') }}</h3>
                 <p class="text-xs text-slate-500">{{ __('Pay securely online using credit card, debit card, or PayPal account.') }}</p>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div class="grid grid-cols-1 {{ ($hasStripe && $hasPaypal) ? 'sm:grid-cols-2' : '' }} gap-4 pt-2">
+                    @if($hasStripe)
                     <!-- Stripe Option -->
                     <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
                         @csrf
@@ -172,7 +179,9 @@
                             <i class="ph ph-credit-card text-2xl text-blue-600 group-hover:scale-110 transition-transform"></i>
                         </button>
                     </form>
+                    @endif
 
+                    @if($hasPaypal)
                     <!-- PayPal Option -->
                     <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
                         @csrf
@@ -185,6 +194,20 @@
                             <i class="ph ph-wallet text-2xl text-amber-600 group-hover:scale-110 transition-transform"></i>
                         </button>
                     </form>
+                    @endif
+                </div>
+            </div>
+        @else
+            <!-- Notice When Payment Gateways Are Not Configured (Request 13) -->
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-receipt"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">{{ __('Direct Vendor Settlement') }}</h3>
+                        <p class="text-xs text-slate-600">{{ __('Online card processing is not configured for this invoice. Please remit payment directly to the issuer using the payment terms or bank wire instructions provided below.') }}</p>
+                    </div>
                 </div>
             </div>
         @endif

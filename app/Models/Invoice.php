@@ -290,4 +290,31 @@ class Invoice extends Model
         $hash = hash('sha256', "{$this->invoice_number}|{$this->total_cents}|{$this->workspace_id}|{$this->public_secure_token}");
         return strtoupper(implode('-', str_split(substr($hash, 0, 20), 4)));
     }
+
+    /**
+     * Check if payment processing is configured for this invoice (Stripe, PayPal, or system fallback).
+     */
+    public function hasPaymentConfigured(): bool
+    {
+        if (!$this->workspace) {
+            return false;
+        }
+        return $this->workspace->hasOnlinePaymentConfigured();
+    }
+
+    /**
+     * Check if Stripe card processing is available for this invoice.
+     */
+    public function isStripeAvailable(): bool
+    {
+        return $this->workspace ? $this->workspace->isStripeAvailable() : false;
+    }
+
+    /**
+     * Check if PayPal wallet processing is available for this invoice.
+     */
+    public function isPaypalAvailable(): bool
+    {
+        return $this->workspace ? $this->workspace->isPaypalAvailable() : false;
+    }
 }
