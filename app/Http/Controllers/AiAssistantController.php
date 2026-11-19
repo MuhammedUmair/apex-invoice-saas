@@ -27,7 +27,12 @@ class AiAssistantController extends Controller
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
         $workspace = null;
         if ($user) {
-            $workspace = $user->workspace ?? ($user->current_workspace_id ? Workspace::find($user->current_workspace_id) : null);
+            $workspace = $user->workspace 
+                ?? ($user->current_workspace_id ? Workspace::find($user->current_workspace_id) : null)
+                ?? (method_exists($user, 'workspaces') ? $user->workspaces()->first() : null);
+        }
+        if (!$workspace) {
+            $workspace = Workspace::first();
         }
 
         $response = $this->aiService->handleUserMessage($query, $requestedLang, $workspace, $user);

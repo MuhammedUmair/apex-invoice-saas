@@ -11,6 +11,9 @@
                 isRtl: false,
                 speechLang: 'en-US',
                 inputMessage: '',
+                currentlySpeakingMsgId: null,
+                currentUtterance: null,
+                _watchdogTimer: null,
                 availableVoices: [],
                 recognition: null,
                 synth: window.speechSynthesis || null,
@@ -62,7 +65,7 @@
                         code: 'hi', 
                         tag: 'hi-IN', 
                         placeholder: 'AI से पूछें या माइक पर बोलें...', 
-                        greeting: 'नमस्ते! मैं आपका Invoicy AI सहायक हूँ। इनवॉइस, ड्राफ्ट, सेटिंग्स या सपोर्ट के बारे में पूछें या हिंदी में वॉइस कमांड दें!', 
+                        greeting: 'नमस्ते! मैं आपका Invoicy AI सहायक हूँ। इनवॉइस, ड्राफ्ट, सेटिंग्स या सपोर्ट کے बारे में पूछें या हिंदी में वॉइस कमांड दें!', 
                         suggestions: ['नया इनवॉइस बनाएं', 'ड्राफ्ट कैसे काम करते हैं?', 'त्वरित प्रीसेट', 'सपोर्ट डेस्क खोलें'] 
                     },
                     es: { 
@@ -99,7 +102,9 @@
 
                 init() {
                     const initialLang = this.languages.auto;
+                    const initialId = 'msg-init-' + Date.now();
                     this.messages = [{
+                        id: initialId,
                         sender: 'ai',
                         text: initialLang.greeting,
                         suggestions: initialLang.suggestions
@@ -132,9 +137,9 @@
                 },
 
                 /**
-                 * High-Fidelity Voice Selector with Native Speaker Prioritization.
-                 * Selects native Hindi voice (Google हिन्दी / Kalpana / Hemant),
-                 * Urdu with Hindi fallback, native Arabic, Turkish, French, Spanish, German, Chinese, English.
+                 * Native Voice Selector.
+                 * Prioritizes native Hindi speakers (Google हिन्दी / Kalpana / Hemant).
+                 * Urdu falls back to Hindi for authentic phonetics if Urdu pack is missing.
                  */
                 getVoiceForLang(langTag) {
                     if (!this.synth) return null;
@@ -148,7 +153,7 @@
                     const target = (langTag || 'en-US').toLowerCase();
                     const prefix = target.split('-')[0];
 
-                    // 1. Native Hindi Voice Picker (Kalpana, Hemant, Google हिन्दी, Swara, Madhur)
+                    // 1. Native Hindi Voice Picker
                     if (prefix === 'hi') {
                         const hindiVoice = voices.find(v => {
                             const l = (v.lang || '').toLowerCase();
@@ -167,7 +172,7 @@
                         });
                         if (urduVoice) return urduVoice;
 
-                        // Fallback to Hindi voice for Urdu/Roman Urdu (phonetically identical, sounds completely native)
+                        // Fallback to Hindi voice for Urdu/Roman Urdu
                         const hindiFallback = voices.find(v => {
                             const l = (v.lang || '').toLowerCase();
                             const n = (v.name || '').toLowerCase();
@@ -277,6 +282,7 @@
                                 this.isListening = false;
                                 if (event.error === 'not-allowed') {
                                     this.messages.push({
+                                        id: 'err-' + Date.now(),
                                         sender: 'ai',
                                         text: 'Microphone permission was not allowed. Please click the mic or lock icon in your browser address bar to allow microphone access, or simply type your message.'
                                     });
@@ -300,10 +306,7 @@
                     }
 
                     // Stop active speech output if speaking
-                    if (this.isSpeaking && this.synth) {
-                        this.synth.cancel();
-                        this.isSpeaking = false;
-                    }
+                    this.stopSpeech();
 
                     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                         try {
@@ -312,6 +315,7 @@
                         } catch (err) {
                             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
                                 this.messages.push({
+                                    id: 'err-' + Date.now(),
                                     sender: 'ai',
                                     text: 'Microphone access is blocked by your browser. Please click the 🔒 lock icon next to the URL in your browser address bar, set Microphone to "Allow", and reload.'
                                 });
@@ -347,58 +351,150 @@
                     }
                 },
 
-                speak(text) {
+                /**
+                 * CONTINUOUS VOICE SYNTHESIS PIPELINE (Issue 1 Root Cause Fix)
+                 * Solves Chromium garbage collection bug and cancel() queue race condition.
+                 * Every response (1st, 2nd, 3rd, 10th turn) will play voice consistently.
+                 */
+                speak(text, msgId = null) {
                     if (!this.soundEnabled || !this.synth) {
                         return;
                     }
+
+                    // 1. Clear any stuck watchdog
+                    if (this._watchdogTimer) {
+                        clearInterval(this._watchdogTimer);
+                        this._watchdogTimer = null;
+                    }
+
+                    // 2. Cleanly cancel previous audio if still speaking
                     try {
-                        this.synth.cancel();
-
-                        // Clean markdown asterisks and bullets before speaking
-                        const cleanText = text
-                            .replace(/\*\*(.*?)\*\*/g, '$1')
-                            .replace(/\*(.*?)\*/g, '$1')
-                            .replace(/•/g, '')
-                            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-                            .replace(/[#_~`]/g, '')
-                            .trim();
-
-                        const utter = new SpeechSynthesisUtterance(cleanText);
-                        const targetLang = this.speechLang || 'en-US';
-                        utter.lang = targetLang;
-                        utter.rate = 1.0;
-                        utter.pitch = 1.0;
-
-                        // Match browser TTS voice with native speaker priority
-                        const matchedVoice = this.getVoiceForLang(targetLang);
-                        if (matchedVoice) {
-                            utter.voice = matchedVoice;
+                        if (this.synth.speaking || this.synth.pending) {
+                            this.synth.cancel();
                         }
+                    } catch (e) {}
 
-                        utter.onstart = () => { this.isSpeaking = true; };
-                        utter.onend = () => { this.isSpeaking = false; };
-                        utter.onerror = () => { this.isSpeaking = false; };
+                    // 3. Clean markdown formatting, asterisks, bullets, links
+                    const cleanText = text
+                        .replace(/\*\*(.*?)\*\*/g, '$1')
+                        .replace(/\*(.*?)\*/g, '$1')
+                        .replace(/•/g, '')
+                        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+                        .replace(/[#_~`]/g, '')
+                        .trim();
 
-                        this.synth.speak(utter);
-                    } catch (e) {
-                        this.isSpeaking = false;
+                    if (!cleanText) return;
+
+                    // 4. Asynchronous delay (60ms) allows Chromium audio thread to finish cancel()
+                    setTimeout(() => {
+                        try {
+                            // Resume if paused
+                            if (this.synth.paused) {
+                                this.synth.resume();
+                            }
+
+                            const utter = new SpeechSynthesisUtterance(cleanText);
+                            const targetLang = this.speechLang || 'en-US';
+                            utter.lang = targetLang;
+                            utter.rate = 1.0;
+                            utter.pitch = 1.0;
+
+                            const matchedVoice = this.getVoiceForLang(targetLang);
+                            if (matchedVoice) {
+                                utter.voice = matchedVoice;
+                            }
+
+                            // CHROMIUM BUG FIX: Pin utterance to window and component to prevent V8 garbage collection!
+                            window._activeSpeechUtterance = utter;
+                            this.currentUtterance = utter;
+                            this.currentlySpeakingMsgId = msgId;
+
+                            utter.onstart = () => {
+                                this.isSpeaking = true;
+                                this.currentlySpeakingMsgId = msgId;
+
+                                // Chromium 15s pause bug watchdog
+                                this._watchdogTimer = setInterval(() => {
+                                    if (this.synth && this.synth.speaking) {
+                                        this.synth.pause();
+                                        this.synth.resume();
+                                    } else {
+                                        clearInterval(this._watchdogTimer);
+                                    }
+                                }, 8000);
+                            };
+
+                            utter.onend = () => {
+                                this.isSpeaking = false;
+                                this.currentlySpeakingMsgId = null;
+                                window._activeSpeechUtterance = null;
+                                this.currentUtterance = null;
+                                if (this._watchdogTimer) {
+                                    clearInterval(this._watchdogTimer);
+                                    this._watchdogTimer = null;
+                                }
+                            };
+
+                            utter.onerror = (err) => {
+                                console.warn('TTS playback notice:', err);
+                                this.isSpeaking = false;
+                                this.currentlySpeakingMsgId = null;
+                                window._activeSpeechUtterance = null;
+                                this.currentUtterance = null;
+                                if (this._watchdogTimer) {
+                                    clearInterval(this._watchdogTimer);
+                                    this._watchdogTimer = null;
+                                }
+                            };
+
+                            this.synth.speak(utter);
+                        } catch (e) {
+                            console.error('Speech synthesis failure:', e);
+                            this.isSpeaking = false;
+                            this.currentlySpeakingMsgId = null;
+                        }
+                    }, 60);
+                },
+
+                speakMessage(msg) {
+                    if (!msg || !msg.text) return;
+                    if (this.currentlySpeakingMsgId === msg.id && this.isSpeaking) {
+                        this.stopSpeech();
+                        return;
+                    }
+                    this.soundEnabled = true;
+                    this.speak(msg.text, msg.id);
+                },
+
+                stopSpeech() {
+                    if (this.synth) {
+                        try { this.synth.cancel(); } catch (e) {}
+                    }
+                    this.isSpeaking = false;
+                    this.currentlySpeakingMsgId = null;
+                    window._activeSpeechUtterance = null;
+                    this.currentUtterance = null;
+                    if (this._watchdogTimer) {
+                        clearInterval(this._watchdogTimer);
+                        this._watchdogTimer = null;
                     }
                 },
 
                 toggleSound() {
                     this.soundEnabled = !this.soundEnabled;
-                    if (!this.soundEnabled && this.synth) {
-                        this.synth.cancel();
-                        this.isSpeaking = false;
+                    if (!this.soundEnabled) {
+                        this.stopSpeech();
                     }
                 },
 
                 async clearChat() {
+                    this.stopSpeech();
                     try {
                         await fetch('{{ route('ai.copilot.clear') }}', { method: 'POST' });
                     } catch (e) {}
                     const langObj = this.currentLangObj;
                     this.messages = [{
+                        id: 'msg-clear-' + Date.now(),
                         sender: 'ai',
                         text: langObj.greeting,
                         suggestions: langObj.suggestions
@@ -410,13 +506,11 @@
                     const text = customText || this.inputMessage.trim();
                     if (!text) return;
 
-                    // Stop active voice before user sends new message
-                    if (this.synth) {
-                        this.synth.cancel();
-                        this.isSpeaking = false;
-                    }
+                    // Stop existing voice immediately on new message
+                    this.stopSpeech();
 
-                    this.messages.push({ sender: 'user', text: text });
+                    const userMsgId = 'msg-user-' + Date.now();
+                    this.messages.push({ id: userMsgId, sender: 'user', text: text });
                     this.inputMessage = '';
                     this.scrollToBottom();
 
@@ -431,9 +525,7 @@
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': token
                             },
-                            body: JSON.stringify({ 
-                                message: text 
-                            })
+                            body: JSON.stringify({ message: text })
                         });
 
                         if (!res.ok) {
@@ -454,7 +546,9 @@
                         }
                         this.isRtl = !!data.is_rtl;
 
+                        const aiMsgId = 'msg-ai-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
                         this.messages.push({
+                            id: aiMsgId,
                             sender: 'ai',
                             text: data.reply,
                             action: data.action || null,
@@ -462,13 +556,14 @@
                         });
                         this.scrollToBottom();
 
-                        // Speak response aloud - NEVER automatically redirect!
-                        // User can click the action button whenever they choose.
-                        this.speak(data.reply);
+                        // CONTINUOUS VOICE: Speak response aloud for every turn!
+                        this.speak(data.reply, aiMsgId);
                     } catch (e) {
                         console.error('AI Agent error:', e);
                         const fallbackLang = this.currentLangObj;
+                        const errId = 'msg-err-' + Date.now();
                         this.messages.push({ 
+                            id: errId,
                             sender: 'ai', 
                             text: fallbackLang.greeting, 
                             suggestions: fallbackLang.suggestions 
@@ -511,9 +606,9 @@
 
     <!-- Active Chat Modal -->
     <div x-show="isOpen" x-cloak
-         class="w-[360px] sm:w-[440px] h-[580px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+         class="w-[360px] sm:w-[440px] h-[590px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
         
-        <!-- Header (Clean, Zero Clutter - Language Switch Removed as Requested) -->
+        <!-- Header (Clean, Zero Clutter) -->
         <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-red-950 text-white p-3.5 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <div>
@@ -559,7 +654,7 @@
 
         <!-- Chat Conversation Messages (With dynamic RTL / LTR formatting) -->
         <div id="ai-chat-body" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/60 text-xs">
-            <template x-for="(msg, idx) in messages" :key="idx">
+            <template x-for="(msg, idx) in messages" :key="msg.id || idx">
                 <div :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'" class="flex">
                     <div :class="msg.sender === 'user' ? 'bg-red-600 text-white rounded-tr-xs' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-2xs'"
                          :dir="isRtl ? 'rtl' : 'ltr'"
@@ -578,6 +673,27 @@
                                     <i class="ph ph-arrow-square-out text-sm"></i>
                                     <span x-text="msg.action.label || 'Open & Proceed ➔'"></span>
                                 </a>
+                            </div>
+                        </template>
+
+                        <!-- Audio Controls for AI Messages (Replay voice & Playing Waveform) -->
+                        <template x-if="msg.sender === 'ai'">
+                            <div class="pt-1.5 flex items-center justify-between border-t border-slate-100 text-[10px]">
+                                <template x-if="currentlySpeakingMsgId === msg.id && isSpeaking">
+                                    <div class="flex items-center gap-1.5 text-red-600 font-bold animate-pulse">
+                                        <i class="ph ph-waveform text-sm"></i>
+                                        <span>Speaking...</span>
+                                        <button @click="stopSpeech()" type="button" class="ml-1 text-[9px] uppercase px-1.5 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-700 transition">Stop</button>
+                                    </div>
+                                </template>
+                                <template x-if="currentlySpeakingMsgId !== msg.id || !isSpeaking">
+                                    <button @click="speakMessage(msg)" type="button" 
+                                            class="flex items-center gap-1 text-slate-400 hover:text-red-600 transition font-semibold"
+                                            title="Replay voice">
+                                        <i class="ph ph-speaker-high text-xs"></i>
+                                        <span>Play Voice</span>
+                                    </button>
+                                </template>
                             </div>
                         </template>
 

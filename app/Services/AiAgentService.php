@@ -8,6 +8,9 @@ use App\Models\InvoiceItem;
 use App\Models\Client;
 use App\Models\SupportTicket;
 use App\Models\Workspace;
+use App\Models\Payment;
+use App\Models\RecurringInvoice;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -20,8 +23,17 @@ class AiAgentService
      */
     public function handleUserMessage(string $query, ?string $selectedLang = null, ?Workspace $workspace = null, $user = null): array
     {
+        $startTime = microtime(true);
         $rawQuery = trim($query);
         $q = mb_strtolower($rawQuery, 'UTF-8');
+
+        // Resolve workspace if null
+        if (!$workspace) {
+            $workspace = $user?->workspace 
+                ?? ($user?->current_workspace_id ? Workspace::find($user->current_workspace_id) : null)
+                ?? (method_exists($user, 'workspaces') ? $user->workspaces()->first() : null)
+                ?? Workspace::first();
+        }
 
         // 1. Language Detection & Normalization (Auto Detect by default)
         $langCode = $this->resolveLanguage($q, $selectedLang);
@@ -42,27 +54,36 @@ class AiAgentService
         // 2. Multi-turn Session Memory
         $history = session()->get('ai_copilot_history', []);
         $history[] = ['role' => 'user', 'content' => $rawQuery, 'time' => now()->toIso8601String()];
-        if (count($history) > 12) {
-            $history = array_slice($history, -12);
+        if (count($history) > 16) {
+            $history = array_slice($history, -16);
         }
         session()->put('ai_copilot_history', $history);
 
-        // 3. Attempt External LLM if Configured (OpenAI / Gemini)
+        // 3. Multi-Turn Dialogue Flow State Machine (e.g. Invoice Creation step-by-step)
+        $flowResponse = $this->handleDialogueFlow($q, $rawQuery, $langCode, $voiceLang, $isRtl, $workspace, $user);
+        if ($flowResponse !== null) {
+            $this->recordAssistantReply($flowResponse['reply']);
+            $this->logInteraction($rawQuery, $langCode, 'dialogue_flow', $flowResponse, microtime(true) - $startTime);
+            return $flowResponse;
+        }
+
+        // 4. Attempt External LLM if Configured (OpenAI / Gemini)
         $externalResponse = $this->tryExternalLlm($rawQuery, $langCode, $workspace, $user, $history);
         if ($externalResponse !== null) {
             $this->recordAssistantReply($externalResponse['reply']);
+            $this->logInteraction($rawQuery, $langCode, 'external_llm', $externalResponse, microtime(true) - $startTime);
             return $externalResponse;
         }
 
-        // 4. Fallback to Localized Intelligence Engine (100% reliable, zero downtime)
+        // 5. Intelligent Local Conversational Engine & Tool Caller (Zero downtime fallback)
         $localResponse = $this->generateLocalIntelligenceResponse($q, $rawQuery, $langCode, $voiceLang, $isRtl, $workspace, $user);
         $this->recordAssistantReply($localResponse['reply']);
+        $this->logInteraction($rawQuery, $langCode, 'local_engine', $localResponse, microtime(true) - $startTime);
         return $localResponse;
     }
 
     /**
      * Resolve incoming query language.
-     * Auto Detect is default.
      */
     public function resolveLanguage(string $q, ?string $selectedLang = null): string
     {
@@ -94,7 +115,7 @@ class AiAgentService
             return 'ar';
         }
 
-        // 3. Any Remaining Arabic/Urdu Unicode Block (\x{0600}-\x{06FF})
+        // 3. Arabic/Urdu Unicode Block (\x{0600}-\x{06FF})
         if (preg_match('/[\x{0600}-\x{06FF}]/u', $q)) {
             if (preg_match('/(کیا|ہے|ہیں|کے|ساتھ|سے|کا|کی|کو|میں|پر|اچھا|اور|ہم|آپ|بتاؤ|بتائیں|بتا|کرو|کریں|کر|ہو|ہونا|کرنا|سکتے|سکتا|سکتی|نہیں|بھی|یہ|وہ|کیسے|کون|کیوں|انوائس|نوائس|سافٹویئر|سافٹ|پیسہ|پیسے|رقم|ڈرافٹ)/u', $q)) {
                 return 'ur';
@@ -115,7 +136,7 @@ class AiAgentService
             return 'zh';
         }
 
-        // 6. Roman Urdu / Hinglish (e.g. "Assalam Walekum", "invoice Mein kaise use kar sakta hun", "iske bare mein batao")
+        // 6. Roman Urdu / Hinglish
         if (preg_match('/\b(assalam|asalam|walekum|alaikum|walaikum|salam|slam|iske|uske|is|iss|bare|baare|mein|me|batao|bataiye|bataen|bata|kya|hai|hain|kaise|kese|kare|karen|karo|kar|banaye|banayein|banao|madad|shukriya|mujhe|chahiye|kahan|theek|acha|accha|nahi|nhi|haan|bhi|aur|ye|yeh|wo|woh|apna|apni|karna|hoga|hota|chalega|bolo|bhejo|dekho|dikhao|hisaab|paisa|paise|kharcha|kamai|kitna|kitne|mera|meri|mere|saath|sath|kuch|btao|btaen|sakte|sakta|saktee|hun|hoon|karta|karte|bhai|yaar|janab|sahab)\b/i', $q)) {
             return 'ur-roman';
         }
@@ -174,7 +195,9 @@ class AiAgentService
      */
     protected function isNativeArabic(string $q): bool
     {
-        if (preg_match('/[\x{0629}\x{0649}\x{0626}\x{0624}\x{0625}\x{0623}\x{0622}]/u', $q)) {
+        // Only check true Arabic-specific letters: Ta Marbuta (ة) and Alef Maksura (ى)
+        // Hamza variants (ئ, إ, أ, آ, ؤ) are shared with Urdu and must NOT be Arabic-only!
+        if (preg_match('/[\x{0629}\x{0649}]/u', $q)) {
             if (!$this->isNativeUrdu($q)) {
                 return true;
             }
@@ -182,7 +205,7 @@ class AiAgentService
 
         $arabicWords = [
             'فاتورة', 'فواتير', 'انشاء', 'إنشاء', 'مسودة', 'مسودات', 'دفع', 'سداد', 'عميل', 'عملاء',
-            'مكتب', 'تذكرة', 'مساعدة', 'كيف', 'اريد', 'أريد', 'شکرا', 'شكرًا', 'الرجاء', 'ممكن',
+            'مكتب', 'تذكرة', 'مساعدة', 'كيف', 'اريد', 'أريد', 'شكرا', 'شكرًا', 'الرجاء', 'ممكن',
             'تفاصيل', 'يرجى', 'نحن', 'أنت', 'ماذا', 'يمكنني', 'لوحة', 'تحكم', 'استرجاع', 'تقرير', 'مبيعات'
         ];
 
@@ -214,87 +237,233 @@ class AiAgentService
     }
 
     /**
-     * Try external LLM (OpenAI or Gemini) if configured in SuperAdmin or .env.
+     * Multi-Turn Conversation State Machine.
+     * Keeps track of multi-step invoice creation and customer operations across turns!
      */
-    protected function tryExternalLlm(string $rawQuery, string $langCode, ?Workspace $workspace, $user, array $history): ?array
+    protected function handleDialogueFlow(string $q, string $rawQuery, string $lang, string $voiceLang, bool $isRtl, ?Workspace $workspace, $user): ?array
     {
-        $openaiKey = CmsContent::getVal('openai_api_key', config('services.openai.api_key', ''));
-        $geminiKey = CmsContent::getVal('gemini_api_key', config('services.gemini.api_key', ''));
-        $model = CmsContent::getVal('ai_model', 'gpt-4o-mini');
-        $provider = CmsContent::getVal('ai_provider', 'auto');
+        $flowState = session()->get('ai_dialogue_state');
 
-        // Check if OpenAI is usable
-        if (($provider === 'openai' || $provider === 'auto') && !empty($openaiKey)) {
-            try {
-                $wsContext = $this->buildWorkspaceSummaryText($workspace);
-                $systemPrompt = $this->buildSystemPrompt($langCode, $wsContext);
-
-                $messages = [
-                    ['role' => 'system', 'content' => $systemPrompt]
-                ];
-                foreach (array_slice($history, -6) as $h) {
-                    $messages[] = ['role' => $h['role'] === 'user' ? 'user' : 'assistant', 'content' => $h['content']];
-                }
-
-                $res = Http::withToken($openaiKey)
-                    ->timeout(8)
-                    ->post('https://api.openai.com/v1/chat/completions', [
-                        'model' => $model,
-                        'messages' => $messages,
-                        'temperature' => 0.4,
-                        'max_tokens' => 600,
-                    ]);
-
-                if ($res->successful()) {
-                    $json = $res->json();
-                    $reply = $json['choices'][0]['message']['content'] ?? null;
-                    if (!empty($reply)) {
-                        return [
-                            'reply' => $reply,
-                            'lang' => $this->getVoiceTag($langCode),
-                            'lang_code' => $langCode,
-                            'is_rtl' => in_array($langCode, ['ur', 'ar']),
-                            'suggestions' => $this->getDefaultSuggestions($langCode),
-                        ];
-                    }
-                }
-            } catch (\Throwable $e) {
-                Log::warning('OpenAI Copilot invocation error: ' . $e->getMessage());
-            }
+        // Check if user wants to cancel an active flow
+        if ($flowState && preg_match('/\b(cancel|stop|rehne do|nahi|no|mat karo|khilaf|alghaa|إلغاء)\b/iu', $q)) {
+            session()->forget('ai_dialogue_state');
+            return [
+                'reply' => match ($lang) {
+                    'ur' => "ٹھیک ہے، عمل منسوخ کر دیا گیا ہے۔ آپ مجھ سے کسی بھی وقت کچھ اور پوچھ سکتے ہیں۔",
+                    'ur-roman' => "Theek hai, process cancel kar diya gaya hai. Aap mujhse kisi bhi waqt koi doosra sawaal pooch sakte hain.",
+                    'ar' => "تم إلغاء العملية بنجاح. يمكنك سؤالي عن أي شيء آخر في أي وقت.",
+                    default => "Understood, the process has been cancelled. Let me know what else I can assist you with."
+                },
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => $this->getDefaultSuggestions($lang),
+            ];
         }
 
-        // Check if Gemini is usable
-        if (($provider === 'gemini' || ($provider === 'auto' && empty($openaiKey))) && !empty($geminiKey)) {
-            try {
-                $wsContext = $this->buildWorkspaceSummaryText($workspace);
-                $systemPrompt = $this->buildSystemPrompt($langCode, $wsContext);
-                $geminiModel = Str::contains($model, 'gemini') ? $model : 'gemini-1.5-flash';
+        // ==============================================================
+        // 1. INVOICE CREATION FLOW (Multi-turn conversational assistant)
+        // ==============================================================
 
-                $res = Http::timeout(8)
-                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$geminiModel}:generateContent?key={$geminiKey}", [
-                        'contents' => [
-                            [
-                                'role' => 'user',
-                                'parts' => [['text' => "{$systemPrompt}\n\nUser Question: {$rawQuery}"]]
-                            ]
-                        ],
-                    ]);
+        // TRIGGER: User starts invoice creation without providing full details
+        $isCreateTrigger = preg_match('/\b(create invoice|new invoice|make invoice|prepare a bill|bill banana|invoice banana|invoice create|naya invoice|نیا انوائس|انوائس بنانا|انشاء فاتورة|فاتورة جديدة)\b/iu', $q);
+        
+        if ($isCreateTrigger && !$flowState) {
+            // Check if user already gave customer name in the initial prompt e.g. "Create invoice for ABC Trading 2500 AED"
+            $parsedCustomer = $this->extractCustomerName($rawQuery);
+            $parsedAmount = $this->extractAmount($rawQuery);
 
-                if ($res->successful()) {
-                    $json = $res->json();
-                    $reply = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                    if (!empty($reply)) {
-                        return [
-                            'reply' => $reply,
-                            'lang' => $this->getVoiceTag($langCode),
-                            'lang_code' => $langCode,
-                            'is_rtl' => in_array($langCode, ['ur', 'ar']),
-                            'suggestions' => $this->getDefaultSuggestions($langCode),
-                        ];
-                    }
+            if ($parsedCustomer && $parsedAmount) {
+                // All details present! Ask for final confirmation
+                session()->put('ai_dialogue_state', [
+                    'active_flow' => 'create_invoice',
+                    'step' => 'awaiting_confirmation',
+                    'data' => [
+                        'customer' => $parsedCustomer,
+                        'amount' => $parsedAmount['amount'],
+                        'currency' => $parsedAmount['currency'] ?? ($workspace->currency ?? 'AED'),
+                        'due_date' => 'After 15 days',
+                    ]
+                ]);
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur-roman' => "Maine **{$parsedCustomer}** ke liye **{$parsedAmount['amount']} " . ($parsedAmount['currency'] ?? 'AED') . "** ki invoice details prepare kar li hain. Kya main abhi draft invoice create kar doon?",
+                        'ur' => "میں نے **{$parsedCustomer}** کے لیے **{$parsedAmount['amount']} " . ($parsedAmount['currency'] ?? 'AED') . "** کی انوائس تیار کر لی ہے۔ کیا میں ابھی ڈرافٹ انوائس جاری کر دوں؟",
+                        'ar' => "لقد قمت بتجهيز تفاصيل الفاتورة لشركة **{$parsedCustomer}** بمبلغ **{$parsedAmount['amount']} " . ($parsedAmount['currency'] ?? 'AED') . "**. هل ترغب في إنشائها كمسودة الآن؟",
+                        default => "I have prepared the invoice details for **{$parsedCustomer}** for **{$parsedAmount['amount']} " . ($parsedAmount['currency'] ?? 'AED') . "**. Would you like me to create the draft invoice now?"
+                    },
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['Yes, Create Invoice', 'Cancel']
+                ];
+            }
+
+            // Start step 1: Ask for customer
+            session()->put('ai_dialogue_state', [
+                'active_flow' => 'create_invoice',
+                'step' => 'awaiting_customer',
+                'data' => []
+            ]);
+
+            return [
+                'reply' => match ($lang) {
+                    'ur' => "ضرور! میں انوائس بنانے میں آپ کی مدد کرتا ہوں۔ یہ انوائس کس کسٹمر یا کمپنی کے نام بنانی ہے؟ (یا فوری کیش سیل کے لیے 'Walk-in' کہہ سکتے ہیں)",
+                    'ur-roman' => "Certainly! Ye invoice kis customer ya company ke liye banana hai? (Ya instant cash sale ke liye aap 'Walk-in' bol sakte hain)",
+                    'ar' => "بكل سرور! ما هو اسم العميل أو الشركة التي ترغب في إصدار الفاتورة لها؟ (أو اكتب 'Walk-in' للبيع النقدي المباشر)",
+                    'hi' => "ज़रूर! यह इनवॉइस किस ग्राहक या कंपनी के नाम बनानी है? (या कैश सेल के लिए 'Walk-in' कह सकते हैं)",
+                    default => "Certainly! Which customer or company should I create the invoice for? (You can also say 'Walk-in' for instant cash sales)"
+                },
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['Walk-in Customer', 'Cancel']
+            ];
+        }
+
+        // ACTIVE FLOW: 'create_invoice'
+        if ($flowState && ($flowState['active_flow'] ?? '') === 'create_invoice') {
+            $step = $flowState['step'] ?? '';
+            $data = $flowState['data'] ?? [];
+
+            // STEP 1: Awaiting Customer Name
+            if ($step === 'awaiting_customer') {
+                $customer = trim($rawQuery);
+                // Strip common filler words
+                $customer = preg_replace('/^(for|naam|name|client|customer|company)\s+/i', '', $customer);
+                $data['customer'] = $customer;
+                $flowState['step'] = 'awaiting_amount';
+                $flowState['data'] = $data;
+                session()->put('ai_dialogue_state', $flowState);
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur-roman' => "Got it, **{$customer}**. Is invoice ki kitni amount (rakam) enter karni hai? (Maslan: 2500 AED ya 5000 USD)",
+                        'ur' => "ٹھیک ہے، **{$customer}** کے لیے۔ اس انوائس کی کل رقم کیا درج کرنی ہے؟ (مثلاً: 2500 AED یا 5000)",
+                        'ar' => "ممتاز لشركة **{$customer}**. ما هو المبلغ المطلوب إدراجه في هذه الفاتورة؟ (مثلاً: 2500 درهم أو 5000 دولار)",
+                        default => "Got it for **{$customer}**. What amount should I enter for this invoice? (e.g., 2,500 AED or 5,000 USD)"
+                    },
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['1,000 AED', '2,500 AED', '5,000 AED', 'Cancel']
+                ];
+            }
+
+            // STEP 2: Awaiting Amount
+            if ($step === 'awaiting_amount') {
+                $parsed = $this->extractAmount($rawQuery);
+                if (!$parsed || $parsed['amount'] <= 0) {
+                    return [
+                        'reply' => match ($lang) {
+                            'ur-roman' => "Meherbani kar ke sahi amount number mein batayein (maslan: 2500 AED ya 5000).",
+                            'ur' => "براہ کرم درست رقم درج کریں (مثلاً: 2500 AED یا 5000)۔",
+                            default => "Please specify a valid numeric amount (e.g. 2,500 AED or 5,000 USD)."
+                        },
+                        'lang' => $voiceLang,
+                        'lang_code' => $lang,
+                        'is_rtl' => $isRtl,
+                        'suggestions' => ['2,500 AED', '5,000 AED', 'Cancel']
+                    ];
                 }
-            } catch (\Throwable $e) {
-                Log::warning('Gemini Copilot invocation error: ' . $e->getMessage());
+
+                $data['amount'] = $parsed['amount'];
+                $data['currency'] = $parsed['currency'] ?? ($workspace->currency ?? 'AED');
+                $flowState['step'] = 'awaiting_due_date';
+                $flowState['data'] = $data;
+                session()->put('ai_dialogue_state', $flowState);
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur-roman' => "Payment ki due date kab ki rakhni hai? (Maslan: 15 din baad, agle mahine, ya due on receipt)",
+                        'ur' => "ادائیگی کی آخری تاریخ (Due Date) کیا رکھنی ہے؟ (مثلاً: 15 دن بعد، اگلے مہینے، یا فوری ادائیگی)",
+                        'ar' => "متى يكون تاريخ استحقاق السداد؟ (مثلاً: بعد 15 يوماً، أو الشهر القادم، أو عند الاستلام فوراً)",
+                        default => "When should the payment be due? (e.g., after 15 days, next month, or due on receipt)"
+                    },
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['After 15 days', 'Next month', 'Due on receipt', 'Cancel']
+                ];
+            }
+
+            // STEP 3: Awaiting Due Date
+            if ($step === 'awaiting_due_date') {
+                $data['due_date'] = trim($rawQuery);
+                $flowState['step'] = 'awaiting_confirmation';
+                $flowState['data'] = $data;
+                session()->put('ai_dialogue_state', $flowState);
+
+                $cust = $data['customer'];
+                $amt = number_format($data['amount'], 2) . ' ' . $data['currency'];
+                $due = $data['due_date'];
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur-roman' => "Maine **{$cust}** ke liye **{$amt}** (Due: {$due}) ki invoice details tayyar kar li hain. Kya main abhi draft invoice create kar doon?",
+                        'ur' => "میں نے **{$cust}** کے لیے **{$amt}** (تاریخ استحقاق: {$due}) کی انوائس تفصیلات تیار کر لی ہیں۔ کیا میں ابھی ڈرافٹ انوائس بنا دوں؟",
+                        'ar' => "لقد قمت بتجهيز تفاصيل الفاتورة لشركة **{$cust}** بمبلغ **{$amt}** (الاستحقاق: {$due}). هل أعتمد إنشاء المسودة الآن؟",
+                        default => "I have prepared the invoice details for **{$cust}** for **{$amt}** (Due: {$due}). Would you like me to create the draft invoice now?"
+                    },
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['Yes, Create Invoice', 'Cancel']
+                ];
+            }
+
+            // STEP 4: Awaiting Confirmation
+            if ($step === 'awaiting_confirmation') {
+                if (preg_match('/\b(yes|haan|sure|create|banao|bana do|karo|bana dein|جی|نعم|ok|theek hai|proceed)\b/iu', $q)) {
+                    session()->forget('ai_dialogue_state');
+
+                    if (!$workspace) {
+                        $workspace = Workspace::first();
+                    }
+
+                    // EXECUTE REAL BACKEND FUNCTION CALL
+                    $created = $this->toolCreateInvoiceDraft(
+                        $workspace,
+                        $data['customer'] ?? 'Customer',
+                        (float) ($data['amount'] ?? 100),
+                        $data['currency'] ?? 'AED',
+                        $data['due_date'] ?? 'After 15 days',
+                        null,
+                        $user
+                    );
+
+                    $invNum = $created['invoice_number'];
+                    $cust = $data['customer'];
+                    $amt = number_format($data['amount'], 2) . ' ' . $data['currency'];
+
+                    return [
+                        'reply' => match ($lang) {
+                            'ur-roman' => "✅ Invoice **{$invNum}** for **{$cust}** ({$amt}) successfully create ho gaya hai as a draft! Aap neeche diye button par click kar ke review aur publish kar sakte hain:",
+                            'ur' => "✅ انوائس **{$invNum}** برائے **{$cust}** ({$amt}) باحفاظت ڈرافٹ کے طور پر بن چکا ہے! آپ نیچے دیے گئے بٹن سے اس کا جائزہ لے کر شائع کر سکتے ہیں:",
+                            'ar' => "✅ تم إنشاء الفاتورة **{$invNum}** لشركة **{$cust}** بمبلغ **{$amt}** كمسودة بنجاح! يمكنك مراجعتها ونشرها من الزر أدناه:",
+                            default => "✅ Draft Invoice **{$invNum}** for **{$cust}** ({$amt}) has been successfully created! You can review and publish it using the button below:"
+                        },
+                        'action' => [
+                            'type' => 'navigate',
+                            'url' => $created['url'],
+                            'label' => match ($lang) {
+                                'ur' => "انوائس {$invNum} کھولیں ➔",
+                                'ur-roman' => "Invoice {$invNum} Kholein ➔",
+                                'ar' => "فتح الفاتورة {$invNum} ➔",
+                                default => "Open Invoice {$invNum} ➔"
+                            }
+                        ],
+                        'lang' => $voiceLang,
+                        'lang_code' => $lang,
+                        'is_rtl' => $isRtl,
+                        'suggestions' => match ($lang) {
+                            'ur' => ['تمام انوائسز دیکھیں', 'ایک اور انوائس بنائیں', 'میرے فنانشل اعدادوشمار'],
+                            'ur-roman' => ['View All Invoices', 'Ek Aur Invoice Banayein', 'My Workspace Stats'],
+                            default => ['View Invoices', 'Create Another Invoice', 'My Workspace Stats']
+                        }
+                    ];
+                }
             }
         }
 
@@ -306,8 +475,6 @@ class AiAgentService
      */
     protected function generateLocalIntelligenceResponse(string $q, string $rawQuery, string $lang, string $voiceLang, bool $isRtl, ?Workspace $workspace, $user): array
     {
-        $isSuperAdmin = $user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
-
         // -------------------------------------------------------------
         // INTENT 0: Warm, Natural Human Greeting (Handles "Assalam Walekum", "Hello", "Hi")
         // -------------------------------------------------------------
@@ -347,7 +514,124 @@ How can I help you today? Would you like to create a new invoice, explore indust
         }
 
         // -------------------------------------------------------------
-        // INTENT 1: How to Use Invoices / Step-by-Step Practical Guide (Handles "invoice Mein kaise use kar sakta hun")
+        // INTENT 0.5: Capabilities & System Overview ("Iske bare mein batao", "Kya kar sakte hain")
+        // -------------------------------------------------------------
+        if (preg_match('/(iske bare|uske bare|is bare|software ke bare|kya kar sakte|aur kya kar|kya hota hai|kya kaam karta|kya feature|kya faida|what can this|what can i do|tell me about|explain software|about this software|اچھا اور کیا|اور کیا کر سکتے|سافٹ ویر کے ساتھ|سافٹویئر کے ساتھ|اس کے بارے|انوائس سافٹ ویئر|ماذا يمكن|عن هذا البرنامج|क्या कर सकते|इसके बारे)/iu', $q)) {
+            $reply = match ($lang) {
+                'ur' => "انوائسی (Invoicy) ایک مکمل اور جدید مالیاتی پلیٹ فارم ہے! اس کے ذریعے آپ:\n\n1. **پیشہ ورانہ انوائسز**: منٹوں میں مستند بلز اور نجی ڈرافٹس تیار کر سکتے ہیں (بشمول فوری واک اِن سیل)۔\n2. **خودکار پیمنٹ ریمائنڈرز**: گاہکوں کو خودکار یاد دہانیاں شیڈول کریں تاکہ ادائیگیاں وقت پر موصول ہوں۔\n3. **آن لائن ادائیگیاں**: سٹرائپ، پے پال اور بینک ٹرانسفر کے ذریعے آسان ادائیگی کی سہولت۔\n4. **لائیو فنانشل ٹریکنگ**: اپنے تمام واجب الادا بلز، کلائنٹ کھاتے اور آمدن کے اعدادوشمار فوری دیکھیں۔\n\nآپ ابھی کیا بنانا یا دیکھنا چاہتے ہیں؟",
+
+                'ur-roman' => "Invoicy aap ka complete financial aur billing system hai! Is ke zariye aap:\n\n1. **Professional Invoices**: Minutes mein standard invoices aur private drafts bana sakte hain (including walk-in counter sales).\n2. **Automated Reminders**: Customers ko payment milestone reminders schedule karein taake payments waqt par milein.\n3. **Online Payments**: Stripe, PayPal aur direct bank transfer se credit card aur cash payments collect karein.\n4. **Live Financial Stats**: Overdue bills, customer accounts aur workspace cashflow real-time monitor karein.\n\nAap abhi kis kaam se shuru karna chahte hain?",
+
+                'ar' => "منصة Invoicy هي نظامك المالي والفوترة المتكامل! يمكنك من خلالها:\n\n1. **إصدار فواتير احترافية**: إنشاء فواتير معتمدة ومسودات مؤمنة وسرية في ثوانٍ.\n2. **تذكيرات الدفع الآلية**: جدولة إشعارات تلقائية للعملاء لتحصيل المستحقات دون تأخير.\n3. **بوابات دفع إلكترونية**: تحصيل المدفوعات عبر البطاقات الائتمانية والتحويل البنكي عبر Stripe وPayPal.\n4. **إحصائيات مالية مباشرة**: متابعة الفواتير المتأخرة، سجلات العملاء، وصافي الإيرادات فورياً.\n\nما الذي ترغب في استكشافه أو بدئه الآن؟",
+
+                'hi' => "Invoicy आपका संपूर्ण वित्तीय और बिलिंग प्लेटफ़ॉर्म है! इसके माध्यम से आप:\n\n1. **पेशेवर इनवॉइस**: मिनटों में इनवॉیس और सुरक्षित ड्राफ्ट तैयार करें।\n2. **स्वचालित पेमेंट रिमाइंडर**: ग्राहकों को समय पर भुगतान के लिए रिमाइंडर भेजें।\n3. **ऑनलाइन भुगतान**: Stripe और बैंक ट्रांसफर के माध्यम से सुरक्षित पेमेंट स्वीकार करें।\n4. **लाइव वित्तीय आँकड़े**: बकाया बिल और ग्राहक खाते आसानी से ट्रैक करें।\n\nआप अभी किस सुविधा का उपयोग करना चाहते हैं?",
+
+                default => "Invoicy is your comprehensive financial and billing assistant! Here is what you can accomplish:\n\n1. **Professional Invoices**: Create GAAP-compliant invoices and private draft safeguards in seconds.\n2. **Automated Payment Reminders**: Schedule proactive milestone alerts so customers pay on time.\n3. **Online Payment Gateways**: Collect credit card and bank payments seamlessly via Stripe & PayPal.\n4. **Live Financial Tracking**: Monitor overdue balances, customer CRM accounts, and real-time revenue.\n\nWhat would you like to start with today?",
+            };
+
+            return [
+                'reply' => $reply,
+                'action' => [
+                    'type' => 'navigate',
+                    'url' => route('invoices.create'),
+                    'label' => match ($lang) {
+                        'ur' => 'نیا انوائس بنائیں ➔',
+                        'ur-roman' => 'Naya Invoice Banayein ➔',
+                        'ar' => 'إنشاء فاتورة جديدة ➔',
+                        'hi' => 'नया इनवॉइस बनाएं ➔',
+                        default => 'Create New Invoice ➔'
+                    }
+                ],
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => match ($lang) {
+                    'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ڈیسک کھولیں'],
+                    'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', 'Mera Balance & Stats', 'Support Desk Kholein'],
+                    'ar' => ['إنشاء فاتورة جديدة', 'كيف تعمل المسودات؟', 'إحصائيات حسابي', 'مكتب الدعم'],
+                    default => ['Create new invoice', 'How do drafts work?', 'My Workspace Stats', 'Open Support Desk'],
+                }
+            ];
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 1: Overdue Invoices & Payment Tracking (Backend Tool Call)
+        // -------------------------------------------------------------
+        if ($workspace && preg_match('/\b(overdue|unpaid invoices|late payment|baki paise|kiske paise|who owes|waajib|متأخرات|فواتير غير مدفوعة|gecikmiş)\b/iu', $q)) {
+            $overdueData = $this->toolGetOverdueInvoices($workspace);
+            $curr = $workspace->currency ?? 'AED';
+
+            if ($overdueData['count'] === 0) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Mubarak ho! Aap ki koi bhi overdue ya late payment baki nahi hai. Tamam invoices paid hain ya due date abhi aani hai.",
+                    'ur' => "مبارک ہو! آپ کا کوئی بھی انوائس واجب الادا (Overdue) نہیں ہے۔ تمام ادائیگیاں کلیئر ہیں۔",
+                    'ar' => "رائع! ليس لديك أي فواتير متأخرة السداد حالياً. جميع الفواتير إما مسددة أو لم يحن موعد استحقاقها بعد.",
+                    default => "Great news! You have zero overdue invoices in your workspace right now. All accounts are up to date."
+                };
+            } else {
+                $listStr = "";
+                foreach (array_slice($overdueData['invoices'], 0, 3) as $inv) {
+                    $listStr .= "\n• **{$inv['number']}** - {$inv['client']} ({$curr} {$inv['due']}) - {$inv['days_overdue']} days overdue";
+                }
+
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap ke paas **{$overdueData['count']} overdue invoices** hain jinki kul rakam **{$curr} {$overdueData['total_due']}** baki hai:{$listStr}\n\nAap automated reminder bhej kar client ko alert kar sakte hain:",
+                    'ur' => "آپ کے پاس **{$overdueData['count']} واجب الادا انوائسز** ہیں جن کی کل رقم **{$curr} {$overdueData['total_due']}** ہے:{$listStr}\n\nآپ یہاں سے براہ راست یاد دہانی بھیج سکتے ہیں:",
+                    default => "You have **{$overdueData['count']} overdue invoices** totaling **{$curr} {$overdueData['total_due']}**:{$listStr}\n\nYou can review them or trigger automated milestone reminders:"
+                };
+            }
+
+            return [
+                'reply' => $reply,
+                'action' => [
+                    'type' => 'navigate',
+                    'url' => route('invoices.index'),
+                    'label' => 'View Invoices ➔'
+                ],
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['Payment Settings', 'Create Invoice', 'My Workspace Stats']
+            ];
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 2: Customer Search / CRM Lookup (Backend Tool Call)
+        // -------------------------------------------------------------
+        if ($workspace && (preg_match('/\b(search customer|find customer|customer search|client record|client details|search client|dhundo|talaash|بحث عن عميل)\b/iu', $q) || preg_match('/\b(customer|client)\s+([a-zA-Z0-9\s]+)/iu', $q, $m))) {
+            $term = !empty($m[2]) ? trim($m[2]) : $rawQuery;
+            $term = preg_replace('/\b(search|find|details|record|karo|batao|ka)\b/iu', '', $term);
+            $term = trim($term);
+
+            $clients = $this->toolSearchCustomers($workspace, $term);
+            if (count($clients) > 0) {
+                $cList = "";
+                foreach ($clients as $c) {
+                    $cList .= "\n• **{$c['name']}** (" . ($c['company'] ?: 'Individual') . ") - Due: {$c['outstanding']}";
+                }
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap ke search criteria ke mutabiq ye clients mile hain:{$cList}\n\nAap Client CRM mein ja kar poora profile dekh sakte hain:",
+                    'ur' => "آپ کے مطلوبہ ریکارڈ کے مطابق یہ کلائنٹس ملے ہیں:{$cList}",
+                    default => "I found the following matching clients in your directory:{$cList}\n\nYou can open Client CRM to manage their ledger:"
+                };
+
+                return [
+                    'reply' => $reply,
+                    'action' => [
+                        'type' => 'navigate',
+                        'url' => route('clients.index'),
+                        'label' => 'Open Client CRM ➔'
+                    ],
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['View Invoices', 'Create New Invoice', 'My Workspace Stats']
+                ];
+            }
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 3: Step-by-Step How To Use Invoices
         // -------------------------------------------------------------
         if (preg_match('/(kaise use|kaise istemal|kaise kaam|use kar sakta|use kaise|how to use|how do i use|how does it work|طريقة الاستخدام|كيف استخدم|كيفية استخدام|انوائس کیسے|کیسے استعمال|کیسے کام کرتا|उपयोग कैसे करें|nasıl kullanılır)/u', $q) || (preg_match('/(invoice|انوائس|فاتورة|fatura)/u', $q) && preg_match('/(use|kaise|kese|kare|karen|karo|batao|seekhna|karna hai|chalega)/u', $q))) {
             $reply = match ($lang) {
@@ -411,11 +695,11 @@ Click the button below to start creating your invoice:",
         }
 
         // -------------------------------------------------------------
-        // INTENT 2: Live Workspace Stats & Balance Queries (Handles "Mere Kaise", "Mera balance", "Kitna baki hai")
+        // INTENT 4: Live Workspace Stats & Balance Queries (Backend Tool Call)
         // -------------------------------------------------------------
         if ($workspace && preg_match('/(mere kaise|kitna balance|kitne paise|kitni invoices|meri kamai|stats|revenue|summary|balance|outstanding|unpaid|kitna baki|kitna paisa|کتنے پیسے|کتنا بیلنس|میرے انوائسز|کتنی رقم|میرا ریوینیو|كم رصيدي|كم عدد الفواتير|المبالغ المعلقة|إيراداتي|bakiyem|toplam fatura|gelir|cuánto debo|total facturas)/u', $q)) {
             $stats = $this->getWorkspaceStats($workspace);
-            $curr = $workspace->currency ?? 'USD';
+            $curr = $workspace->currency ?? 'AED';
 
             $reply = match ($lang) {
                 'ur-roman' => "📊 **Aap ke Workspace ke live financial stats ye hain:**
@@ -464,8 +748,6 @@ Aap invoices dashboard khol kar har bill ki detail dekh sakte hain:",
                         'ur' => 'تمام انوائسز دیکھیں ➔',
                         'ur-roman' => 'Invoices Dashboard Kholein ➔',
                         'ar' => 'عرض لوحة الفواتير ➔',
-                        'tr' => 'Faturaları Görüntüle ➔',
-                        'hi' => 'इनवॉइस सूची देखें ➔',
                         default => 'View Invoices Dashboard ➔'
                     }
                 ],
@@ -482,358 +764,17 @@ Aap invoices dashboard khol kar har bill ki detail dekh sakte hain:",
         }
 
         // -------------------------------------------------------------
-        // INTENT 3: Overview & Capabilities ("Iske bare mein batao" / "اچھا اور کیا کر سکتے ہیں")
+        // INTENT 5: Structured Invoicy Knowledge Retrieval (RAG)
         // -------------------------------------------------------------
-        if (preg_match('/(iske bare mein|uske bare mein|ye kya hai|yeh kya hai|is ke bare|about|overview|kya karta hai|explain invoicy|invoicy kya hai|kya kar sakte|aur kya|کیا کر سکتے|سافٹویئر کے ساتھ|سافٹ ویئر|اس کے بارے|پلیٹ فارم کیا ہے|ماذا يمكنني|عن المنصة|ما هي ميزات|qu\'est-ce que|was kann|que se puede)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => "انوائسی (Invoicy) ایک مکمل کلاؤڈ بلنگ اور فنانشل مینجمنٹ پلیٹ فارم ہے! آپ اس سافٹ ویئر کے ساتھ یہ سب کچھ کر سکتے ہیں:
-
-1. ⚡ **پروفیشنل انوائسز بنائیں**: رجسٹرڈ کلائنٹس کے لیے تفصیلی بل یا بغیر اکاؤنٹ واک اِن (Walk-in) کیش سیلز۔
-2. 📦 **45+ انڈسٹری پری سیٹس**: کمپیوٹر شاپ، ٹرانسپورٹ، لیموزین، تعمیرات، انڈسٹریل، ڈسٹری بیوٹر اور مارکیٹنگ کے لیے 1-کلک ریٹس۔
-3. 🔒 **محفوظ ڈرافٹس (Drafts)**: جب تک آپ 'Issue & Publish' نہ کریں، گاہک کو کوئی ای میل نہیں جائے گی اور پی ڈی ایف محفوظ رہے گی۔
-4. ⏰ **خودکار ادائیگی کے ریمائنڈرز**: ڈیو ڈیٹ سے 45، 30، 15، 7، 3 اور 2 دن پہلے خودکار نوٹیفکیشنز۔
-5. 💳 **آن لائن ادائیگیاں**: سٹرائپ (Stripe)، پے پال (PayPal) اور لوکل بینک ٹرانسفر کے ذریعے رقوم وصول کریں۔
-6. 🛡️ **کیو آر کوڈ تصدیق**: جعلسازی سے پاک آئی ایس او (ISO) ڈیجیٹل ویریفکیشن۔
-7. 🎫 **24 گھنٹے کا سپورٹ ڈیسک**: کسی بھی مسئلے کی صورت میں ہماری انجینئرنگ ٹیم فوری حل فراہم کرتی ہے۔
-
-آپ کیا کرنا چاہتے ہیں؟ نیا انوائس بنائیں یا کوئی فیچر سمجھنا چاہتے ہیں؟",
-
-                'ur-roman' => "Ye Invoicy ka advanced SaaS financial platform hai! Is software ke sath aap ye tamam operations perform kar sakte hain:
-
-1. ⚡ **Naya Invoice Create Karein**: Registered clients ke liye detail bill ya walk-in retail counter mode me instant cash billing.
-2. 📦 **45+ Industry Service Presets**: Computer shop, transportation, limousine taxi, industrial, construction, distribution, aur marketing agencies ke liye 1-click ready made items.
-3. 🔒 **Private Draft Safeguards**: Draft invoice customer ko bilkul dispatch nahi hoti jab tak aap use 'Issue & Publish' na karein.
-4. ⏰ **Automated Payment Reminders**: Due date se 45, 30, 15, 7, 3, aur 2 din pehle auto reminders dispatch hote hain.
-5. 💳 **Online Payment Gateways**: Stripe, PayPal, aur direct bank transfer ke zariye online payments collect karein.
-6. 🛡️ **QR Code Verification**: Har published invoice par fraud-proof cryptographic QR seal hota hai.
-7. 🎫 **24h Turnaround Support Desk**: SLA backed customer support assistance.
-
-Aap abhi kya karna chahte hain? Naya invoice banayein ya koi specific setting dekhni hai?",
-
-                'ar' => "منصة Invoicy هي النظام المالي والفوترة السحابي الشامل لإدارة أعمالك! إليك أبرز ما يمكنك تنفيذه عبر المنصة:
-
-1. ⚡ **إصدار فواتير احترافية**: للعملاء المسجلين أو عبر وضع البيع الفوري (Walk-in) دون تسجيل العميل.
-2. 📦 **أكثر من 45 قالباً للخدمات**: لـ 7 قطاعات رئيسية (صيانة الحواسيب، النقل، الليموزين، المقاولات، التوزيع، التسويق، والصناعة).
-3. 🔒 **حماية المسودات السرية**: المسودات سرية بالكامل ولا ترسل للعميل حتى تعتمدها عبر 'نشر الفاتورة'.
-4. ⏰ **جدولة تذكيرات السداد الآلية**: تنبيهات دورية ذكية قبل مواعيد الاستحقاق.
-5. 💳 **بوابات دفع متعددة**: قبول الدفع عبر Stripe وPayPal والتحويل البنكي.
-6. 🛡️ **ختم التحقق الرقمي QR**: لمنع تزوير الفواتير والمطابقة المالية.
-7. 🎫 **مكتب الدعم الفني خلال 24 ساعة**: متابعة دورية لكل استفساراتك.
-
-كيف ترغب بالبدء اليوم؟ هل ننشئ فاتورة جديدة أو نستعرض بيانات حسابك؟",
-
-                'hi' => "Invoicy एक अत्याधुनिक क्लाउड बिलिंग और वित्तीय प्रबंधन प्लेटफ़ॉर्म है! आप इसके साथ निम्नलिखित कार्य कर सकते हैं:
-
-1. ⚡ **प्रोफेशनल इनवॉइस बनाएं**: पंजीकृत ग्राहकों के लिए या वॉक-इन मोड से तत्काल कैश बिलिंग।
-2. 📦 **45+ उद्योग प्रीसेट**: कंप्यूटर शॉप, ट्रांसपोर्ट, निर्माण, और एजेंसी आदि के लिए 1-क्लिक दरें।
-3. 🔒 **सुरक्षित ड्राफ्ट**: पब्लिश करने से पहले ड्राफ्ट पूर्णतः निजी रहते हैं।
-4. ⏰ **स्वचालित भुगतान रिमाइंडर**: देय तिथि से पहले स्वचालित सूचनाएं।
-5. 💳 **ऑनलाइन भुगतान गेटवे**: Stripe, PayPal और बैंक ट्रांसफर से सीधे भुगतान लें।
-6. 🛡️ **QR कोड सत्यापन**: जालसाजी-रोधी डिजिटल मुहर।
-7. 🎫 **24 घंटे सपोर्ट डेस्क**: तत्काल सहायता टिकट।
-
-आप क्या करना चाहेंगे?",
-
-                'tr' => "Invoicy, işletmeler için yeni nesil bulut faturalama ve finans platformudur! Bu yazılımla şunları yapabilirsiniz:
-
-1. ⚡ **Profesyonel Fatura Oluşturma**: Kayıtlı müşteriler veya Hızlı Satış (Walk-in) kasası ile anında tahsilat.
-2. 📦 **45+ Sektörel Hazır Şablon**: Bilgisayar servisi, taşımacılık, inşaat, dağıtım ve ajanslar için tek tıkla kalem ekleme.
-3. 🔒 **Gizli Taslak Koruması**: Taslaklar siz 'Yayınla' diyene kadar müşteriye gönderilmez ve gizli kalır.
-4. ⏰ **Otomatik Ödeme Hatırlatıcıları**: Vade tarihinden önce akıllı e-posta hatırlatmaları.
-5. 💳 **Online Tahsilat Entegrasyonu**: Stripe, PayPal ve banka havalesi desteği.
-6. 🛡️ **QR Kod ile Doğrulama**: Sahteciliği önleyen kriptografik karekod mührü.
-7. 🎫 **24 Saat SLA Destek Masası**: Hızlı teknik çözüm biletleri.
-
-Nasıl yardımcı olabilirim?",
-
-                default => "Invoicy is a next-generation SaaS financial and billing suite! Here is what you can accomplish:
-
-1. ⚡ **Create Professional Invoices**: Full customer invoices or Walk-in instant cash retail billing.
-2. 📦 **45+ 1-Click Industry Presets**: Pre-priced line items across 7 sectors (Computer Shop, Transportation, Limousine Taxi, Construction, Industrial, Distributor, and Marketing).
-3. 🔒 **Private Draft Safeguards**: Drafts are completely private—no emails dispatched and PDFs/QR codes are locked until published.
-4. ⏰ **Automated Milestone Reminders**: Automatic schedules at 45, 30, 15, 7, 3, and 2 days before due dates.
-5. 💳 **Online Payment Gateways**: Collect credit card and bank payments via Stripe, PayPal, and bank transfers.
-6. 🛡️ **ISO QR Code Verification**: Tamper-proof cryptographic seals on every issued invoice.
-7. 🎫 **24h SLA Support Desk**: High-priority ticketing assistance for your team.
-
-How may I assist you right now? Would you like to create an invoice or explore your workspace data?",
-            };
-
+        $knowledge = $this->retrieveKnowledge($q);
+        if ($knowledge !== null) {
             return [
-                'reply' => $reply,
+                'reply' => $knowledge['reply'][$lang] ?? $knowledge['reply']['en'],
+                'action' => $knowledge['action'] ?? null,
                 'lang' => $voiceLang,
                 'lang_code' => $lang,
                 'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ڈیسک کھولیں'],
-                    'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', 'Mera Balance & Stats', 'Support Desk Kholein'],
-                    'ar' => ['إنشاء فاتورة جديدة', 'كيف تعمل المسودات؟', 'إحصائيات حسابي', 'فتح مكتب الدعم'],
-                    'tr' => ['Yeni Fatura Oluştur', 'Taslaklar Nasıl Çalışır?', 'Hesap Özeti & Rapor', 'Destek Masası Aç'],
-                    default => ['Create new invoice', 'How do drafts work?', 'My Workspace Stats', 'Open Support Desk'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 4: Direct Create Invoice / Walk-in Mode Request
-        // -------------------------------------------------------------
-        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|walk-in|walkin|counter sale|cash sale|naya invoice|invoice banana|bill banana|naya bill|نیا انوائس|انوائس بنائیں|بل بنائیں|انوائس بنانا|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|नया इनवॉइस|बिल बनाएं)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => 'آپ نیچے دیے گئے بٹن پر کلک کر کے فوری **انوائس بلڈر** کھول سکتے ہیں۔ آپ اپنے رجسٹرڈ کلائنٹس منتخب کر سکتے ہیں یا فوری کیش کاؤنٹر سیل کے لیے **واک اِن (Walk-in)** موڈ استعمال کر سکتے ہیں۔',
-                'ur-roman' => 'Aap neeche button par click kar ke foran **Invoice Builder** khol sakte hain. Yahan aap registered client select kar sakte hain ya counter sale ke liye **Walk-in mode** use kar sakte hain.',
-                'ar' => 'يمكنك الضغط على الزر أدناه لفتح **منشئ الفواتير**. يمكنك اختيار عميل مسجل أو استخدام وضع **البيع الفوري (Walk-in)** لإصدار فاتورة نقدية سريعة.',
-                'tr' => 'Aşağıdaki butona tıklayarak **Fatura Oluşturucu** ekranını açabilirsiniz. Kayıtlı müşterinizi seçebilir veya Hızlı Satış modunu kullanabilirsiniz.',
-                'hi' => 'आप नीचे दिए गए बटन पर क्लिक करके **इनवॉइस बिल्डर** खोल सकते हैं। आप ग्राहक चुन सकते हैं या वॉक-इन मोड का उपयोग कर सकते हैं।',
-                default => 'You can click the button below to open the **Invoice Builder**. You can select registered clients or use Walk-in mode for instant cash and retail billing.',
-            };
-
-            return [
-                'reply' => $reply,
-                'action' => [
-                    'type' => 'navigate',
-                    'url' => route('invoices.create'),
-                    'label' => match ($lang) {
-                        'ur' => 'نیا انوائس بلڈر کھولیں ➔',
-                        'ur-roman' => 'Naya Invoice Banayein ➔',
-                        'ar' => 'فتح منشئ الفواتير ➔',
-                        'tr' => 'Yeni Fatura Aç ➔',
-                        'hi' => 'नया इनवॉइस बनाएं ➔',
-                        default => 'Open Invoice Builder ➔'
-                    }
-                ],
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['1-کلک انڈسٹری سروسز', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'میرے تمام انوائسز'],
-                    'ur-roman' => ['1-Click Industry Presets', 'Drafts kaise kaam karte hain?', 'Invoices Dashboard'],
-                    'ar' => ['قوالب الخدمات الجاهزة', 'كيف تعمل المسودات؟', 'لوحة الفواتير'],
-                    default => ['Industry Presets', 'How do drafts work?', 'Invoices Dashboard'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 5: Draft Safeguard vs Published Invoices
-        // -------------------------------------------------------------
-        if (preg_match('/(draft|drafts|why draft|publish|issue|published|ڈرافٹ|ڈرافٹس|مسودہ|مسودة|taslak|taslak fatura|borrador|brouillon|entwurf)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => '🔒 **ڈرافٹ انوائسز کی رازداری اور سیکیورٹی:**
-
-انوائسی میں ڈرافٹ انوائسز مکمل طور پر نجی رہتی ہیں۔ جب تک آپ "Issue & Publish" کا بٹن نہ دبائیں:
-1. کلائنٹ کو کوئی ای میل یا نوٹیفکیشن نہیں بھیجا جاتا۔
-2. پی ڈی ایف ڈاؤن لوڈ اور آن لائن پیمنٹ پورٹل غیر فعال رہتا ہے۔
-3. کیو آر تصدیقی کوڈ غیر فعال رہتا ہے۔
-اس طرح آپ بغیر کسی غلطی کے خطرے کے آرام سے بلنگ مکمل کر سکتے ہیں۔',
-
-                'ur-roman' => '🔒 **Draft Invoices ki Security & Safeguards:**
-
-Invoicy me Draft invoices 100% private hoti hain. Jab tak aap "Issue & Publish" par click na karein:
-1. Customer ko koi email ya notification nahi jata.
-2. PDF downloads aur online payment portal links disabled rehte hain.
-3. ISO QR verification code inactive rehta hai.
-Aap bila jhijhak items verify kar ke publish kar sakte hain.',
-
-                'ar' => '🔒 **حماية وسرية فواتير المسودة (Draft):**
-
-فواتير المسودة سرية للغاية ومؤمنة في Invoicy. حتى تقوم بالضغط على "نشر الفاتورة":
-1. لن يتم إرسال أي بريد إلكتروني للعميل.
-2. روابط تحميل PDF وبوابة الدفع معطلة تماماً.
-3. رمز التحقق الذكي QR معطل لضمان عدم تسريب البيانات قبل الاعتماد.',
-
-                default => '🔒 **Draft Invoice Safeguards & Confidentiality:**
-
-Draft invoices in Invoicy are completely private. Until you click "Issue & Publish":
-1. No emails or payment notices are dispatched to your customer.
-2. PDF downloads and customer payment portal links are securely disabled.
-3. ISO QR verification codes remain inactive to prevent accidental sharing.',
-            };
-
-            return [
-                'reply' => $reply,
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['نیا انوائس بنائیں', 'انوائس کیسے ریکال کریں؟', 'کیو آر کوڈ کی وضاحت'],
-                    'ur-roman' => ['Naya Invoice Banayein', 'Invoice recall kaise karein?', 'QR Verification'],
-                    'ar' => ['إنشاء فاتورة جديدة', 'كيف أسحب الفاتورة؟', 'شرح رمز QR'],
-                    default => ['Create new invoice', 'How to recall an invoice?', 'Explain QR code'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 6: Industry Presets & Catalog
-        // -------------------------------------------------------------
-        if (preg_match('/(preset|presets|industry|catalog|computer shop|transportation|limo|limousine|industrial|construction|distributor|marketing|پری سیٹ|کیٹلاگ|خدمات|önayar|hizmetler|servicios|catálogo|services prédéfinis)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => '📦 انوائسی میں 7 بڑی صنعتوں کے لیے **45 سے زائد فوری پری سیٹس** شامل ہیں:
-• کمپیوٹر شاپ (ہارڈ ویئر مرمت، ایس ایس ڈی اپ گریڈ)
-• ٹرانسپورٹ اور لاجسٹکس (روٹ فریٹ، پیلٹ)
-• لیموزین اور ایئرپورٹ ٹرانسفر
-• کنسٹرکشن اور انڈسٹریل مینوفیکچرنگ
-• ہول سیل ڈسٹری بیوٹرز اور ڈیجیٹل مارکیٹنگ ایجنسیاں۔
-ایک کلک پر ریٹ اور پیمائشی یونٹ خودکار شامل ہو جاتے ہیں۔',
-
-                'ur-roman' => '📦 Invoicy me 7 major industries ke liye **45+ 1-click presets** available hain: Computer Shop, Logistics & Transport, Limousine Taxi, Construction, Industrial Manufacturing, Wholesale Distribution, aur Marketing Agencies. Ek click par unit rates add ho jate hain.',
-
-                'ar' => '📦 توفر منصة Invoicy أكثر من **45 قالباً ذكياً لسبع قطاعات تجارية** تشمل صيانة الحواسيب، النقل واللوجستيات، الليموزين، المقاولات والإنشاءات، التصنيع، والتسويق الإلكتروني مع تسعير تلقائي.',
-
-                default => '📦 Invoicy provides **45+ 1-click presets across 7 major industries**: Computer Shop, Transportation, Limousine Taxi, Industrial, Construction, Distributor, and Marketing Agency with auto-synced rates and measurement units.',
-            };
-
-            return [
-                'reply' => $reply,
-                'action' => [
-                    'type' => 'navigate',
-                    'url' => route('invoices.create'),
-                    'label' => match ($lang) {
-                        'ur' => 'انوائس بلڈر کھولیں ➔',
-                        'ur-roman' => 'Presets Dekhein ➔',
-                        'ar' => 'فتح نماذج الخدمات ➔',
-                        default => 'Open Presets Builder ➔'
-                    }
-                ],
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['انوائس بلڈر کھولیں', 'ڈرافٹ پروٹیکشن', 'پیمنٹ گیٹ وے'],
-                    default => ['Open Invoice Builder', 'Draft Safeguards', 'Payment Gateways'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 7: Recall Published Invoices
-        // -------------------------------------------------------------
-        if (preg_match('/(recall|withdraw|revert|edit published|mistake in invoice|ریکال|واپس|تبدیل|سحب|استرجاع|geri çek|düzelt|retirer)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => '🔄 **انوائس ریکال فیچر:** اگر آپ نے کوئی انوائس شائع (Publish) کر دی ہو اور بعد میں ترمیم کی ضرورت پیش آئے، تو آپ انوائس ویو اسکرین پر جا کر "Recall to Draft" کے بٹن پر کلک کر سکتے ہیں۔ اس سے پبلک پورٹل فوری لاک ہو جاتا ہے اور آپ باحفاظت ترامیم کر کے دوبارہ جاری کر سکتے ہیں۔',
-                'ur-roman' => '🔄 **Invoice Recall Feature:** Agar aap ne invoice publish kar di hai aur correction karni hai, toh aap invoice view page par "Recall to Draft" click kar sakte hain. Public access lock ho jayegi aur aap changes save kar ke dobara publish kar sakte hain.',
-                'ar' => '🔄 **ميزة استرجاع الفاتورة (Recall):** إذا قمت بنشر فاتورة ورغبت في تعديلها، يمكنك الضغط على زر "Recall to Draft" من صفحة الفاتورة لقفل الرابط الخارجي فوراً وإعادتها كمسودة لتعديلها بأمان.',
-                default => '🔄 **Invoice Recall Feature:** If you published an invoice with mistakes, open the invoice detail screen and click "Recall to Draft". This locks the public portal and revokes client access so you can edit and republish safely.',
-            };
-
-            return [
-                'reply' => $reply,
-                'action' => [
-                    'type' => 'navigate',
-                    'url' => route('invoices.index'),
-                    'label' => match ($lang) {
-                        'ur' => 'میرے انوائسز کھولیں ➔',
-                        'ur-roman' => 'Invoices Dashboard Kholein ➔',
-                        'ar' => 'الانتقال إلى الفواتير ➔',
-                        default => 'Go to Invoices ➔'
-                    }
-                ],
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['انوائسز دیکھیں', 'نیا انوائس بنائیں', 'سپورٹ ڈیسک'],
-                    default => ['View Invoices', 'Create New Invoice', 'Support Desk'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 8: 24h SLA Support Desk
-        // -------------------------------------------------------------
-        if (preg_match('/(support|help desk|ticket|problem|issue|sla|سپورٹ|ٹکٹ|مدد|مسئلہ|شکایت|تذكرة|دعم|destek|bilet|ayuda|soporte)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => '🎫 **24 گھنٹے کا سپورٹ ڈیسک:** ہماری سینئر سپورٹ اور انجینئرنگ ٹیم 24 گھنٹے کے اندر ہر ٹکٹ کا مصدقہ حل فراہم کرتی ہے۔ آپ نیا ٹکٹ درج کر سکتے ہیں یا اپنے موجودہ ٹکٹس کی پیش رفت دیکھ سکتے ہیں۔',
-                'ur-roman' => '🎫 **24h Turnaround Support Desk:** Hamari technical support team har ticket ka 24 hours ke andar guaranteed SLA resolution deti hai. Aap naya ticket create kar sakte hain ya existing status track kar sakte hain.',
-                'ar' => '🎫 **مكتب الدعم الفني وضمان الاستجابة خلال 24 ساعة:** فريقنا المتخصص ملتزم بمعالجة وحل جميع التذاكر الفنية في أقل من 24 ساعة.',
-                default => '🎫 **24h SLA Support Desk:** Our dedicated support and engineering pods are committed to resolving your billing and technical inquiries within 24 hours.',
-            };
-
-            return [
-                'reply' => $reply,
-                'action' => [
-                    'type' => 'navigate',
-                    'url' => route('support.index'),
-                    'label' => match ($lang) {
-                        'ur' => 'سپورٹ ڈیسک کھولیں ➔',
-                        'ur-roman' => 'Support Desk Kholein ➔',
-                        'ar' => 'فتح مكتب الدعم ➔',
-                        default => 'Open Support Desk ➔'
-                    }
-                ],
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['نیا سپورٹ ٹکٹ کھولیں', 'تمام ٹکٹس دیکھیں', 'ہیلپ سینٹر'],
-                    default => ['Open New Ticket', 'View Active Tickets', 'Help Center'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 9: Payment Gateways (Stripe, PayPal, Bank)
-        // -------------------------------------------------------------
-        if (preg_match('/(payment|stripe|paypal|bank|gateway|online payment|ادا|پیمنٹ|بینک|دفع|سداد|bypassing|öde|ödeme)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => '💳 **آن لائن پیمنٹ گیٹ ویز:** آپ انوائسی میں سٹرائپ (کریڈٹ کارڈز، ایپل پے)، پے پال، اور لوکل بینک ٹرانسفر کو باآسانی ایکٹیویٹ کر سکتے ہیں تاکہ کلائنٹ ایک کلک میں انوائس ادا کر سکے۔',
-                'ur-roman' => '💳 **Payment Gateways:** Aap Stripe (Credit cards, Apple Pay), PayPal aur Bank Transfer configure kar sakte hain taake clients invoice portal se direct online payment kar sakein.',
-                'ar' => '💳 **بوابات الدفع الإلكتروني:** يمكنك ربط حساب Stripe وPayPal وحسابات التحويل البنكي لتحصيل قيمة الفواتير إلكترونياً وبطريقة آمنة.',
-                default => '💳 **Payment Gateway Integrations:** You can configure Stripe (Credit cards, Apple Pay), PayPal, and offline bank transfer wire instructions in your workspace settings.',
-            };
-
-            return [
-                'reply' => $reply,
-                'action' => [
-                    'type' => 'navigate',
-                    'url' => route('settings.payment'),
-                    'label' => match ($lang) {
-                        'ur' => 'پیمنٹ سیٹنگز کھولیں ➔',
-                        'ur-roman' => 'Payment Settings Kholein ➔',
-                        'ar' => 'إعدادات بوابات الدفع ➔',
-                        default => 'Payment Settings ➔'
-                    }
-                ],
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['پیمنٹ سیٹنگز کھولیں', 'نیا انوائس بنائیں', 'ڈیش بورڈ'],
-                    default => ['Payment Settings', 'Create Invoice', 'Dashboard'],
-                }
-            ];
-        }
-
-        // -------------------------------------------------------------
-        // INTENT 10: Client CRM Management
-        // -------------------------------------------------------------
-        if (preg_match('/(client|customer|crm|add client|گاہک|کلائنٹ|عميل|عملاء|müşteri|kullanıcı)/u', $q)) {
-            $reply = match ($lang) {
-                'ur' => '👥 **کلائنٹ سی آر ایم (CRM):** آپ اپنے تمام کاروباری کلائنٹس، ان کے رابطے، ای میلز، ٹیکس نمبر اور ادائیگی کی تاریخ کو ایک جگہ منظم کر سکتے ہیں۔',
-                'ur-roman' => '👥 **Client CRM:** Aap apne tamam customers, contact details, tax numbers aur unki invoice payment history ko CRM me manage kar sakte hain.',
-                'ar' => '👥 **إدارة العملاء CRM:** يمكنك حفظ بيانات عملائك وتفاصيل الاتصال والأرقام الضريبية وسجل فواتير كل عميل بسهولة.',
-                default => '👥 **Client CRM Management:** You can manage customer profiles, contact directories, tax registration numbers, and historic payment ledgers.',
-            };
-
-            return [
-                'reply' => $reply,
-                'action' => [
-                    'type' => 'navigate',
-                    'url' => route('clients.index'),
-                    'label' => match ($lang) {
-                        'ur' => 'کلائنٹ سی آر ایم کھولیں ➔',
-                        'ur-roman' => 'Client CRM Kholein ➔',
-                        'ar' => 'إدارة العملاء ➔',
-                        default => 'Open Client CRM ➔'
-                    }
-                ],
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['تمام کلائنٹس دیکھیں', 'نیا کلائنٹ شامل کریں', 'نیا انوائس بنائیں'],
-                    default => ['View Clients', 'Add New Client', 'Create Invoice'],
-                }
+                'suggestions' => $knowledge['suggestions'][$lang] ?? $this->getDefaultSuggestions($lang),
             ];
         }
 
@@ -841,7 +782,7 @@ Draft invoices in Invoicy are completely private. Until you click "Issue & Publi
         // NATURAL CONVERSATIONAL FALLBACK (Friendly, Helpful, Human Tone)
         // -------------------------------------------------------------
         $reply = match ($lang) {
-            'ur' => "میں آپ کی مکمل مدد کے لیے حاضر ہوں۔ آپ مجھ سے نیا بل بنانے، آن لائن ادائیگیاں وصول کرنے، نجی ڈرافٹس سمجھنے، یا اپنے کھاتے کے ریکارڈز کے بارے میں کچھ بھی دریافت کر سکتے ہیں۔
+            'ur' => "میں آپ کی مکمل مدد کے لیے حاضر ہوں۔ آپ مجھ سے نیا بل بنانے، ادائیگیاں وصول کرنے، نجی ڈرافٹس سمجھنے، یا اپنے کھاتے کے ریکارڈز کے بارے میں کچھ بھی دریافت کر سکتے ہیں۔
 
 آپ فی الحال کس چیز میں مدد چاہتے ہیں؟",
 
@@ -852,14 +793,6 @@ Aap abhi kis cheez ke bare mein janna chahte hain?",
             'ar' => "أنا هنا دائماً لمساعدتك وخدمتك! يمكنك سؤالي عن إصدار الفواتير، قبول المدفوعات الإلكترونية، حماية المسودات، أو مراجعة أرقامك المالية.
 
 كيف ترغب أن نبدأ اليوم؟",
-
-            'tr' => "Size yardımcı olmaktan mutluluk duyarım! Yeni fatura oluşturma, hazır şablonlar, ödeme yöntemleri veya hesap özetiniz hakkında dilediğinizi sorabilirsiniz.
-
-Hangi konuda yardımcı olmamı istersiniz?",
-
-            'hi' => "मैं आपकी पूरी सहायता के लिए तैयार हूँ! आप मुझसे नया इनवॉइस बनाने, भुगतान लेने, ड्राफ्ट सुरक्षा समझने या अपने रिकॉर्ड्स देखने के बारे में पूछ सकते हैं।
-
-आप किस बारे में जानना चाहेंगे?",
 
             default => "I'm right here to assist you! You can ask me how to create invoices, accept online customer payments, understand draft safeguards, or view your workspace stats.
 
@@ -876,13 +809,379 @@ What would you like to explore today?",
     }
 
     /**
+     * Comprehensive Structured RAG Knowledge Base.
+     */
+    protected function retrieveKnowledge(string $q): ?array
+    {
+        // 1. Draft Safeguards
+        if (preg_match('/\b(draft|drafts|why draft|publish|private bill|مسودہ|مسودة|taslak)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "🔒 **Draft Invoice Safeguards & Confidentiality:**\n\nInvoicy keeps draft invoices 100% private. While in draft:\n1. No client emails or payment notices are dispatched.\n2. PDF downloads and customer payment portals are disabled.\n3. Cryptographic QR verification codes remain inactive.\n\nOnly when you click **'Issue & Publish'** does the invoice become official.",
+                    'ur-roman' => "🔒 **Draft Invoices ki Security & Safeguards:**\n\nInvoicy mein draft invoices 100% private rehti hain. Jab tak aap draft rakhein:\n1. Customer ko koi email ya notification nahi jati.\n2. PDF downloads aur online payment portal links disabled rehte hain.\n3. ISO QR verification code inactive rehta hai.\n\nJab aap **'Issue & Publish'** par click karein ge, tabhi invoice official hota hai.",
+                    'ur' => "🔒 **ڈرافٹ انوائسز کی رازداری اور سیکیورٹی:**\n\nانوائسی میں ڈرافٹ انوائسز مکمل نجی رہتی ہیں۔ جب تک آپ ڈرافٹ رکھیں:\n1. کلائنٹ کو کوئی نوٹیفکیشن یا ای میل نہیں جاتی۔\n2. پی ڈی ایف ڈاؤن لوڈ اور آن لائن پیمنٹ لنکس غیر فعال رہتے ہیں۔\n3. کیو آر تصدیقی کوڈ لاک رہتا ہے۔",
+                    'ar' => "🔒 **حماية وسرية فواتير المسودة (Draft):**\n\nفواتير المسودة سرية للغاية ومؤمنة في Invoicy. لا يتم إرسال أي بريد للعميل وتظل روابط الدفع ورمز QR معطلة حتى تضغط على 'نشر الفاتورة'."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.create'), 'label' => 'Create Draft Invoice ➔'],
+                'suggestions' => ['How do I recall an invoice?', 'Explain QR code', 'My Workspace Stats']
+            ];
+        }
+
+        // 2. 45+ Industry Presets & Catalog
+        if (preg_match('/\b(preset|presets|industry|catalog|computer shop|transportation|limo|limousine|industrial|construction|distributor|marketing|پری سیٹ|قوالب)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "📦 **45+ 1-Click Industry Presets:**\n\nInvoicy includes pre-configured service catalogs for 7 major industries:\n• **Computer Shop:** Hardware diagnostics, OS installation, SSD upgrade.\n• **Transportation & Logistics:** Pallet freight, cross-border haulage.\n• **Limousine & Taxi:** Airport VIP transfer, hourly chauffeur.\n• **Construction & Industrial:** Concrete pouring, CNC machining.\n• **Wholesale & Marketing:** Bulk distribution, SEO retainer, social ads.",
+                    'ur-roman' => "📦 **45+ 1-Click Industry Presets:**\n\nInvoicy mein 7 major industries ke liye ready-made presets hain:\n• Computer Shop (hardware repair, SSD upgrade)\n• Transportation & Logistics (route freight, pallets)\n• Limousine Taxi (airport transfer, chauffeur)\n• Construction & Manufacturing (site work, fabrication)\n• Marketing Agencies (SEO retainers, ad campaigns)",
+                    'ur' => "📦 **45+ انڈسٹری سروس پری سیٹس:**\n\nانوائسی میں 7 بڑی صنعتوں کے لیے 45 سے زائد پری سیٹس شامل ہیں جن میں کمپیوٹر شاپ، لاجسٹکس، لیموزین، تعمیرات اور مارکیٹنگ ایجنسیاں شامل ہیں۔",
+                    'ar' => "📦 **أكثر من 45 قالباً ذكياً لسبع قطاعات تجارية:**\n\nتوفر المنصة قوالب جاهزة لقطاعات صيانة الحواسيب، النقل واللوجستيات، الليموزين، المقاولات، والتسويق الإلكتروني."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.create'), 'label' => 'Explore Presets in Builder ➔'],
+                'suggestions' => ['Create new invoice', 'How do drafts work?', 'Payment Gateways']
+            ];
+        }
+
+        // 3. Invoice Recall Feature
+        if (preg_match('/\b(recall|withdraw|revert|edit published|mistake|ریکال|سحب الفاتورة)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "🔄 **Invoice Recall Feature:**\n\nIf you published an invoice with an error, open the invoice and click **'Recall to Draft'**.\n\nThis immediately:\n1. Locks the public payment portal and revokes client link access.\n2. Reverts the invoice to a private draft.\n3. Allows you to make edits, correct line items, and republish safely.",
+                    'ur-roman' => "🔄 **Invoice Recall Feature:**\n\nAgar aap ne invoice publish kar di hai aur koi ghalti ho gayi hai, toh aap invoice view page par ja kar **'Recall to Draft'** click kar sakte hain.\n\nIs se customer ka online link foran lock ho jata hai aur aap aasaani se changes kar ke dobara publish kar sakte hain.",
+                    'ur' => "🔄 **انوائس ریکال فیچر:**\n\nاگر شائع شدہ انوائس میں کوئی غلطی ہو جائے تو آپ 'Recall to Draft' پر کلک کر کے پبلک پورٹل کو فوری لاک کر سکتے ہیں اور باحفاظت تصحیح کر کے دوبارہ شائع کر سکتے ہیں۔",
+                    'ar' => "🔄 **ميزة استرجاع الفاتورة (Recall):**\n\nيمكنك الضغط على زر 'Recall to Draft' من صفحة الفاتورة لقفل الرابط الخارجي فوراً وإعادتها كمسودة لتعديلها بأمان."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.index'), 'label' => 'Go to Invoices ➔'],
+                'suggestions' => ['View Invoices', 'Create New Invoice', 'Support Desk']
+            ];
+        }
+
+        // 4. Payment Gateways (Stripe, PayPal, Bank)
+        if (preg_match('/\b(stripe|paypal|bank wire|apple pay|credit card|payment gateway|طرق الدفع|ادائیگی)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "💳 **Payment Gateway Integrations:**\n\nInvoicy supports multiple online and offline payment channels:\n• **Stripe:** Accepts credit/debit cards, Apple Pay, and Google Pay.\n• **PayPal:** International buyer protection and PayPal checkout.\n• **Bank Wire Transfer:** Automatically attaches your IBAN, Swift, and routing instructions to invoice PDFs and client portals.",
+                    'ur-roman' => "💳 **Payment Gateways in Invoicy:**\n\nInvoicy mein aap Stripe (Credit card, Apple Pay), PayPal, aur Direct Bank Transfer configure kar sakte hain. Customer invoice portal se direct card se payment kar sakta hai.",
+                    'ur' => "💳 **آن لائن پیمنٹ گیٹ ویز:**\n\nآپ سٹرائپ (کریڈٹ کارڈز، ایپل پے)، پے پال اور لوکل بینک ٹرانسفر کو ایکٹیویٹ کر سکتے ہیں تاکہ کلائنٹ ایک کلک میں انوائس ادا کر سکے۔",
+                    'ar' => "💳 **بوابات الدفع الإلكتروني:**\n\nتدعم المنصة الربط مع Stripe (لبطاقات الائتمان وApple Pay) وPayPal وحسابات التحويل البنكي المباشرة."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('settings.payment'), 'label' => 'Configure Payment Gateways ➔'],
+                'suggestions' => ['Payment Settings', 'My Workspace Stats', 'Create Invoice']
+            ];
+        }
+
+        // 5. 24h SLA Support Desk
+        if (preg_match('/\b(support|help desk|ticket|problem|complaint|سپورٹ|تذكرة|دعم)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "🎫 **24h Turnaround SLA Support Desk:**\n\nOur dedicated engineering and support teams guarantee a verified resolution within 24 hours for all billing, gateway, and technical tickets.",
+                    'ur-roman' => "🎫 **24h SLA Support Desk:**\n\nHamari senior technical team 24 hours ke andar har billing aur technical ticket ka hal faraham karti hai. Aap naya ticket open kar sakte hain ya existing status track kar sakte hain.",
+                    'ur' => "🎫 **24 گھنٹے کا سپورٹ ڈیسک:**\n\nہماری سینئر انجینئرنگ ٹیم 24 گھنٹے کے اندر ہر ٹکٹ کا حل فراہم کرتی ہے۔",
+                    'ar' => "🎫 **مكتب الدعم الفني وضمان الاستجابة خلال 24 ساعة:**\n\nفريقنا المتخصص ملتزم بمعالجة وحل جميع التذاكر الفنية في أقل من 24 ساعة."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('support.index'), 'label' => 'Open Support Desk ➔'],
+                'suggestions' => ['Open New Ticket', 'View Active Tickets', 'My Workspace Stats']
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * BACKEND TOOL: Atomically create a real draft invoice in workspace.
+     */
+    public function toolCreateInvoiceDraft(Workspace $workspace, string $clientName, float $amount, ?string $currency = null, ?string $dueDate = null, ?string $notes = null, $user = null): array
+    {
+        $currency = $currency ?: ($workspace->currency ?? 'AED');
+        $userId = $user ? $user->id : (Auth::id() ?? 1);
+
+        // 1. Find or create Client record
+        $client = Client::firstOrCreate(
+            [
+                'workspace_id' => $workspace->id,
+                'name' => $clientName,
+            ],
+            [
+                'email' => Str::slug($clientName) . '@client.local',
+                'preferred_currency' => $currency,
+            ]
+        );
+
+        // 2. Generate Next Invoice Sequence Number
+        $numberService = app(InvoiceNumberService::class);
+        $invNumber = $numberService->generateNextNumber($workspace);
+
+        $amountCents = (int) round($amount * 100);
+        $dueParsed = $this->parseDueDate($dueDate);
+
+        // 3. Create Draft Invoice
+        $invoice = Invoice::create([
+            'workspace_id' => $workspace->id,
+            'client_id' => $client->id,
+            'invoice_number' => $invNumber,
+            'status' => 'draft',
+            'issue_date' => now()->toDateString(),
+            'due_date' => $dueParsed,
+            'currency' => $currency,
+            'subtotal_cents' => $amountCents,
+            'tax_name' => 'VAT',
+            'tax_rate' => 0,
+            'tax_cents' => 0,
+            'discount_cents' => 0,
+            'total_cents' => $amountCents,
+            'paid_cents' => 0,
+            'due_cents' => $amountCents,
+            'notes' => $notes ?: 'Created via Invoicy AI Copilot',
+            'created_by_user_id' => $userId,
+            'workspace_snapshot' => ['name' => $workspace->name, 'currency' => $currency],
+            'client_snapshot' => ['name' => $client->name, 'email' => $client->email],
+        ]);
+
+        // 4. Create primary invoice line item
+        InvoiceItem::create([
+            'invoice_id' => $invoice->id,
+            'description' => 'Professional Billing Services',
+            'category' => 'General',
+            'quantity' => 1,
+            'rate_cents' => $amountCents,
+            'amount_cents' => $amountCents,
+        ]);
+
+        return [
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invNumber,
+            'client_name' => $client->name,
+            'total' => number_format($amount, 2) . ' ' . $currency,
+            'due_date' => $dueParsed,
+            'status' => 'draft',
+            'url' => route('invoices.show', $invoice->id),
+        ];
+    }
+
+    /**
+     * BACKEND TOOL: Search customers in current workspace.
+     */
+    public function toolSearchCustomers(Workspace $workspace, string $term): array
+    {
+        $clients = Client::where('workspace_id', $workspace->id)
+            ->where(function ($query) use ($term) {
+                $query->where('name', 'like', "%{$term}%")
+                      ->orWhere('company_name', 'like', "%{$term}%")
+                      ->orWhere('email', 'like', "%{$term}%")
+                      ->orWhere('phone', 'like', "%{$term}%");
+            })
+            ->take(5)
+            ->get();
+
+        $curr = $workspace->currency ?? 'AED';
+        $results = [];
+        foreach ($clients as $c) {
+            $results[] = [
+                'id' => $c->id,
+                'name' => $c->name,
+                'company' => $c->company_name,
+                'email' => $c->email,
+                'outstanding' => $curr . ' ' . number_format($c->outstanding_balance_cents / 100, 2),
+                'url' => route('clients.index')
+            ];
+        }
+        return $results;
+    }
+
+    /**
+     * BACKEND TOOL: Get overdue invoices in workspace.
+     */
+    public function toolGetOverdueInvoices(Workspace $workspace): array
+    {
+        $overdue = Invoice::where('workspace_id', $workspace->id)
+            ->whereIn('status', ['overdue', 'unpaid', 'sent', 'partially_paid'])
+            ->where('due_date', '<', now()->toDateString())
+            ->with('client')
+            ->orderBy('due_date', 'asc')
+            ->take(6)
+            ->get();
+
+        $curr = $workspace->currency ?? 'AED';
+        $totalDueCents = 0;
+        $invoices = [];
+
+        foreach ($overdue as $inv) {
+            $dueCents = ($inv->total_cents ?? 0) - ($inv->paid_cents ?? 0);
+            $totalDueCents += $dueCents;
+            $days = Carbon::parse($inv->due_date)->diffInDays(now());
+
+            $invoices[] = [
+                'number' => $inv->invoice_number,
+                'client' => $inv->client?->name ?: 'Client',
+                'due' => number_format($dueCents / 100, 2),
+                'days_overdue' => $days,
+                'url' => route('invoices.show', $inv->id)
+            ];
+        }
+
+        return [
+            'count' => $overdue->count(),
+            'total_due' => number_format($totalDueCents / 100, 2),
+            'invoices' => $invoices,
+        ];
+    }
+
+    /**
+     * Parse human due dates into YYYY-MM-DD.
+     */
+    protected function parseDueDate(?string $str): string
+    {
+        if (empty($str)) {
+            return now()->addDays(15)->toDateString();
+        }
+
+        $s = mb_strtolower(trim($str));
+
+        if (str_contains($s, 'tomorrow') || str_contains($s, 'kal')) {
+            return now()->addDay()->toDateString();
+        }
+        if (str_contains($s, 'next month') || str_contains($s, 'agle mahine') || str_contains($s, 'الشهر القادم')) {
+            return now()->addMonth()->toDateString();
+        }
+        if (str_contains($s, 'week') || str_contains($s, 'hafta')) {
+            return now()->addWeek()->toDateString();
+        }
+        if (preg_match('/(\d+)\s*(days|din|يوم)/i', $s, $m)) {
+            return now()->addDays((int) $m[1])->toDateString();
+        }
+        if (str_contains($s, 'receipt') || str_contains($s, 'foran') || str_contains($s, 'instant')) {
+            return now()->toDateString();
+        }
+
+        try {
+            return Carbon::parse($str)->toDateString();
+        } catch (\Throwable $e) {
+            return now()->addDays(15)->toDateString();
+        }
+    }
+
+    /**
+     * Extract customer name from natural query.
+     */
+    protected function extractCustomerName(string $text): ?string
+    {
+        if (preg_match('/(?:for|client|customer|naam|name|braye|برعاية|لشركة|للعميل)\s+([A-Za-z0-9\s\.\,\-\&]{2,30})/iu', $text, $m)) {
+            $name = trim($m[1]);
+            // clean up tailing numbers or keywords
+            $name = preg_replace('/\s+\d+.*$/', '', $name);
+            return trim($name);
+        }
+        return null;
+    }
+
+    /**
+     * Extract amount and currency from text.
+     */
+    protected function extractAmount(string $text): ?array
+    {
+        if (preg_match('/([\d\.\,]+)\s*(aed|usd|eur|gbp|sar|pkr|inr|درهم|دولار|روپے)?/iu', $text, $m)) {
+            $rawNum = str_replace(',', '', $m[1]);
+            if (is_numeric($rawNum)) {
+                $curr = !empty($m[2]) ? strtoupper(trim($m[2])) : 'AED';
+                if ($curr === 'درهم') $curr = 'AED';
+                if ($curr === 'دولار') $curr = 'USD';
+                return ['amount' => (float) $rawNum, 'currency' => $curr];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Try external LLM (OpenAI or Gemini) if configured.
+     */
+    protected function tryExternalLlm(string $rawQuery, string $langCode, ?Workspace $workspace, $user, array $history): ?array
+    {
+        $openaiKey = CmsContent::getVal('openai_api_key', config('services.openai.api_key', ''));
+        $geminiKey = CmsContent::getVal('gemini_api_key', config('services.gemini.api_key', ''));
+        $model = CmsContent::getVal('ai_model', 'gpt-4o-mini');
+        $provider = CmsContent::getVal('ai_provider', 'auto');
+
+        if (($provider === 'openai' || $provider === 'auto') && !empty($openaiKey)) {
+            try {
+                $wsContext = $this->buildWorkspaceSummaryText($workspace);
+                $systemPrompt = $this->buildSystemPrompt($langCode, $wsContext);
+
+                $messages = [['role' => 'system', 'content' => $systemPrompt]];
+                foreach (array_slice($history, -8) as $h) {
+                    $messages[] = ['role' => $h['role'] === 'user' ? 'user' : 'assistant', 'content' => $h['content']];
+                }
+
+                $res = Http::withToken($openaiKey)
+                    ->timeout(8)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => $model,
+                        'messages' => $messages,
+                        'temperature' => 0.4,
+                        'max_tokens' => 600,
+                    ]);
+
+                if ($res->successful()) {
+                    $json = $res->json();
+                    $reply = $json['choices'][0]['message']['content'] ?? null;
+                    if (!empty($reply)) {
+                        return [
+                            'reply' => $reply,
+                            'lang' => $this->getVoiceTag($langCode),
+                            'lang_code' => $langCode,
+                            'is_rtl' => in_array($langCode, ['ur', 'ar']),
+                            'suggestions' => $this->getDefaultSuggestions($langCode),
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('OpenAI invocation error: ' . $e->getMessage());
+            }
+        }
+
+        if (($provider === 'gemini' || ($provider === 'auto' && empty($openaiKey))) && !empty($geminiKey)) {
+            try {
+                $wsContext = $this->buildWorkspaceSummaryText($workspace);
+                $systemPrompt = $this->buildSystemPrompt($langCode, $wsContext);
+                $geminiModel = Str::contains($model, 'gemini') ? $model : 'gemini-1.5-flash';
+
+                $res = Http::timeout(8)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$geminiModel}:generateContent?key={$geminiKey}", [
+                        'contents' => [
+                            [
+                                'role' => 'user',
+                                'parts' => [['text' => "{$systemPrompt}\n\nUser Question: {$rawQuery}"]]
+                            ]
+                        ],
+                    ]);
+
+                if ($res->successful()) {
+                    $json = $res->json();
+                    $reply = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    if (!empty($reply)) {
+                        return [
+                            'reply' => $reply,
+                            'lang' => $this->getVoiceTag($langCode),
+                            'lang_code' => $langCode,
+                            'is_rtl' => in_array($langCode, ['ur', 'ar']),
+                            'suggestions' => $this->getDefaultSuggestions($langCode),
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Gemini invocation error: ' . $e->getMessage());
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Get live workspace statistics.
      */
     public function getWorkspaceStats(Workspace $workspace): array
     {
         $totalInvoices = Invoice::where('workspace_id', $workspace->id)->count();
         $paidInvoices = Invoice::where('workspace_id', $workspace->id)->where('status', 'paid')->get();
-        $unpaidInvoices = Invoice::where('workspace_id', $workspace->id)->whereIn('status', ['unpaid', 'overdue', 'partially_paid'])->get();
+        $unpaidInvoices = Invoice::where('workspace_id', $workspace->id)->whereIn('status', ['unpaid', 'overdue', 'partially_paid', 'sent'])->get();
         $draftCount = Invoice::where('workspace_id', $workspace->id)->where('status', 'draft')->count();
         $clientCount = Client::where('workspace_id', $workspace->id)->count();
 
@@ -908,11 +1207,11 @@ What would you like to explore today?",
     protected function buildWorkspaceSummaryText(?Workspace $workspace): string
     {
         if (!$workspace) {
-            return "Workspace: None (Super Admin mode)";
+            return "Workspace: Default Workspace";
         }
 
         $stats = $this->getWorkspaceStats($workspace);
-        $curr = $workspace->currency ?? 'USD';
+        $curr = $workspace->currency ?? 'AED';
 
         return "Active Workspace: '{$workspace->name}', Currency: {$curr}, Total Invoices: {$stats['total_invoices']}, Collected Revenue: {$curr} {$stats['paid_revenue']}, Outstanding Due: {$curr} {$stats['outstanding_revenue']}, Drafts: {$stats['draft_count']}, Saved Clients: {$stats['client_count']}.";
     }
@@ -924,7 +1223,7 @@ What would you like to explore today?",
     {
         $customPrompt = CmsContent::getVal('ai_system_prompt', '');
         
-        $base = "You are the conversational AI Agent for 'Invoicy by RedMaple', a high-precision multi-tenant SaaS billing platform.
+        $base = "You are the conversational financial AI Agent for 'Invoicy by RedMaple', a high-precision multi-tenant SaaS billing platform.
 You are knowledgeable, conversational, helpful, concise, and speak naturally like a human assistant.
 
 Key Platform Knowledge:
@@ -941,7 +1240,7 @@ CONVERSATIONAL RULES:
 - Detect the user's language automatically and reply strictly in the user's language.
 - When user greets (e.g. 'Assalam Walekum', 'Hello', 'Hi'), reply warmly and politely without robotic feature dumping.
 - When user writes in Urdu script, respond ONLY in native Urdu (Nastaliq/Arabic script). NEVER respond in Arabic.
-- When user writes in Roman Urdu/Hinglish (e.g. 'invoice kaise use kar sakta hun', 'naya invoice kaise banayein'), respond naturally and conversationally in Roman Urdu.
+- When user writes in Roman Urdu/Hinglish (e.g. 'invoice kaise use kar sakta hun', 'naya invoice banana hai'), respond naturally in Roman Urdu.
 - When user writes in Arabic, respond in fluent professional Arabic.
 - When user writes in English, Turkish, Spanish, French, German, Hindi, respond in that respective language.
 - Keep responses friendly, structured with bullet points where appropriate, and offer clear next steps.
@@ -961,15 +1260,12 @@ CONVERSATIONAL RULES:
     public function getDefaultSuggestions(string $lang): array
     {
         return match ($lang) {
-            'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'فوری سروس پری سیٹس', 'سپورٹ ڈیسک کھولیں'],
-            'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', '1-Click Presets', 'Support Desk Kholein'],
-            'ar' => ['إنشاء فاتورة جديدة', 'كيف تعمل المسودات؟', 'قوالب الخدمات الجاهزة', 'فتح مكتب الدعم'],
+            'ur' => ['نیا انوائس بنائیں', 'انوائس کیسے استعمال کریں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ڈیسک کھولیں'],
+            'ur-roman' => ['Naya Invoice Banayein', 'Invoice kaise use karein?', 'Mera Balance & Stats', 'Support Desk Kholein'],
+            'ar' => ['إنشاء فاتورة جديدة', 'كيف أستخدم الفواتير؟', 'إحصائيات حسابي', 'مكتب الدعم'],
             'tr' => ['Yeni fatura oluştur', 'Taslaklar nasıl çalışır?', 'Hızlı Şablonlar', 'Destek Masası Aç'],
             'hi' => ['नया इनवॉइस बनाएं', 'ड्राफ्ट कैसे काम करते हैं?', 'त्वरित प्रीसेट', 'सपोर्ट डेस्क खोलें'],
-            'es' => ['Crear nueva factura', '¿Cómo funcionan los borradores?', 'Plantillas rápidas', 'Abrir soporte'],
-            'fr' => ['Créer une facture', 'Fonctionnement des brouillons', 'Modèles rapides', 'Ouvrir le support'],
-            'de' => ['Neue Rechnung erstellen', 'Wie funktionieren Entwürfe?', 'Schnellvorlagen', 'Support öffnen'],
-            default => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk'],
+            default => ['Create new invoice', 'How do I use invoices?', 'My Workspace Stats', 'Open Support Desk'],
         };
     }
 
@@ -984,9 +1280,6 @@ CONVERSATIONAL RULES:
             'ar' => 'مرحباً! أنا وكيل الذكاء الاصطناعي لمنصة Invoicy. اسألني عن فواتيرك، المسودات، الإعدادات، أو اضغط المايك للأوامر الصوتية!',
             'tr' => 'Merhaba! Ben Invoicy AI Asistanınızım. Faturalarınız, taslaklar, ayarlar veya destek masası hakkında soru sorabilir veya mikrofon ile konuşabilirsiniz!',
             'hi' => 'नमस्ते! मैं आपका Invoicy AI सहायक हूँ। इनवॉइस, ड्राफ्ट, सेटिंग्स या सपोर्ट के बारे में पूछें या माइक से बात करें!',
-            'es' => '¡Hola! Soy tu Agente IA de Invoicy. Pregúntame sobre facturas, borradores, soporte o habla usando el micrófono.',
-            'fr' => 'Bonjour ! Je suis votre Agent IA Invoicy. Posez-moi des questions sur vos factures, brouillons ou parlez au micro.',
-            'de' => 'Hallo! Ich bin Ihr Invoicy KI-Agent. Fragen Sie mich nach Rechnungen, Entwürfen oder sprechen Sie mit dem Mikrofon.',
             default => 'Hello! I am your Invoicy AI Assistant. Ask me anything about your invoices, settings, draft safeguards, support tickets, or click the mic to speak!',
         };
     }
@@ -998,17 +1291,33 @@ CONVERSATIONAL RULES:
     {
         $history = session()->get('ai_copilot_history', []);
         $history[] = ['role' => 'assistant', 'content' => $reply, 'time' => now()->toIso8601String()];
-        if (count($history) > 12) {
-            $history = array_slice($history, -12);
+        if (count($history) > 16) {
+            $history = array_slice($history, -16);
         }
         session()->put('ai_copilot_history', $history);
     }
 
     /**
-     * Clear conversation history.
+     * Clear conversation history and reset active dialogue flows.
      */
     public function clearHistory(): void
     {
         session()->forget('ai_copilot_history');
+        session()->forget('ai_dialogue_state');
+    }
+
+    /**
+     * Structured Logging for Issue 4 Auditability.
+     */
+    protected function logInteraction(string $query, string $lang, string $engine, array $response, float $latency): void
+    {
+        Log::channel('daily')->info('[INVOICY_AI_AGENT]', [
+            'query' => Str::limit($query, 120),
+            'lang' => $lang,
+            'engine' => $engine,
+            'has_action' => isset($response['action']),
+            'latency_ms' => round($latency * 1000, 2),
+            'timestamp' => now()->toIso8601String()
+        ]);
     }
 }

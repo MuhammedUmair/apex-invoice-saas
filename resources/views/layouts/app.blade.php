@@ -516,11 +516,12 @@
                     <div class="relative" x-data="{ openAlerts: false }">
                         <button @click="openAlerts = !openAlerts" 
                                 type="button" 
-                                class="relative inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                                class="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200/80 shadow-2xs"
                                 title="{{ __('Notifications & Alerts') }}">
-                            <i class="ph ph-bell text-base"></i>
+                            <i class="ph ph-bell text-base text-slate-600"></i>
+                            <span class="hidden md:inline">{{ __('Alerts') }}</span>
                             @if($unreadAlertCount > 0)
-                                <span class="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-xs">
+                                <span class="flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-xs">
                                     {{ $unreadAlertCount }}
                                 </span>
                             @endif

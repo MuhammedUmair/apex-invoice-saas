@@ -46,8 +46,7 @@
                       onsubmit="return confirm('Cancel this pending {{ strtolower($reqAction) }} request?');">
                     @csrf
                     <button type="submit" 
-                            wire:click.prevent="cancelPendingRequest('{{ $latestRequest->id }}')" 
-                            class="px-3.5 py-1.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs transition shrink-0 whitespace-nowrap shadow-2xs">
+                            class="px-3.5 py-1.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs transition shrink-0 whitespace-nowrap shadow-2xs cursor-pointer">
                         Cancel Request
                     </button>
                 </form>
