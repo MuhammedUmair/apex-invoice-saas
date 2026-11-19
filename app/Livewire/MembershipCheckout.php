@@ -168,18 +168,28 @@ class MembershipCheckout extends Component
         ]);
     }
 
-    public function cancelPendingRequest(string $alertId)
+    public function cancelPendingRequest(?string $alertId = null)
     {
         $workspace = Auth::user()->workspace;
-        $alert = \App\Models\SubscriptionAlert::where('id', $alertId)->where('workspace_id', $workspace->id)->first();
-        if ($alert && ($alert->metadata['status'] ?? '') === 'pending') {
+        $query = \App\Models\SubscriptionAlert::where('workspace_id', $workspace->id)
+            ->whereIn('type', ['upgrade_request', 'downgrade_request']);
+
+        if ($alertId) {
+            $alert = $query->where('id', $alertId)->first();
+        } else {
+            $alert = $query->latest()->first();
+        }
+
+        if ($alert && in_array($alert->metadata['status'] ?? 'pending', ['pending'])) {
             $meta = $alert->metadata ?? [];
             $meta['status'] = 'cancelled';
             $meta['cancelled_at'] = now()->toIso8601String();
             $alert->metadata = $meta;
             $alert->is_read = true;
             $alert->save();
+
             session()->flash('success', 'Your pending plan change request has been cancelled.');
+            $this->dispatch('notify', message: 'Your pending plan change request has been cancelled.', type: 'success');
         }
     }
 

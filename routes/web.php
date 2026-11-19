@@ -175,6 +175,26 @@ Route::middleware('auth')->group(function () {
         return view('membership.index');
     })->name('membership.index');
 
+    Route::post('/membership/cancel-request/{id}', function (string $id) {
+        $workspace = auth()->user()->workspace;
+        $alert = \App\Models\SubscriptionAlert::where('workspace_id', $workspace->id)
+            ->whereIn('type', ['upgrade_request', 'downgrade_request'])
+            ->where('id', $id)
+            ->first();
+
+        if ($alert && in_array($alert->metadata['status'] ?? 'pending', ['pending'])) {
+            $meta = $alert->metadata ?? [];
+            $meta['status'] = 'cancelled';
+            $meta['cancelled_at'] = now()->toIso8601String();
+            $alert->metadata = $meta;
+            $alert->is_read = true;
+            $alert->save();
+            return back()->with('success', 'Your pending plan change request has been cancelled.');
+        }
+
+        return back()->with('error', 'Pending request could not be found or has already been processed.');
+    })->name('membership.cancel-request');
+
     // Workspace Settings & Branding Customizer
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');

@@ -42,11 +42,15 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" wire:click="cancelPendingRequest('{{ $latestRequest->id }}')" 
-                        onclick="return confirm('Cancel this pending {{ strtolower($reqAction) }} request?');"
-                        class="px-3 py-1.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs transition shrink-0 whitespace-nowrap shadow-2xs">
-                    Cancel Request
-                </button>
+                <form action="{{ route('membership.cancel-request', $latestRequest->id) }}" method="POST" class="inline shrink-0"
+                      onsubmit="return confirm('Cancel this pending {{ strtolower($reqAction) }} request?');">
+                    @csrf
+                    <button type="submit" 
+                            wire:click.prevent="cancelPendingRequest('{{ $latestRequest->id }}')" 
+                            class="px-3.5 py-1.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs transition shrink-0 whitespace-nowrap shadow-2xs">
+                        Cancel Request
+                    </button>
+                </form>
             </div>
         @elseif($reqStatus === 'approved' && $latestRequest->updated_at->diffInDays() <= 7)
             <!-- Approved Alert Banner -->
