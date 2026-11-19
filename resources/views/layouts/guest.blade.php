@@ -54,6 +54,9 @@
         @endif
     </footer>
 
+    <x-toast-notification />
+    <x-ai-copilot />
+
     @livewireScripts
 </body>
 </html>
