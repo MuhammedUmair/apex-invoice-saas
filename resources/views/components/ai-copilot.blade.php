@@ -344,7 +344,9 @@
 })();
 </script>
 
-<div x-data="aiAgentComponent" class="fixed bottom-6 right-6 z-50">
+<div x-data="aiAgentComponent" 
+     dir="ltr" 
+     style="direction: ltr !important; position: fixed !important; bottom: 24px !important; right: 24px !important; left: auto !important; z-index: 9999;">
 
     <!-- Floating Trigger Button (Font-Weight: 700) -->
     <div x-show="!isOpen" x-cloak>
@@ -430,7 +432,7 @@
                 <div :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'" class="flex">
                     <div :class="msg.sender === 'user' ? 'bg-red-600 text-white rounded-tr-xs' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-2xs'"
                          class="max-w-[85%] rounded-2xl p-3.5 space-y-2">
-                        <div x-text="msg.text" class="leading-relaxed font-bold" style="font-weight: 700;"></div>
+                        <div x-text="msg.text" dir="auto" class="leading-relaxed font-bold" style="font-weight: 700;"></div>
                         
                         <template x-if="msg.action && msg.action.type === 'navigate'">
                             <div class="pt-1.5">
@@ -466,7 +468,7 @@
                     <i class="ph ph-microphone text-lg"></i>
                 </button>
 
-                <input type="text" x-model="inputMessage" 
+                <input type="text" x-model="inputMessage" dir="auto"
                        :placeholder="languages[currentLang] ? languages[currentLang].placeholder : 'Ask AI Agent or click mic...'"
                        style="font-weight: 700;"
                        class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-500 transition">

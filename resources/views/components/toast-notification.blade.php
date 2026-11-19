@@ -17,7 +17,9 @@ x-init="
     @if(session('error')) add(@js(session('error')), 'error', 'Error'); @endif
     @if(session('status')) add(@js(session('status')), 'info', 'Status'); @endif
 "
-class="fixed top-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none p-4 sm:p-0">
+class="fixed top-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none p-4 sm:p-0"
+dir="ltr"
+style="direction: ltr !important; position: fixed !important; top: 20px !important; right: 20px !important; left: auto !important; z-index: 99999;">
     <template x-for="item in notifications" :key="item.id">
         <div x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-[-16px] scale-95"
@@ -50,7 +52,7 @@ class="fixed top-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md 
                 <template x-if="item.title">
                     <h5 class="text-xs font-bold uppercase tracking-wider mb-0.5 opacity-80" x-text="item.title"></h5>
                 </template>
-                <p class="text-xs font-semibold leading-relaxed break-words" x-text="item.message"></p>
+                <p class="text-xs font-semibold leading-relaxed break-words" dir="auto" x-text="item.message"></p>
             </div>
             <button @click="remove(item.id)" type="button" 
                     class="shrink-0 text-slate-400 hover:text-slate-700 transition p-1 -mr-1 -mt-1 rounded-lg hover:bg-black/5"
