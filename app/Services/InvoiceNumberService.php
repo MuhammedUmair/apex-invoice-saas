@@ -19,24 +19,30 @@ class InvoiceNumberService
         $year = $year ?? (int) date('Y');
 
         return DB::transaction(function () use ($workspace, $prefix, $year) {
-            // Step 1: Ensure sequence record exists atomically without race conditions
-            InvoiceSequence::firstOrCreate(
-                [
-                    'workspace_id' => $workspace->id,
-                    'prefix' => $prefix,
-                    'year' => $year,
-                ],
-                [
-                    'last_number' => 0,
-                ]
-            );
-
-            // Step 2: Lock the specific row for update (pessimistic serialized lock)
+            // Step 1: Check existing sequence row with lock
             $sequence = InvoiceSequence::where('workspace_id', $workspace->id)
                 ->where('prefix', $prefix)
                 ->where('year', $year)
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
+
+            // Step 2: Initialize sequence row if it does not exist yet
+            if (!$sequence) {
+                try {
+                    $sequence = InvoiceSequence::create([
+                        'workspace_id' => $workspace->id,
+                        'prefix' => $prefix,
+                        'year' => $year,
+                        'last_number' => 0,
+                    ]);
+                } catch (\Throwable $e) {
+                    $sequence = InvoiceSequence::where('workspace_id', $workspace->id)
+                        ->where('prefix', $prefix)
+                        ->where('year', $year)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+                }
+            }
 
             $sequence->last_number += 1;
             $sequence->save();
