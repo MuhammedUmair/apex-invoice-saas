@@ -571,6 +571,7 @@ class SuperAdminController extends Controller
     public function features()
     {
         $features = [
+            'tenant_ai_agent' => CmsContent::getVal('feature_tenant_ai_agent', CmsContent::getVal('ai_agent_enabled', '1')) === '1',
             'enable_signups' => CmsContent::getVal('feature_enable_signups', '1') === '1',
             'enable_paypal' => CmsContent::getVal('feature_enable_paypal', '1') === '1',
             'enable_stripe' => CmsContent::getVal('feature_enable_stripe', '1') === '1',
@@ -590,6 +591,11 @@ class SuperAdminController extends Controller
         ]);
 
         CmsContent::setVal('feature_' . $feature['key'], $feature['value'], 'platform_features');
+
+        // Synchronize tenant AI Agent toggle with global AI settings
+        if ($feature['key'] === 'tenant_ai_agent') {
+            CmsContent::setVal('ai_agent_enabled', $feature['value'], 'general');
+        }
 
         AuditService::log('admin.feature_toggle', null, null, [
             'feature' => $feature['key'],
@@ -950,6 +956,9 @@ class SuperAdminController extends Controller
 
         foreach ($validated['settings'] as $key => $val) {
             CmsContent::setVal($key, (string) $val, $validated['group']);
+            if ($key === 'ai_agent_enabled') {
+                CmsContent::setVal('feature_tenant_ai_agent', (string) $val, 'platform_features');
+            }
         }
 
         AuditService::log('admin.config_updated', null, null, [

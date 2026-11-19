@@ -13,9 +13,20 @@
         @foreach($features as $key => $enabled)
             <div class="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-white text-sm capitalize">{{ str_replace('_', ' ', $key) }}</h3>
+                    <h3 class="font-bold text-white text-sm">
+                        @if($key === 'tenant_ai_agent')
+                            <span class="flex items-center gap-1.5">
+                                <i class="ph ph-robot text-rose-400"></i>
+                                <span>Tenant AI Agent Assistant</span>
+                            </span>
+                        @else
+                            <span class="capitalize">{{ str_replace('_', ' ', $key) }}</span>
+                        @endif
+                    </h3>
                     <p class="text-xs text-slate-400 mt-1">
-                        @if($key === 'enable_signups')
+                        @if($key === 'tenant_ai_agent')
+                            Show or hide the interactive AI Agent widget across all tenant workspaces and client billing dashboards.
+                        @elseif($key === 'enable_signups')
                             Allow new customer agencies to register accounts on Invoicy.
                         @elseif($key === 'enable_paypal')
                             Enable PayPal payment gateway for agency subscriptions and client payments.

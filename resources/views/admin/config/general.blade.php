@@ -119,10 +119,11 @@
                     </h3>
                     <p class="text-[11px] text-slate-400">Controls conversational intelligence, external LLM provider, and system prompts.</p>
                 </div>
-                <div>
-                    <select name="settings[ai_agent_enabled]" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-rose-400 focus:ring-2 focus:ring-rose-500 outline-none">
-                        <option value="1" {{ ($settings['ai_agent_enabled'] ?? '1') == '1' ? 'selected' : '' }}>Enabled (Active)</option>
-                        <option value="0" {{ ($settings['ai_agent_enabled'] ?? '1') == '0' ? 'selected' : '' }}>Disabled</option>
+                <div class="text-right">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tenant Visibility (Show / Hide)</label>
+                    <select name="settings[ai_agent_enabled]" class="px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-rose-400 focus:ring-2 focus:ring-rose-500 outline-none">
+                        <option value="1" {{ ($settings['ai_agent_enabled'] ?? '1') == '1' ? 'selected' : '' }}>Show for Tenants (Enabled)</option>
+                        <option value="0" {{ ($settings['ai_agent_enabled'] ?? '1') == '0' ? 'selected' : '' }}>Hide from Tenants (Disabled)</option>
                     </select>
                 </div>
             </div>

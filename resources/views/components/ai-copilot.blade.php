@@ -1,3 +1,15 @@
+@php
+    $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', null);
+    if ($tenantAiConfig === null) {
+        $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
+    }
+    $isTenantAiActive = ($tenantAiConfig === '1' || $tenantAiConfig === true || $tenantAiConfig === 1);
+    $isSuperAdminUser = auth()->check() && auth()->user()->isSuperAdmin();
+@endphp
+
+@if(!$isTenantAiActive && !$isSuperAdminUser)
+    {{-- Tenant AI Agent is hidden by Super Admin in Platform Settings --}}
+@else
 <script>
 (function() {
     function initAiAgent() {
@@ -738,3 +750,4 @@
 
     </div>
 </div>
+@endif

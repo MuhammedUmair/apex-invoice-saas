@@ -25,6 +25,23 @@ class AiAssistantController extends Controller
         $query = (string) $request->input('message', '');
 
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
+
+        // Enforce Super Admin Tenant Visibility control
+        $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', null);
+        if ($tenantAiConfig === null) {
+            $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
+        }
+        $isAiActive = ($tenantAiConfig === '1' || $tenantAiConfig === true || $tenantAiConfig === 1);
+        if (!$isAiActive && $user && !$user->isSuperAdmin()) {
+            return response()->json([
+                'reply' => 'The AI Agent is currently disabled by system administration.',
+                'lang' => 'en-US',
+                'lang_code' => 'en',
+                'is_rtl' => false,
+                'suggestions' => [],
+            ], 403);
+        }
+
         $workspace = null;
         if ($user) {
             $workspace = $user->workspace 
