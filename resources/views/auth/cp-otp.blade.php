@@ -83,6 +83,7 @@
                            inputmode="text"
                            pattern="[A-Za-z0-9]{6}"
                            placeholder="K7M9P2"
+                           value="{{ strtoupper(request('code', old('otp'))) }}"
                            style="text-transform: uppercase;"
                            oninput="this.value = this.value.toUpperCase()"
                            class="w-full text-center tracking-[12px] text-2xl font-mono font-black py-3 px-4 rounded-xl border-2 border-slate-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-slate-50 focus:bg-white text-slate-900 shadow-inner uppercase">

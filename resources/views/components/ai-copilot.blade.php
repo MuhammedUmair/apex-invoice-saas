@@ -76,19 +76,21 @@
                         return;
                     }
 
-                    // Explicitly trigger browser microphone permission dialog (Request 9)
+                    // Explicitly trigger browser microphone permission dialog (Request 7)
                     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                         try {
                             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                             stream.getTracks().forEach(track => track.stop());
                         } catch (err) {
-                            console.warn('Microphone permission check error:', err);
-                            this.messages.push({
-                                sender: 'ai',
-                                text: 'Microphone permission was denied by your browser. Please allow microphone permissions in your browser address bar to use voice commands.'
-                            });
-                            this.scrollToBottom();
-                            return;
+                            console.warn('Microphone permission check:', err);
+                            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                                this.messages.push({
+                                    sender: 'ai',
+                                    text: 'Microphone access is currently blocked by your browser. To enable hands-free voice commands, please click the 🔒 lock / settings icon next to the URL in your browser address bar, change Microphone to "Allow", and click the mic again.'
+                                });
+                                this.scrollToBottom();
+                                return;
+                            }
                         }
                     }
 
@@ -118,8 +120,13 @@
                     }
                 },
 
-                speak(text) {
-                    if (!this.soundEnabled || !this.synth) return;
+                speak(text, onComplete = null) {
+                    if (!this.soundEnabled || !this.synth) {
+                        if (onComplete) {
+                            setTimeout(onComplete, 800);
+                        }
+                        return;
+                    }
                     try {
                         this.synth.cancel();
                         const utter = new SpeechSynthesisUtterance(text);
@@ -127,9 +134,31 @@
                         utter.rate = 1.0;
                         utter.pitch = 1.0;
                         utter.onstart = () => { this.isSpeaking = true; };
-                        utter.onend = () => { this.isSpeaking = false; };
+                        utter.onend = () => {
+                            this.isSpeaking = false;
+                            if (onComplete) {
+                                setTimeout(onComplete, 350);
+                            }
+                        };
+                        utter.onerror = (err) => {
+                            this.isSpeaking = false;
+                            if (onComplete) onComplete();
+                        };
                         this.synth.speak(utter);
-                    } catch (e) {}
+
+                        // Safety timer fallback
+                        if (onComplete) {
+                            const fallbackMs = Math.max(3000, text.length * 85);
+                            setTimeout(() => {
+                                if (this.isSpeaking) {
+                                    this.isSpeaking = false;
+                                    onComplete();
+                                }
+                            }, fallbackMs);
+                        }
+                    } catch (e) {
+                        if (onComplete) onComplete();
+                    }
                 },
 
                 toggleSound() {
@@ -182,19 +211,19 @@
                         });
                         this.scrollToBottom();
 
-                        this.speak(data.reply);
-
                         if (data.action && data.action.type === 'navigate') {
-                            setTimeout(() => {
+                            this.speak(data.reply, () => {
                                 window.location.href = data.action.url;
-                            }, 1600);
+                            });
+                        } else {
+                            this.speak(data.reply);
                         }
                     } catch (e) {
                         console.error('AI Agent error:', e);
                         this.messages.push({ 
                             sender: 'ai', 
                             text: 'I am here to help! Could you please rephrase or pick one of the suggestions below?', 
-                            suggestions: ['Create new invoice', 'Open Support Desk', 'How do I recall an invoice?', 'Go to settings'] 
+                            suggestions: ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk'] 
                         });
                         this.scrollToBottom();
                     }

@@ -573,6 +573,7 @@ class AuthController extends Controller
             ],
             'country_code' => 'required|string|size:2',
             'currency' => 'required|string|size:3',
+            'business_category' => 'nullable|string|in:computer_shop,transportation,limousine_taxi,industrial,construction,distributor,marketing_agency,general',
             'coupon_code' => 'nullable|string|max:50',
         ]);
 
@@ -580,6 +581,7 @@ class AuthController extends Controller
         $slug = Str::slug($data['company_name']) . '-' . Str::lower(Str::random(5));
         $workspace = Workspace::create([
             'name' => $data['company_name'],
+            'business_category' => $data['business_category'] ?? 'marketing_agency',
             'slug' => $slug,
             'country_code' => $data['country_code'],
             'currency' => $data['currency'],

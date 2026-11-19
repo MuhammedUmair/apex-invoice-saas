@@ -445,6 +445,15 @@
                         </div>
                     </div>
 
+                    <!-- Replay Guide & Tour Button (Item 2) -->
+                    <button @click="window.dispatchEvent(new CustomEvent('open-welcome-tour'))"
+                            type="button"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-bold transition shadow-2xs"
+                            title="Replay Interactive Getting Started Walkthrough">
+                        <i class="ph ph-compass text-sm"></i>
+                        <span class="hidden sm:inline">Guide & Tour</span>
+                    </button>
+
                     <!-- Concurrency-Safe Ledger Lock Badge (Mockup) -->
                     <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                         <i class="ph ph-shield-check text-emerald-600 text-sm"></i> Concurrency-Safe Ledger Lock
@@ -587,6 +596,7 @@
         })();
     </script>
 
+    <x-welcome-modal />
     <x-ai-copilot />
 
     @livewireScripts

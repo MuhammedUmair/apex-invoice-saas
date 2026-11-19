@@ -71,6 +71,27 @@
                        class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition">
             </div>
 
+            <div>
+                <label for="business_category" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Business Category / Industry</span>
+                    <span class="text-[10px] text-red-600 font-bold">Enables industry service presets</span>
+                </label>
+                <div class="relative">
+                    <select id="business_category" name="business_category" required
+                            class="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white text-slate-800 font-medium">
+                        <option value="marketing_agency" {{ old('business_category', 'marketing_agency') == 'marketing_agency' ? 'selected' : '' }}>🎨 Digital Marketing & Creative Agency</option>
+                        <option value="computer_shop" {{ old('business_category') == 'computer_shop' ? 'selected' : '' }}>💻 Computer Shop & IT Hardware Repair</option>
+                        <option value="transportation" {{ old('business_category') == 'transportation' ? 'selected' : '' }}>🚚 Transportation, Logistics & Freight</option>
+                        <option value="limousine_taxi" {{ old('business_category') == 'limousine_taxi' ? 'selected' : '' }}>🚖 Limousine, Chauffeur & VIP Taxi</option>
+                        <option value="industrial" {{ old('business_category') == 'industrial' ? 'selected' : '' }}>⚙️ Industrial Equipment & Manufacturing</option>
+                        <option value="construction" {{ old('business_category') == 'construction' ? 'selected' : '' }}>🏗️ Construction, Contracting & Trades</option>
+                        <option value="distributor" {{ old('business_category') == 'distributor' ? 'selected' : '' }}>📦 Wholesale Distributor & Supply Chain</option>
+                        <option value="general" {{ old('business_category') == 'general' ? 'selected' : '' }}>🏢 General Business & Professional Services</option>
+                    </select>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Your choice automatically configures invoice service catalog, rate units, and quick-add preset buttons.</p>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label for="name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Your Full Name</label>

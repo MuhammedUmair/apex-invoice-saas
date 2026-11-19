@@ -215,11 +215,16 @@
                 </div>
 
                 <!-- Row 2: Industry Service Presets (Request 8 - 7 Industries Supported) -->
-                <div class="bg-rose-50/40 border border-rose-200/70 rounded-2xl p-4 space-y-3" x-data="{ activeIndustry: 'all' }">
+                <div class="bg-rose-50/40 border border-rose-200/70 rounded-2xl p-4 space-y-3" x-data="{ activeIndustry: '{{ Auth::user()->workspace->business_category ?? 'all' }}' }">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-rose-200/50">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <i class="ph ph-lightning text-rose-600 text-base"></i>
                             <h4 class="text-xs font-bold text-slate-900">{{ __('1-Click Industry Service Presets') }}</h4>
+                            @if(!empty(Auth::user()->workspace->business_category))
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-2xs">
+                                    {{ ucwords(str_replace('_', ' ', Auth::user()->workspace->business_category)) }}
+                                </span>
+                            @endif
                             <span class="text-[10px] text-slate-500">({{ __('click to add / increase quantity') }})</span>
                         </div>
 

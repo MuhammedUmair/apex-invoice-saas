@@ -897,6 +897,15 @@ class SuperAdminController extends Controller
             'support_email' => CmsContent::getVal('support_email', 'support@redmapleagency.com'),
             'default_currency' => CmsContent::getVal('default_currency', 'USD'),
             'default_language' => CmsContent::getVal('default_language', 'en'),
+            'welcome_popup_enabled' => CmsContent::getVal('welcome_popup_enabled', '1'),
+            'welcome_step1_title' => CmsContent::getVal('welcome_step1_title', '1. Create High-Precision Invoices in Seconds'),
+            'welcome_step1_text' => CmsContent::getVal('welcome_step1_text', 'Click "+ New Invoice" in your sidebar or ask the AI Copilot. Enter client details or use Walk-in mode for instantaneous cash and retail billing without client signup.'),
+            'welcome_step2_title' => CmsContent::getVal('welcome_step2_title', '2. 1-Click Industry Service Presets & Custom Line Items'),
+            'welcome_step2_text' => CmsContent::getVal('welcome_step2_text', 'Access 45+ tailored presets for your business category (Computer Shop, Transportation, Limousine Taxi, Industrial, Construction, Distributor, Marketing Agency). 1-click adds pre-priced line items with matching units.'),
+            'welcome_step3_title' => CmsContent::getVal('welcome_step3_title', '3. Private Draft Invoices & Zero Accidental Dispatch'),
+            'welcome_step3_text' => CmsContent::getVal('welcome_step3_text', 'Draft invoices are completely private. Emails are never dispatched, and PDF downloads, customer payment portals, and QR verification screens are disabled until you click "Issue & Publish".'),
+            'welcome_step4_title' => CmsContent::getVal('welcome_step4_title', '4. Cryptographic QR Seals & Automated Reminders'),
+            'welcome_step4_text' => CmsContent::getVal('welcome_step4_text', 'Published invoices feature authentic ISO 2D QR verification codes for fraud prevention and automated milestone payment reminder schedules (45, 30, 15, 7, 3, and 2 days before due date).'),
         ];
         return view('admin.config.general', compact('settings'));
     }

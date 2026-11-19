@@ -488,6 +488,7 @@ class InvoiceBuilder extends Component
     public function mount(?string $invoiceId = null)
     {
         $workspace = Auth::user()->workspace;
+        $this->presetIndustryFilter = $workspace->business_category ?? 'all';
 
         if ($invoiceId) {
             $invoice = Invoice::where('workspace_id', $workspace->id)

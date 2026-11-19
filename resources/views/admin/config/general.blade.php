@@ -54,6 +54,61 @@
             </div>
         </div>
 
+        <!-- Welcome Walkthrough & Onboarding Popup Settings (Request 2) -->
+        <div class="pt-6 mt-6 border-t border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                        <i class="ph ph-compass text-amber-400 text-base"></i>
+                        <span>Welcome Walkthrough & Onboarding Tour Popup</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Controls the multi-slide guide shown to tenants upon sign-in.</p>
+                </div>
+                <div>
+                    <select name="settings[welcome_popup_enabled]" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-amber-400 focus:ring-2 focus:ring-amber-500 outline-none">
+                        <option value="1" {{ ($settings['welcome_popup_enabled'] ?? '1') == '1' ? 'selected' : '' }}>Enabled (Turned ON)</option>
+                        <option value="0" {{ ($settings['welcome_popup_enabled'] ?? '1') == '0' ? 'selected' : '' }}>Disabled (Turned OFF)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Slide 1 -->
+            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 1: Invoicing & Walk-in Mode</span>
+                <input type="text" name="settings[welcome_step1_title]" value="{{ $settings['welcome_step1_title'] }}" placeholder="Step 1 Title"
+                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
+                <textarea name="settings[welcome_step1_text]" rows="2" placeholder="Step 1 Guidance Text"
+                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step1_text'] }}</textarea>
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 2: Industry Presets & Line Items</span>
+                <input type="text" name="settings[welcome_step2_title]" value="{{ $settings['welcome_step2_title'] }}" placeholder="Step 2 Title"
+                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
+                <textarea name="settings[welcome_step2_text]" rows="2" placeholder="Step 2 Guidance Text"
+                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step2_text'] }}</textarea>
+            </div>
+
+            <!-- Slide 3 -->
+            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 3: Draft Safeguard & Confidentiality</span>
+                <input type="text" name="settings[welcome_step3_title]" value="{{ $settings['welcome_step3_title'] }}" placeholder="Step 3 Title"
+                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
+                <textarea name="settings[welcome_step3_text]" rows="2" placeholder="Step 3 Guidance Text"
+                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step3_text'] }}</textarea>
+            </div>
+
+            <!-- Slide 4 -->
+            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 4: Verification QR & Automated Reminders</span>
+                <input type="text" name="settings[welcome_step4_title]" value="{{ $settings['welcome_step4_title'] }}" placeholder="Step 4 Title"
+                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
+                <textarea name="settings[welcome_step4_text]" rows="2" placeholder="Step 4 Guidance Text"
+                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step4_text'] }}</textarea>
+            </div>
+        </div>
+
         <div class="pt-4 flex justify-end">
             <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition">
                 Save Platform Settings

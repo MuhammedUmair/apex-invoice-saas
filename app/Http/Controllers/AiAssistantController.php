@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 class AiAssistantController extends Controller
 {
     /**
-     * Process AI Agent text and voice inquiries with native multi-language intelligence (Request 11).
+     * Process AI Agent text and voice inquiries with native multi-language intelligence (Request 8 & 11).
      */
     public function chat(Request $request)
     {
@@ -17,7 +17,7 @@ class AiAssistantController extends Controller
             return response()->json([
                 'reply' => 'Please ask a question or give a voice command!',
                 'lang' => 'en-US',
-                'suggestions' => ['Create new invoice', 'Go to settings', 'Open Help Center']
+                'suggestions' => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk']
             ]);
         }
 
@@ -33,14 +33,13 @@ class AiAssistantController extends Controller
     }
 
     /**
-     * Detect input language from script or keywords.
+     * Detect input language with robust English priority to prevent false positives.
      */
     protected function detectLanguage(string $q): string
     {
         // 1. Arabic & Urdu script
         if (preg_match('/[\x{0600}-\x{06FF}]/u', $q)) {
-            // Check for characteristic Urdu words
-            if (preg_match('/(انوائس|کیسے|کریں|شکریہ|سلام|مدد|نئی|بنائیں|سیٹنگز|چلیں|دکھائیں)/u', $q)) {
+            if (preg_match('/(انوائس|کیسے|کریں|شکریہ|سلام|مدد|نئی|بنائیں|سیٹنگز|چلیں|دکھائیں|مسئلہ|ٹکٹ|ڈرافٹ)/u', $q)) {
                 return 'ur';
             }
             return 'ar';
@@ -51,29 +50,34 @@ class AiAssistantController extends Controller
             return 'hi';
         }
 
-        // 3. Turkish keywords
-        if (preg_match('/(merhaba|fatura|faturayı|ayarlar|yardım|nasıl|oluştur|müşteri|hatırlatıcı|destek)/i', $q)) {
+        // 3. English Priority: if query contains common English command words, it is ALWAYS English!
+        // This prevents English queries like "Open Support Desk", "how to create invoice", "support ticket" from ever being misidentified as Turkish, French, or German!
+        if (preg_match('/\b(open|support|desk|create|invoice|invoices|new|draft|publish|ticket|tickets|setting|settings|help|how|what|why|guide|tell|show|recall|verify|qr|payment|pay|customer|portal|email|smtp|promo|coupon|preset|presets|service|services|hello|hi|tour|walkin|walk-in)\b/i', $q)) {
+            return 'en';
+        }
+
+        // 4. Turkish keywords (distinct Turkish words or characters)
+        if (preg_match('/[çğıöşüÇĞİÖŞÜ]/u', $q) || preg_match('/\b(merhaba|fatura|faturayı|ayarlar|yardım|nasıl|oluştur|müşteri|hatırlatıcı|destek|bilet)\b/i', $q)) {
             return 'tr';
         }
 
-        // 4. Spanish keywords
-        if (preg_match('/(hola|factura|configuración|ayuda|cómo|crear|cliente|recordatorio|soporte|gracias)/i', $q)) {
+        // 5. Spanish keywords
+        if (preg_match('/[áéíóúñ¿¡]/u', $q) || preg_match('/\b(hola|factura|configuración|ayuda|cómo|crear|cliente|recordatorio|soporte|gracias)\b/i', $q)) {
             return 'es';
         }
 
-        // 5. French keywords
-        if (preg_match('/(bonjour|facture|paramètres|aide|comment|créer|client|rappel|support|merci)/i', $q)) {
+        // 6. French keywords (without generic English word 'support')
+        if (preg_match('/[àâçéèêëîïôûùüÿœæ]/u', $q) || preg_match('/\b(bonjour|facture|paramètres|aide|comment|créer|client|rappel|merci)\b/i', $q)) {
             return 'fr';
         }
 
-        // 6. German keywords
-        if (preg_match('/(hallo|rechnung|einstellungen|hilfe|wie|erstellen|kunde|mahnung|support|danke)/i', $q)) {
+        // 7. German keywords (without generic English word 'support')
+        if (preg_match('/[äöüß]/u', $q) || preg_match('/\b(hallo|rechnung|einstellungen|hilfe|wie|erstellen|kunde|mahnung|danke)\b/i', $q)) {
             return 'de';
         }
 
-        // Default to active session locale or English
-        $appLocale = app()->getLocale();
-        return in_array($appLocale, ['ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de']) ? $appLocale : 'en';
+        // Default to English
+        return 'en';
     }
 
     /**
@@ -100,83 +104,150 @@ class AiAssistantController extends Controller
     {
         $voiceLang = $this->getSpeechLangTag($lang);
 
-        // 1. Create Invoice Action
-        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|نیا انوائس|انوائس بنائیں|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|neue rechnung|नया इनवॉइस|बिल बनाएं)/u', $q)) {
+        // 1. Create Invoice & Walk-in Mode
+        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|walk-in|walkin|counter sale|cash sale|نیا انوائس|انوائس بنائیں|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|neue rechnung|नया इनवॉइस|बिल बनाएं)/u', $q)) {
             return [
                 'reply' => match($lang) {
-                    'ur' => 'آپ کے لیے نیا انوائس بلڈر کھولا جا رہا ہے تاکہ آپ جلدی سے انوائس بنا سکیں۔',
-                    'ar' => 'جاري فتح منشئ الفواتير لإصدار فاتورة تجارية جديدة الآن.',
-                    'tr' => 'Yeni bir fatura oluşturup yayınlamanız için fatura oluşturucu açılıyor.',
-                    'hi' => 'नया इनवॉइस बनाने के लिए इनवॉइस बिल्डर खोला जा रहा है।',
-                    'es' => 'Abriendo el creador de facturas para emitir y publicar una nueva factura.',
-                    'fr' => 'Ouverture du générateur de factures pour créer et publier une nouvelle facture.',
-                    'de' => 'Der Rechnungsgenerator wird geöffnet, um eine neue Rechnung zu erstellen.',
-                    default => 'Opening the invoice builder for you to create and publish a new invoice.',
+                    'ur' => 'آپ کے لیے نیا انوائس بلڈر کھولا جا رہا ہے۔ آپ اپنے رجسٹرڈ کلائنٹس منتخب کر سکتے ہیں یا واک ان موڈ کے ذریعے بغیر لاگ ان فوری کیش بل بنا سکتے ہیں۔',
+                    'ar' => 'جاري فتح منشئ الفواتير لإصدار فاتورة جديدة. يمكنك اختيار عميل مسجل أو استخدام وضع العميل الفوري Walk-in.',
+                    'tr' => 'Yeni bir fatura oluşturmanız için fatura oluşturucu açılıyor. Kayıtlı müşteri seçebilir veya Hızlı Satış modunu kullanabilirsiniz.',
+                    'hi' => 'नया इनवॉइस बनाने के लिए इनवॉइस बिल्डर खोला जा रहा है। आप ग्राहक चुन सकते हैं या वॉक-इन मोड का उपयोग कर सकते हैं।',
+                    'es' => 'Abriendo el creador de facturas. Puede seleccionar un cliente existente o usar el modo Walk-in para venta rápida.',
+                    'fr' => 'Ouverture du générateur de factures. Sélectionnez un client ou utilisez le mode vente directe sans inscription.',
+                    'de' => 'Der Rechnungs-Builder wird geöffnet. Sie können einen Kunden wählen oder den Walk-in-Modus für Sofortverkäufe nutzen.',
+                    default => 'Opening Invoice Builder. You can select registered clients or use Walk-in mode for instant cash and retail billing without client signup.',
                 },
                 'action' => ['type' => 'navigate', 'url' => route('invoices.create')],
                 'lang' => $voiceLang,
                 'suggestions' => match($lang) {
-                    'ur' => ['لائن آئٹمز کیسے شامل کریں؟', 'ریویو اسکرین کیسے کام کرتی ہے؟'],
-                    'ar' => ['كيف أضيف بنود الفاتورة؟', 'شرح التحقق بالرمز'],
-                    'tr' => ['Kalemleri nasıl eklerim?', 'Önizleme ekranı nasıl çalışır?'],
-                    'hi' => ['आइटम कैसे जोड़ें?', 'सत्यापन कैसे काम करता है?'],
-                    'es' => ['¿Cómo agrego elementos?', '¿Cómo funciona la revisión?'],
-                    'fr' => ['Comment ajouter des lignes ?', 'Explication de la vérification QR'],
-                    'de' => ['Wie füge ich Positionen hinzu?', 'Rechnungsrückruf erklären'],
-                    default => ['How do I add line items?', 'How does the review screen work?']
+                    'ur' => ['انڈسٹری سروس پری سیٹس', 'ڈرافٹ انوائس کیسے کام کرتا ہے؟', 'میرے انوائسز'],
+                    default => ['Industry Service Presets', 'How do drafts work?', 'View Invoices Dashboard']
                 }
             ];
         }
 
-        // 2. View Invoices Dashboard
-        if (preg_match('/(go to invoice|view invoice|show invoice|list invoice|invoices|انوائسز|میرے انوائس|الفواتير|عرض الفواتير|faturalar|faturalara git|ver facturas|facturas|voir les factures|factures|rechnungen anzeigen|rechnungsliste|इनवॉइस सूची)/u', $q)) {
+        // 2. Industry Presets & Service Catalog (Item 1 & 8)
+        if (preg_match('/(preset|presets|industry|catalog|computer shop|transportation|limo|limousine|industrial|construction|distributor|marketing|پری سیٹ|کیٹلاگ|خدمات|önayar|hizmetler|servicios|catálogo|services prédéfinis)/u', $q)) {
             return [
                 'reply' => match($lang) {
-                    'ur' => 'آپ کے تمام انوائسز کا ڈیش بورڈ کھولا جا رہا ہے۔',
-                    'ar' => 'جاري نقلك إلى لوحة الفواتير المسجلة.',
-                    'tr' => 'Faturalarınızın listelendiği kontrol paneline yönlendiriliyorsunuz.',
-                    'hi' => 'आपके सभी इनवॉइस के डैशबोर्ड पर ले जाया जा रहा है।',
-                    'es' => 'Llevándole al panel de control de sus facturas.',
-                    'fr' => 'Affichage de votre tableau de bord des factures.',
-                    'de' => 'Weiterleitung zu Ihrer Rechnungsübersicht.',
-                    default => 'Taking you to your invoices dashboard.',
+                    'ur' => 'انوائسی میں 7 بڑی صنعتوں کے لیے 45 سے زائد پری سیٹس شامل ہیں: کمپیوٹر شاپ، ٹرانسپورٹ، لیموزین، انڈسٹریل، کنسٹرکشن، ڈسٹری بیوٹر، اور مارکیٹنگ ایجنسی۔ ایک کلک پر ریٹ اور پیمائشی یونٹ خودکار سیٹ ہو جاتے ہیں۔',
+                    'ar' => 'توفر منصة Invoicy أكثر من 45 قالباً لسبع قطاعات رئيسية (صيانة الحواسيب، النقل، الليموزين، الصناعة، المقاولات، التوزيع، والتسويق الرقمي) مع تسعير ووحدات قياس ذكية.',
+                    'tr' => 'Invoicy, 7 sektör için 45+ hazır hizmet şablonu sunar: Bilgisayar Mağazası, Taşımacılık, Limuzin & Taksi, Endüstriyel, İnşaat, Dağıtım ve Pazarlama Ajansı.',
+                    'hi' => 'Invoicy में 7 प्रमुख उद्योगों (कंप्यूटर शॉप, ट्रांसपोर्ट, लिमोसिन, निर्माण, डिस्ट्रीब्यूटर, एजेंसी) के लिए 45+ सेवा प्रीसेट उपलब्ध हैं।',
+                    default => 'Invoicy includes 45+ 1-click presets for 7 major industries: Computer Shop, Transportation, Limousine Taxi, Industrial, Construction, Distributor, and Marketing Agency with auto-synced rate units.',
                 },
-                'action' => ['type' => 'navigate', 'url' => route('invoices.index')],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.create')],
                 'lang' => $voiceLang,
-                'suggestions' => match($lang) {
-                    'ur' => ['انوائس واپس کیسے لیں؟', 'پی ڈی ایف ڈاؤن لوڈ کریں'],
-                    'ar' => ['كيف أسترجع فاتورة؟', 'تحميل ملف PDF'],
-                    'tr' => ['Fatura nasıl geri çekilir?', 'PDF nasıl indirilir?'],
-                    'hi' => ['इनवॉइस वापस कैसे लें?', 'PDF डाउनलोड करें'],
-                    'es' => ['¿Cómo revocar una factura?', 'Descargar PDF'],
-                    'fr' => ['Comment annuler une facture ?', 'Télécharger le PDF'],
-                    'de' => ['Wie rufe ich eine Rechnung zurück?', 'PDF herunterladen'],
-                    default => ['How to recall an invoice?', 'How do I download a PDF?']
-                }
+                'suggestions' => ['Create new invoice', 'How do drafts work?', 'Payment Gateway setup']
             ];
         }
 
-        // 3. Settings / SMTP / Email Config
-        if (preg_match('/(setting|smtp|email config|mail server|سیٹنگز|ایس ایم ٹی پی|الإعدادات|البريد|ayarlar|e-posta ayarları|configuración|ajustes|paramètres|configuration|einstellungen|mailserver|सेटिंग्स)/u', $q)) {
+        // 3. Draft Safeguard vs Published Invoices
+        if (preg_match('/(draft|drafts|why draft|publish|issue|published|ڈرافٹ|مسودہ|مسودة|taslak|taslak fatura|borrador|brouillon|entwurf)/u', $q)) {
             return [
                 'reply' => match($lang) {
-                    'ur' => 'ایجنسی سیٹنگز کھولی جا رہی ہیں۔ یہاں آپ اپنا کسٹم آؤٹ گوئنگ SMTP اور کینیڈین برانڈنگ ترتیب دے سکتے ہیں۔',
-                    'ar' => 'جاري فتح إعدادات الوكالة. يمكنك ضبط خادم SMTP البريدي والهوية التجارية الكندية هنا.',
-                    'tr' => 'Ajans Ayarları açılıyor. Buradan giden SMTP e-posta sunucunuzu ve marka detaylarınızı yapılandırabilirsiniz.',
-                    'hi' => 'एजेंसी सेटिंग्स खोली जा रही हैं। यहां आप अपना कस्टम आउटगोइंग SMTP और ब्रांडिंग सेट कर सकते हैं।',
-                    'es' => 'Abriendo la configuración de la agencia para configurar SMTP saliente y marca canadiense.',
-                    'fr' => 'Ouverture des paramètres de l\'agence pour configurer votre serveur SMTP et votre image de marque.',
-                    'de' => 'Die Agentur-Einstellungen werden geöffnet, um ausgehendes SMTP und Branding einzurichten.',
-                    default => 'Opening Agency Settings. Here you can configure your custom Outgoing SMTP and Canadian branding.',
+                    'ur' => 'ڈرافٹ انوائسز مکمل طور پر نجی اور محفوظ ہوتی ہیں۔ گاہکوں کو کوئی ای میل نہیں بھیجی جاتی، اور پی ڈی ایف، پیمنٹ پورٹل، اور کیو آر تصدیقی اسکرین مکمل طور پر غیر فعال رہتی ہیں جب تک آپ "Issue & Publish" نہ کریں۔',
+                    'ar' => 'فواتير المسودة (Draft) محمية بالكامل وسرية. لا يتم إرسال أي بريد للعملاء، كما أن روابط PDF وبوابة الدفع ورمز التحقق معطلة تماماً حتى تقوم بالضغط على نشر الفاتورة.',
+                    'tr' => 'Taslak faturalar tamamen gizlidir. Müşteriye e-posta gönderilmez; PDF indirme, ödeme portalı ve QR doğrulama ekranı fatura yayınlanana kadar kilitlidir.',
+                    'hi' => 'ड्राफ्ट इनवॉइस पूरी तरह से सुरक्षित हैं। कोई ईमेल नहीं भेजा जाता है और PDF, पेमेंट पोर्टल व QR सत्यापन केवल पब्लिश करने के बाद सक्रिय होते हैं।',
+                    default => 'Draft invoices are completely private and safeguarded. No emails are sent, and PDF downloads, payment portals, and QR verification screens are disabled until you click "Issue & Publish".',
                 },
-                'action' => ['type' => 'navigate', 'url' => route('settings.index')],
                 'lang' => $voiceLang,
-                'suggestions' => ['Test SMTP', 'Upload logo', 'Tax settings']
+                'suggestions' => ['Create new invoice', 'How to recall an invoice?', 'Explain QR code verification']
             ];
         }
 
-        // 4. Support Desk (Request 12)
-        if (preg_match('/(support|ticket|help desk|sla|مدد ڈیسک|سپورٹ|ٹکٹ|الدعم الفني|تذكرة|destek|bilet|soporte|ticket de soporte|assistance|dépannage|kundendienst|support-ticket|सपोर्ट|टिकट)/u', $q)) {
+        // 4. PDF Generation & Password Protection
+        if (preg_match('/(pdf|download pdf|print|password|پی ڈی ایف|ڈاؤن لوڈ|تحميل pdf|طباعة|indir|imprimer|drucken)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'جاری کردہ انوائسز سے آپ فوری طور پر GAAP معیار کا آفیشل پی ڈی ایف ڈاؤن لوڈ کر سکتے ہیں۔ آپ کلائنٹ کی سیکیورٹی کے لیے پاس ورڈ پروٹیکشن بھی فعال کر سکتے ہیں۔',
+                    'ar' => 'يمكنك تنزيل مستند PDF رسمي متوافق مع معايير GAAP للفواتير المنشورة، مع إمكانية تشفير الملف بكلمة مرور لحماية البيانات المالية.',
+                    'tr' => 'Yayınlanan faturalardan GAAP standartlarında resmi PDF indirebilir ve müşteri güvenliği için parola koruması uygulayabilirsiniz.',
+                    default => 'Published invoices generate official, GAAP-compliant PDFs. You can also enforce password protection on client PDFs for confidential financial security.',
+                },
+                'lang' => $voiceLang,
+                'suggestions' => ['View Invoices Dashboard', 'How to recall an invoice?', 'Explain QR code verification']
+            ];
+        }
+
+        // 5. Recall / Pull Back Sent Invoices
+        if (preg_match('/(recall|pull back|revoke|cancel invoice|واپس لیں|استرجاع|fatura geri çek|anular factura|annuler facture|rechnung zurückrufen)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'اگر کسی انوائس میں کوئی غلطی ہو جائے، تو آپ "Recall / Pull Back" کا بٹن دبا کر فوری طور پر گاہک کے پورٹل کو لاک اور غیر فعال کر سکتے ہیں تاکہ کوئی غیر مجاز ادائیگی نہ ہو۔',
+                    'ar' => 'ميزة Recall / Pull Back تتيح لك سحب الفاتورة الصادرة على الفور وإغلاق بوابة الدفع لمنع أي سداد بالخطأ.',
+                    'tr' => 'Recall / Pull Back özelliği sayesinde gönderilmiş bir faturayı anında geri çekebilir ve ödeme portalını kilitleyerek hatalı ödemeleri önleyebilirsiniz.',
+                    default => 'The Recall / Pull Back feature allows you to immediately revoke public access to a sent invoice, locking the customer payment portal to prevent payments while you make revisions.',
+                },
+                'lang' => $voiceLang,
+                'suggestions' => ['View Invoices Dashboard', 'How do drafts work?', 'Create new invoice']
+            ];
+        }
+
+        // 6. Automated Milestone Reminders
+        if (preg_match('/(reminder|reminders|milestone|schedule|45 days|ریماScript|یاد دہانی|تذكير|hatırlatıcı|recordatorio|rappel|mahnung)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'انوائسی کا خودکار سسٹم مقررہ تاریخ سے 45، 30، 15، 7، 3، اور 2 دن پہلے کلائنٹس کو یاد دہانی ای میل بھیجتا ہے، اور دکاندار کو بھی مطلع کرتا ہے۔',
+                    'ar' => 'نظام التذكير الآلي يرسل تنبيهات سداد عند 6 محطات زمنية (45، 30، 15، 7، 3، ويومان قبل تاريخ الاستحقاق) مع إشعارات لصاحب الوكالة.',
+                    'tr' => 'Otomatik hatırlatma sistemi vadesi gelmeden 45, 30, 15, 7, 3 ve 2 gün önce müşteriye nazik ödeme hatırlatmaları gönderir.',
+                    default => 'Invoicy features automated milestone payment reminders dispatched 45, 30, 15, 7, 3, and 2 days before due date, along with vendor notification alerts.',
+                },
+                'action' => ['type' => 'navigate', 'url' => route('reminders.index')],
+                'lang' => $voiceLang,
+                'suggestions' => ['View Reminders', 'Create new invoice', 'Open Support Desk']
+            ];
+        }
+
+        // 7. QR Verification & Authenticity Seals
+        if (preg_match('/(qr|verify|authentic|seal|scan|کیو آر|تصدیق|التحقق|ختم|doğrulama|karekod|verificación|sello|vérification|authentification|verifizierung|सत्यापन)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'ہر جاری کردہ انوائس میں بین الاقوامی ISO معیار کا 2D کیو آر کوڈ اور کرپٹوگرافک فنگر پرنٹ مہر شامل ہوتی ہے۔ اسکین کرنے پر صارف براہ راست تصدیقی اسکرین پر جا کر مستند حالت دیکھ سکتا ہے۔',
+                    'ar' => 'تحتوي كل فاتورة رسمية على رمز QR ثنائي الأبعاد وبصمة تشفير رقمية تثبت أصالة المستند القانونية وحالة السداد دون الحاجة لتسجيل الدخول.',
+                    'tr' => 'Yayınlanan her faturada, belgenin doğruluğunu ve ödeme durumunu anında onaylayan ISO standartlarında bir QR kod ve kriptografik mühür bulunur.',
+                    'hi' => 'प्रत्येक इनवॉइस में एक डिजिटल QR कोड और क्रिप्टोग्राफिक सील होती है जिससे प्रामाणिकता और भुगतान की पुष्टि होती है।',
+                    default => 'Every published invoice includes an authentic 2D QR code and cryptographic fingerprint seal proving document authenticity and payment status on the public verification portal.',
+                },
+                'lang' => $voiceLang,
+                'suggestions' => ['Create new invoice', 'How do drafts work?', 'View Invoices Dashboard']
+            ];
+        }
+
+        // 8. Payment Gateways (Stripe, PayPal, Bank Wire)
+        if (preg_match('/(payment|stripe|paypal|bank|gateway|settlement|credit card|پیمنٹ|ادائیگی|الدفع|ödeme|pago|paiement|zahlung|भुगतान)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'انوائسی اسٹرائپ، پے پال اور براہ راست بینک ٹرانسفر کو سپورٹ کرتی ہے۔ اگر کسی اکاؤنٹ میں گیٹ وے کنفیگر نہ ہو، تو پورٹل پر پیمنٹ بٹن خودکار طور پر چھپ جاتے ہیں اور براہ راست بینک ہدایات دکھائی جاتی ہیں۔',
+                    'ar' => 'تدعم المنصة الدفع عبر Stripe و PayPal والتحويل البنكي. إذا لم تكن البوابات مهيأة، تُخفى أزرار الدفع تلقائياً وتظهر بيانات التحويل البنكي المباشر.',
+                    'tr' => 'Invoicy, Stripe, PayPal ve Banka Havalesini destekler. Ödeme ağ geçitleri yapılandırılmamışsa, müşteriye sadece banka havalesi bilgileri gösterilir.',
+                    default => 'Invoicy supports Stripe, PayPal, and Direct Bank Wire transfers. If gateways are unconfigured, online payment buttons are automatically hidden and direct vendor settlement instructions are shown.',
+                },
+                'action' => ['type' => 'navigate', 'url' => route('settings.index') . '#gateways'],
+                'lang' => $voiceLang,
+                'suggestions' => ['Configure Settings', 'Create new invoice', 'Open Support Desk']
+            ];
+        }
+
+        // 9. Promo Codes & Expiration Durations
+        if (preg_match('/(promo|coupon|discount|voucher|expiration|duration|پروما|کوپن|تخفيض|خصم|kupon|promosyon|descuento|rabatt|कूपन)/u', $q)) {
+            $destUrl = $isSuperAdmin ? route('admin.coupons.index') : route('membership.index');
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'پرومو کوڈز میں معیاد ختم ہونے کا مقررہ وقت (1 گھنٹہ، 24 گھنٹے، 7 دن وغیرہ) منتخب کیا جا سکتا ہے۔ معیاد ختم ہونے پر سسٹم خودکار طور پر ڈسکاؤنٹ بند کر دیتا ہے۔',
+                    'ar' => 'يمكنك إنشاء وتطبيق كوبونات خصم مع تحديد مدة الصلاحية (ساعة واحدة، 24 ساعة، 7 أيام، إلخ). ينتهي الخصم تلقائياً عند انقضاء الوقت المحدد.',
+                    'tr' => 'Promosyon kodları belirli bir süreye (1 saat, 24 saat, 7 gün vb.) ayarlanabilir ve belirlenen sürede otomatik olarak sona erer.',
+                    default => 'Promo codes feature decided expiration durations (1h, 12h, 24h, 7d, 30d, custom date). When expired, the coupon is rejected automatically.',
+                },
+                'action' => ['type' => 'navigate', 'url' => $destUrl],
+                'lang' => $voiceLang,
+                'suggestions' => $isSuperAdmin ? ['Manage Coupons', 'Dashboard', 'Support Desk'] : ['View Plans', 'Create invoice', 'Support Desk']
+            ];
+        }
+
+        // 10. Consumer Support Desk & 24h SLA Guarantee (Item 5)
+        if (preg_match('/(support|ticket|tickets|help desk|sla|turnaround|مدد ڈیسک|سپورٹ|ٹکٹ|الدعم الفني|تذكرة|destek|bilet|soporte|ticket de soporte|assistance|dépannage|kundendienst|support-ticket|सपोर्ट|टिकट)/u', $q)) {
             return [
                 'reply' => match($lang) {
                     'ur' => 'کنزیومر سپورٹ ڈیسک کھولا جا رہا ہے۔ ہماری 24 گھنٹے کی ٹرن اراؤنڈ SLA گارنٹی ہر ٹکٹ پر لاگو ہے۔',
@@ -190,96 +261,88 @@ class AiAssistantController extends Controller
                 },
                 'action' => ['type' => 'navigate', 'url' => route('support.index')],
                 'lang' => $voiceLang,
-                'suggestions' => ['Create new ticket', 'SLA Guarantee policy']
+                'suggestions' => ['Create new ticket', 'SLA Guarantee policy', 'Back to Dashboard']
             ];
         }
 
-        // 5. Help / Documentation
-        if (preg_match('/(help|guide|manual|docs|رہنمائی|مدد|دلیل|تعليمات|kılavuz|rehber|guía|manuel|documentation|anleitung|handbuch|सहायता|मार्गदर्शिका)/u', $q)) {
+        // 11. Agency Settings, Custom SMTP & Canadian Branding
+        if (preg_match('/(setting|settings|smtp|email config|mail server|brand|logo|tax|سیٹنگز|ایس ایم ٹی پی|الإعدادات|البريد|ayarlar|e-posta ayarları|configuración|ajustes|paramètres|configuration|einstellungen|mailserver|सेटिंग्स)/u', $q)) {
             return [
                 'reply' => match($lang) {
-                    'ur' => 'جامع انوائسی ہیلپ اور نالج سینٹر کھولا جا رہا ہے۔',
-                    'ar' => 'جاري فتح مركز المساعدة والتوثيق الشامل لمنصة Invoicy.',
-                    'tr' => 'Kapsamlı Invoicy Yardım ve Bilgi Merkezi açılıyor.',
-                    'hi' => 'विस्तृत इनवॉइंसी सहायता केंद्र खोला जा रहा है।',
-                    'es' => 'Abriendo el Centro de Ayuda y Documentación de Invoicy.',
-                    'fr' => 'Ouverture du Centre d\'Aide et de Documentation Invoicy.',
-                    'de' => 'Das umfassende Invoicy Hilfe- und Wissenszentrum wird geöffnet.',
-                    default => 'Opening the comprehensive Invoicy Help & Knowledge Center.',
+                    'ur' => 'ایجنسی سیٹنگز کھولی جا رہی ہیں۔ یہاں آپ اپنا کسٹم آؤٹ گوئنگ SMTP اور برانڈنگ لوگو ترتیب دے سکتے ہیں۔',
+                    'ar' => 'جاري فتح إعدادات الوكالة. يمكنك ضبط خادم SMTP البريدي وشعار العلامة التجارية هنا.',
+                    'tr' => 'Ajans Ayarları açılıyor. Buradan giden SMTP e-posta sunucunuzu ve marka detaylarınızı yapılandırabilirsiniz.',
+                    'hi' => 'एजेंसी सेटिंग्स खोली जा रही हैं। यहां आप अपना कस्टम आउटगोइंग SMTP और ब्रांडिंग सेट कर सकते हैं।',
+                    default => 'Opening Agency Settings. Here you can configure your custom Outgoing SMTP, upload company branding, and adjust tax rates.',
+                },
+                'action' => ['type' => 'navigate', 'url' => route('settings.index')],
+                'lang' => $voiceLang,
+                'suggestions' => ['Test SMTP', 'Upload logo', 'Tax settings']
+            ];
+        }
+
+        // 12. Super Admin Control Panel (/cp & /admin)
+        if (preg_match('/(admin|superadmin|control panel|cp|metrics|revenue|کنٹرول پینل|لوحة التحكم|yönetim|kontrol paneli|panel de control)/u', $q)) {
+            $destUrl = $isSuperAdmin ? route('admin.dashboard') : route('cp.login');
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'پلیٹ فارم سپر ایڈمن کنٹرول پینل پر منتقل کیا جا رہا ہے۔ یہ سیکشن 2FA سیکیورٹی سے محفوظ ہے۔',
+                    'ar' => 'جاري نقلك إلى لوحة تحكم الإدارة العليا Control Panel المحمية برمز التحقق الثنائي.',
+                    'tr' => 'Süper Yönetici Kontrol Paneline yönlendiriliyorsunuz. Bu alan iki faktörlü kimlik doğrulamasıyla korunmaktadır.',
+                    default => 'Directing you to the Platform Super Admin Control Panel, guarded by dedicated two-factor authentication and platform audit logging.',
+                },
+                'action' => ['type' => 'navigate', 'url' => $destUrl],
+                'lang' => $voiceLang,
+                'suggestions' => ['System Health', 'Revenue Analytics', 'Support Desk']
+            ];
+        }
+
+        // 13. Help, Documentation & Guided Tour (Item 2)
+        if (preg_match('/(help|guide|manual|docs|tutorial|tour|رہنمائی|مدد|دلیل|تعليمات|kılavuz|rehber|guía|manuel|documentation|anleitung|handbuch|सहायता|मार्गदर्शिका)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur' => 'جامع انوائسی ہیلپ اور نالج سینٹر کھولا جا رہا ہے۔ آپ ٹاپ بار میں "Guide & Tour" کے بٹن سے خوش آمدیدی گائیڈ بھی دیکھ سکتے ہیں۔',
+                    'ar' => 'جاري فتح مركز المساعدة والتوثيق لمنصة Invoicy. يمكنك أيضاً إعادة مشاهدة الجولة التوجيهية في أي وقت.',
+                    'tr' => 'Kapsamlı Invoicy Yardım ve Bilgi Merkezi açılıyor. Ayrıca üst çubuktan Rehber & Tur özelliğini başlatabilirsiniz.',
+                    default => 'Opening the Invoicy Help & Knowledge Center. You can also replay the interactive Getting Started Walkthrough anytime from the top bar.',
                 },
                 'action' => ['type' => 'navigate', 'url' => route('help.index')],
                 'lang' => $voiceLang,
-                'suggestions' => ['Invoice recall guide', 'Explain QR verification']
+                'suggestions' => ['Create new invoice', 'How do drafts work?', 'Support Desk']
             ];
         }
 
-        // 6. Greetings & Identity
-        if (preg_match('/(who are you|hello|hi|hey|آپ کون ہیں|سلام|السلام عليكم|مرحبا|أهلا|günaydın|selam|hola|buenos días|bonjour|salut|hallo|guten tag|नमस्ते|हेलो)/u', $q)) {
+        // 14. View Invoices Dashboard
+        if (preg_match('/(go to invoice|view invoice|show invoice|list invoice|invoices|انوائسز|میرے انوائس|الفواتير|عرض الفواتير|faturalar|faturalara git|ver facturas|facturas|voir les factures|factures|rechnungen anzeigen|rechnungsliste|इनवॉइस सूची)/u', $q)) {
             return [
                 'reply' => match($lang) {
-                    'ur' => 'سلام! میں آپ کا AI ایجنٹ ہوں۔ میں انوائس بنانے، سیٹنگز درست کرنے، سوالات کے جوابات دینے اور بلنگ میں آپ کی مدد کر سکتا ہوں۔ آپ مائک دبا کر آواز سے بھی بات کر سکتے ہیں!',
-                    'ar' => 'أهلاً بك! أنا وكيلك الذكي (AI Agent). يمكنني مساعدتك في إصدار الفواتير، استرجاع الأخطاء، وإدارة الحسابات. يمكنك التحدث صوتياً أو كتابياً.',
-                    'tr' => 'Merhaba! Ben sizin AI Ajanınızım. Fatura oluşturma, ayarları yönetme, QR doğrulama ve sorularınızda size yardımcı olabilirim. Mikrofonla sesli komut da verebilirsiniz!',
-                    'hi' => 'नमस्ते! मैं आपका AI एजेंट हूं। मैं इनवॉइस बनाने, सेटिंग्स प्रबंधित करने और आपके सवालों का जवाब देने में मदद कर सकता हूं।',
-                    'es' => '¡Hola! Soy su Agente de IA. Puedo ayudarle a crear facturas, gestionar clientes, configurar SMTP y responder a sus preguntas.',
-                    'fr' => 'Bonjour ! Je suis votre Agent IA. Je peux vous aider à créer des factures, gérer vos paramètres, et répondre à vos questions en direct.',
-                    'de' => 'Hallo! Ich bin Ihr KI-Agent. Ich unterstütze Sie bei der Rechnungserstellung, Konfiguration und Beantwortung aller Fragen.',
-                    default => 'Hello! I am your AI Agent. I can help you create invoices, navigate the system, manage clients, recall invoices, configure custom SMTP, and answer questions hands-free!',
+                    'ur' => 'آپ کے تمام انوائسز کا ڈیش بورڈ کھولا جا رہا ہے۔',
+                    'ar' => 'جاري نقلك إلى لوحة الفواتير المسجلة.',
+                    'tr' => 'Faturalarınızın listelendiği kontrol paneline yönlendiriliyorsunuz.',
+                    default => 'Taking you to your invoices dashboard.',
                 },
+                'action' => ['type' => 'navigate', 'url' => route('invoices.index')],
                 'lang' => $voiceLang,
-                'suggestions' => match($lang) {
-                    'ur' => ['نیا انوائس بنائیں', 'سیٹنگز کھولیں', 'انوائس کیسے واپس لیں؟'],
-                    'ar' => ['إنشاء فاتورة جديدة', 'فتح الإعدادات', 'شرح ختم التحقق'],
-                    'tr' => ['Yeni fatura oluştur', 'Ayarlara git', 'Fatura nasıl geri çekilir?'],
-                    'hi' => ['नया इनवॉइस बनाएं', 'सेटिंग्स खोलें', 'सत्यापन कैसे काम करता है?'],
-                    'es' => ['Crear nueva factura', 'Ir a configuración', 'Explicar verificación QR'],
-                    'fr' => ['Créer une facture', 'Ouvrir les paramètres', 'Explication QR Code'],
-                    'de' => ['Neue Rechnung erstellen', 'Zu Einstellungen', 'QR-Prüfung erklären'],
-                    default => ['Create new invoice', 'How do I recall an invoice?', 'Explain QR code verification', 'Go to settings']
-                }
+                'suggestions' => ['Create new invoice', 'How to recall an invoice?', 'How do drafts work?']
             ];
         }
 
-        // 7. QR Verification & Cryptographic Seal
-        if (preg_match('/(qr|verify|authentic|seal|scan|کیو آر|تصدیق|التحقق|ختم|doğrulama|karekod|verificación|sello|vérification|authentification|verifizierung|सत्यापन)/u', $q)) {
-            return [
-                'reply' => match($lang) {
-                    'ur' => 'ہر جاری کردہ انوائس میں بین الاقوامی ISO معیار کا 2D کیو آر کوڈ اور کرپٹوگرافک فنگر پرنٹ مہر شامل ہوتی ہے۔ اسکین کرنے پر صارف براہ راست تصدیقی اسکرین پر جا کر مستند حالت دیکھ سکتا ہے۔',
-                    'ar' => 'تحتوي كل فاتورة رسمية على رمز QR ثنائي الأبعاد وبصمة تشفير رقمية تثبت أصالة المستند القانونية وحالة السداد.',
-                    'tr' => 'Yayınlanan her faturada, belgenin doğruluğunu ve ödeme durumunu anında onaylayan ISO standartlarında bir QR kod ve kriptografik mühür bulunur.',
-                    'hi' => 'प्रत्येक इनवॉइस में एक डिजिटल QR कोड और क्रिप्टोग्राफिक सील होती है जिससे प्रामाणिकता और भुगतान की पुष्टि होती है।',
-                    'es' => 'Cada factura publicada incluye un código QR 2D auténtico y un sello criptográfico que verifica la autenticidad y el estado de pago.',
-                    'fr' => 'Chaque facture publiée intègre un QR code 2D et un sceau cryptographique officiel prouvant l\'authenticité du document.',
-                    'de' => 'Jede Rechnung verfügt über einen kryptografischen QR-Code und ein Siegel zur Echtheits- und Zahlungsprüfung.',
-                    default => 'Every published invoice includes an authentic 2D QR code and cryptographic fingerprint seal proving document authenticity and payment status.',
-                },
-                'lang' => $voiceLang,
-                'suggestions' => ['Open Verification Screen', 'Create new invoice']
-            ];
-        }
-
-        // Default response
+        // Smart Default Contextual Fallback
         return [
             'reply' => match($lang) {
-                'ur' => "میں آپ کی بات سمجھ رہا ہوں۔ آپ مجھے 'نیا انوائس بنائیں'، 'سیٹنگز کھولیں'، یا 'ہیلپ سینٹر' جیسے صوتی یا تحریری احکامات دے سکتے ہیں۔ میں کس طرح مدد کروں؟",
-                'ar' => "أنا هنا لمساعدتك! يمكنك إعطائي أوامر صوتية أو نصية مثل 'إنشاء فاتورة جديدة'، 'الذهاب إلى الإعدادات'، أو 'مكتب الدعم'. كيف يمكنني خدمتك؟",
-                'tr' => "'{$q}' hakkında yardımcı olabilirim. 'Yeni fatura oluştur', 'Ayarlara git' veya 'Destek masası' gibi sesli veya yazılı komutlar verebilirsiniz.",
-                'hi' => "मैं आपकी सहायता के लिए तैयार हूं। आप 'नया इनवॉइस बनाएं' या 'सेटिंग्स' जैसे आदेश दे सकते हैं।",
-                'es' => "Entendido. Puede darme comandos como 'Crear nueva factura', 'Ir a configuración' o 'Soporte técnico'. ¿En qué puedo ayudarle?",
-                'fr' => "Je suis à votre écoute. Vous pouvez me demander de 'Créer une facture', 'Aller aux paramètres' ou 'Ouvrir le support'.",
-                'de' => "Ich bin bereit. Sie können Befehle wie 'Neue Rechnung erstellen' oder 'Einstellungen öffnen' geben. Wie kann ich helfen?",
-                default => "I understand you are asking about '{$q}'. You can give me voice or text commands like 'Create new invoice', 'Go to settings', 'Open Support Desk', or 'How does QR verification work?'. How may I assist you?",
+                'ur' => "میں آپ کی بات سمجھ رہا ہوں۔ میں انوائس بنانے، ڈرافٹ پروٹیکشن، 1-کلک انڈسٹری پری سیٹس، کیو آر ویریفکیشن، اور 24 گھنٹے کے سپورٹ ڈیسک میں آپ کی مدد کر سکتا ہوں۔ آپ کس بارے میں جاننا چاہتے ہیں؟",
+                'ar' => "أنا هنا لمساعدتك! يمكنني إرشادك حول إنشاء الفواتير، قوالب الخدمات الذكية، حماية المسودات، أو فتح تذكرة دعم فني. كيف يمكنني خدمتك؟",
+                'tr' => "'{$q}' hakkında yardımcı olabilirim. Yeni fatura oluşturma, 1-tıkla sektör şablonları, taslak koruması veya Destek Masası hakkında bana sorabilirsiniz.",
+                'hi' => "मैं आपकी सहायता के लिए तैयार हूं। आप इनवॉइस निर्माण, सेवा प्रीसेट, ड्राफ्ट सुरक्षा, या सहायता टिकट के बारे में पूछ सकते हैं।",
+                'es' => "Entendido. Puedo ayudarle a crear facturas, usar plantillas por industria, explicar borradores seguros o abrir un ticket de soporte. ¿En qué puedo asistirle?",
+                'fr' => "Je suis à votre écoute. Je peux vous guider pour créer des factures, utiliser les modèles industriels ou ouvrir un ticket de support.",
+                'de' => "Ich bin bereit. Ich kann Sie bei der Rechnungserstellung, Vorlagen, Entwürfen oder beim Support-Desk unterstützen. Wie kann ich helfen?",
+                default => "I understand you are asking about '{$q}'. I can help you create invoices, use 1-click industry service presets, explain draft safeguards, configure payment gateways, or open a 24h SLA Support Ticket. How may I assist you?",
             },
             'lang' => $voiceLang,
             'suggestions' => match($lang) {
-                'ur' => ['نیا انوائس بنائیں', 'سپورٹ ڈیسک کھولیں', 'سیٹنگز'],
-                'ar' => ['إنشاء فاتورة جديدة', 'فتح مكتب الدعم', 'الإعدادات'],
-                'tr' => ['Yeni fatura oluştur', 'Destek Masası', 'Ayarlar'],
-                'hi' => ['नया इनवॉइस बनाएं', 'सपोर्ट डेस्क', 'सेटिंग्स'],
-                'es' => ['Crear factura', 'Mesa de soporte', 'Configuración'],
-                'fr' => ['Créer une facture', 'Bureau de support', 'Paramètres'],
-                'de' => ['Rechnung erstellen', 'Support-Desk', 'Einstellungen'],
-                default => ['Create new invoice', 'Open Support Desk', 'Go to settings']
+                'ur' => ['نیا انوائس بنائیں', 'ڈرافٹ انوائس کیسے کام کرتا ہے؟', 'سپورٹ ڈیسک کھولیں'],
+                default => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk']
             }
         ];
     }
