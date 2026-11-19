@@ -164,7 +164,7 @@ class AiAssistantController extends Controller
         }
 
         // 1. Create Invoice & Walk-in Mode
-        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|walk-in|walkin|counter sale|cash sale|naya invoice|invoice banana|bill banana|نیا انوائس|انوائس بنائیں|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|neue rechnung|नया इनवॉइस|बिल बनाएं)/u', $q)) {
+        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|walk-in|walkin|counter sale|cash sale|naya invoice|invoice banana|bill banana|kaise banaye|invoice kaise|kaise banayein|naya bill|نیا انوائس|انوائس بنائیں|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|neue rechnung|नया इनवॉइस|बिल बनाएं)/u', $q)) {
             return [
                 'reply' => match($lang) {
                     'ur-roman' => 'Aap ke liye naya Invoice Builder open kiya ja raha hai. Aap walk-in customer ya registered client select kar ke foran bill bana sakte hain.',
