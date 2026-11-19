@@ -485,7 +485,8 @@ class AiAgentService
         // -------------------------------------------------------------
         // INTENT 0: Warm, Natural Human Greeting (Handles "Assalam Walekum", "Hello", "Hi")
         // -------------------------------------------------------------
-        if (preg_match('/^(assalam|asalam|walekum|alaikum|walaikum|salam|slam|hello|hi|hey|good morning|good evening|good afternoon|namaste|marhaba|bonjour|hola|hallo|مرحبا|سلام|السلام عليكم|السلام علیکم|وعلیکم السلام|नमस्ते)(\s+(assalam|asalam|walekum|alaikum|walaikum|salam|slam|hello|hi|hey|there|bhai|janab|sahab|sir|what about|kaise ho|kese ho|how are you))*$/iu', $q) || preg_match('/^(assalam|asalam|walekum|salam|hello|hi|hey)\s+(assalam|asalam|walekum|salam|hello|hi|hey)/iu', $q)) {
+        if (preg_match('/^(assalam|asalam|walekum|alaikum|walaikum|salam|slam|hello|hi|hey|good morning|good evening|good afternoon|namaste|marhaba|bonjour|hola|hallo|مرحبا|سلام|السلام عليكم|السلام علیکم|وعلیکم السلام|नमस्ते)\b/iu', $q)
+            && !preg_match('/\b(create|make|issue|banaye|banayein|banao|draft|preset|presets|tax|recall|overdue|unpaid|how to|invoice|bill|client|customer|ticket|support|طريقة|فاتورة|انوائس|ڈرافٹ)\b/iu', $q)) {
             $reply = match ($lang) {
                 'ur' => "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! خوش آمدید!
 میں آپ کا انوائسی فنانشل اسسٹنٹ ہوں۔ آج میں آپ کی کیا مدد کر سکتا ہوں؟ کیا آپ نیا انوائس بنانا چاہتے ہیں یا اپنے فنانشل ریکارڈز اور کھاتے دیکھنا چاہتے ہیں؟",
@@ -704,7 +705,7 @@ Click the button below to start creating your invoice:",
         // -------------------------------------------------------------
         // INTENT 4: Live Workspace Stats & Balance Queries (Backend Tool Call)
         // -------------------------------------------------------------
-        if ($workspace && preg_match('/(mere kaise|kitna balance|kitne paise|kitni invoices|meri kamai|stats|revenue|summary|balance|outstanding|unpaid|kitna baki|kitna paisa|کتنے پیسے|کتنا بیلنس|میرے انوائسز|کتنی رقم|میرا ریوینیو|كم رصيدي|كم عدد الفواتير|المبالغ المعلقة|إيراداتي|bakiyem|toplam fatura|gelir|cuánto debo|total facturas)/u', $q)) {
+        if ($workspace && preg_match('/(kitna balance|kitne paise|kitni invoices|meri kamai|mera hisaab|mera balance|stats|revenue|summary|balance|outstanding|unpaid|kitna baki|kitna paisa|کتنے پیسے|کتنا بیلنس|میرے انوائسز|کتنی رقم|میرا ریوینیو|كم رصيدي|كم عدد الفواتير|المبالغ المعلقة|إيراداتي|bakiyem|toplam fatura|gelir|cuánto debo|total facturas)/u', $q)) {
             $stats = $this->getWorkspaceStats($workspace);
             $curr = $workspace->currency ?? 'AED';
 

@@ -27,8 +27,8 @@ class AiAssistantController extends Controller
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
 
         // Enforce Super Admin Tenant Visibility control
-        $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', null);
-        if ($tenantAiConfig === null) {
+        $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', '');
+        if ($tenantAiConfig === '') {
             $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
         }
         $isAiActive = ($tenantAiConfig === '1' || $tenantAiConfig === true || $tenantAiConfig === 1);
