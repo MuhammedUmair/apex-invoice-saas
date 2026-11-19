@@ -266,7 +266,9 @@ class AiAgentService
         // ==============================================================
 
         // TRIGGER: User starts invoice creation without providing full details
-        $isCreateTrigger = preg_match('/\b(create invoice|new invoice|make invoice|prepare a bill|bill banana|invoice banana|invoice create|naya invoice|نیا انوائس|انوائس بنانا|انشاء فاتورة|فاتورة جديدة)\b/iu', $q);
+        $isCreateTrigger = preg_match('/\b(create|make|generate|build|prepare|naya|new|need)\b.*?\b(invoice|bill|draft|فاتورة|انوائس|نوائس)\b/iu', $q)
+            || preg_match('/\b(invoice|bill|draft|فاتورة|انوائس|نوائس)\b.*?\b(create|make|banana|banayein|banao|tayyar|chahiye|banana hai)\b/iu', $q)
+            || preg_match('/\b(create invoice|new invoice|make invoice|prepare a bill|bill banana|invoice banana|invoice create|naya invoice|نیا انوائس|انوائس بنائیں|انوائس بنانا|انشاء فاتورة|فاتورة جديدة)\b/iu', $q);
         
         if ($isCreateTrigger && !$flowState) {
             // Check if user already gave customer name in the initial prompt e.g. "Create invoice for ABC Trading 2500 AED"
@@ -330,8 +332,13 @@ class AiAgentService
             // STEP 1: Awaiting Customer Name
             if ($step === 'awaiting_customer') {
                 $customer = trim($rawQuery);
-                // Strip common filler words
-                $customer = preg_replace('/^(for|naam|name|client|customer|company)\s+/i', '', $customer);
+                // Strip conversational prefixes e.g. "Can you create one for ABC Trading?" -> "ABC Trading"
+                $customer = preg_replace('/^(can you create (one )?(for )?|create (one )?(for )?|yes (for )?|make (one )?(for )?|for|naam|name|client|customer|company)\s+/iu', '', $customer);
+                $customer = preg_replace('/\?+$/', '', $customer);
+                $customer = trim($customer);
+                if (empty($customer)) {
+                    $customer = 'Walk-in Customer';
+                }
                 $data['customer'] = $customer;
                 $flowState['step'] = 'awaiting_amount';
                 $flowState['data'] = $data;
