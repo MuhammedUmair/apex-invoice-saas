@@ -35,6 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
             '*/api/ai/copilot',
             '*/api/*',
             'api/*',
+            'membership/cancel-request/*',
+            '*/membership/cancel-request/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
