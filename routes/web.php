@@ -46,6 +46,18 @@ Route::get('/app', function () {
     return redirect()->route('dashboard');
 });
 
+Route::get('/ping-host', function () {
+    return response()->json([
+        'host' => request()->getHost(),
+        'http_host' => request()->getHttpHost(),
+        'server_http_host' => $_SERVER['HTTP_HOST'] ?? null,
+        'server_name' => $_SERVER['SERVER_NAME'] ?? null,
+        'remote_addr' => $_SERVER['REMOTE_ADDR'] ?? null,
+        'app_env' => config('app.env'),
+        'app_url' => config('app.url'),
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Public Authentication Routes
