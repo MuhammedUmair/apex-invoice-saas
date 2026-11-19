@@ -19,7 +19,7 @@ class CmsContent extends Model
     public static function getVal(string $key, string $default = ''): string
     {
         $item = static::where('key', $key)->first();
-        return ($item && !empty($item->content)) ? $item->content : $default;
+        return ($item && $item->content !== null && $item->content !== '') ? (string) $item->content : $default;
     }
 
     /**
