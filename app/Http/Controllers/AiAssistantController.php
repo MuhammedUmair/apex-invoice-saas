@@ -14,13 +14,17 @@ class AiAssistantController extends Controller
     {
         $requestedLang = $request->input('lang');
         $query = trim($request->input('message', ''));
+        $q = mb_strtolower($query, 'UTF-8');
         
-        // 1. Determine active language
-        if (!empty($requestedLang) && in_array($requestedLang, ['ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de', 'en'])) {
+        // 1. Determine active language (Content detection takes precedence over default 'en')
+        $detected = $this->detectLanguage($q);
+        if ($detected !== 'en') {
+            $langCode = $detected;
+        } elseif (!empty($requestedLang) && in_array($requestedLang, ['ur', 'ur-roman', 'ar', 'hi', 'tr', 'es', 'fr', 'de'])) {
             $langCode = $requestedLang;
         } else {
-            $langCode = $this->detectLanguage(mb_strtolower($query, 'UTF-8'));
-            if ($langCode === 'en' && session('locale') && in_array(session('locale'), ['ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de'])) {
+            $langCode = 'en';
+            if (session('locale') && in_array(session('locale'), ['ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de'])) {
                 if (!preg_match('/\b(open|create|draft|publish|ticket|setting|settings|help|how|what|why|guide|tell|show|recall|verify|qr|payment|pay|customer|portal|email|smtp|promo|coupon|preset|presets|service|services|hello|hi|tour|walkin|walk-in)\b/i', $query)) {
                     $langCode = session('locale');
                 }
@@ -32,7 +36,7 @@ class AiAssistantController extends Controller
         if (empty($query)) {
             return response()->json([
                 'reply' => match($langCode) {
-                    'ur' => 'براہ کرم کوئی سوال پوچھیں یا مائیک پر کلک کر کے بولیں!',
+                    'ur', 'ur-roman' => 'Aap koi sawaal poochhein ya mic par click kar ke bolein!',
                     'ar' => 'يرجى طرح سؤال أو إعطاء أمر صوتي عبر الميكروفون!',
                     'tr' => 'Lütfen bir soru sorun veya mikrofon ile sesli komut verin!',
                     'hi' => 'कृपया कोई प्रश्न पूछें या माइक पर क्लिक करके बोलें!',
@@ -43,9 +47,10 @@ class AiAssistantController extends Controller
                 },
                 'lang' => $voiceLang,
                 'suggestions' => match($langCode) {
+                    'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', '1-Click Presets', 'Support Desk Kholein'],
+                    'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'فوری سروسز', 'سپورٹ ڈیسک کھولیں'],
                     'tr' => ['Yeni fatura oluştur', 'Taslaklar nasıl çalışır?', 'Hızlı Şablonlar', 'Destek Masası Aç'],
                     'ar' => ['إنشاء فاتورة جديدة', 'كيف تعمل المسودات؟', 'نماذج جاهزة', 'فتح مكتب الدعم'],
-                    'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'فوری سروسز', 'سپورٹ ڈیسک کھولیں'],
                     'es' => ['Crear nueva factura', '¿Cómo funcionan los borradores?', 'Plantillas rápidas', 'Abrir soporte'],
                     'fr' => ['Créer une facture', 'Fonctionnement des brouillons', 'Modèles rapides', 'Ouvrir le support'],
                     'de' => ['Neue Rechnung erstellen', 'Wie funktionieren Entwürfe?', 'Schnellvorlagen', 'Support öffnen'],
@@ -57,18 +62,17 @@ class AiAssistantController extends Controller
 
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
         $isSuperAdmin = $user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
-        $q = mb_strtolower($query, 'UTF-8');
 
         // Process query
         return response()->json($this->generateLocalizedResponse($q, $langCode, $isSuperAdmin));
     }
 
     /**
-     * Detect input language with robust English priority to prevent false positives.
+     * Detect input language with robust Roman Urdu, Arabic, Hindi, Turkish, and European language detection.
      */
     protected function detectLanguage(string $q): string
     {
-        // 1. Arabic & Urdu script
+        // 1. Arabic & Urdu native script
         if (preg_match('/[\x{0600}-\x{06FF}]/u', $q)) {
             if (preg_match('/(انوائس|کیسے|کریں|شکریہ|سلام|مدد|نئی|بنائیں|سیٹنگز|چلیں|دکھائیں|مسئلہ|ٹکٹ|ڈرافٹ)/u', $q)) {
                 return 'ur';
@@ -81,10 +85,9 @@ class AiAssistantController extends Controller
             return 'hi';
         }
 
-        // 3. English Priority: if query contains common English command words, it is ALWAYS English!
-        // This prevents English queries like "Open Support Desk", "how to create invoice", "support ticket" from ever being misidentified as Turkish, French, or German!
-        if (preg_match('/\b(open|support|desk|create|invoice|invoices|new|draft|publish|ticket|tickets|setting|settings|help|how|what|why|guide|tell|show|recall|verify|qr|payment|pay|customer|portal|email|smtp|promo|coupon|preset|presets|service|services|hello|hi|tour|walkin|walk-in)\b/i', $q)) {
-            return 'en';
+        // 3. Roman Urdu / Hinglish (e.g. "iske bare mein batao", "kaise kare", "batao", "madad", "ye kya hai")
+        if (preg_match('/\b(iske|uske|is|iss|bare|baare|mein|me|batao|bataiye|bataen|kya|hai|hain|kaise|kese|kare|karen|karo|banaye|banayein|banao|madad|shukriya|mujhe|chahiye|kahan|theek|acha|accha|nahi|haan|bhi|aur|ye|yeh|wo|woh|apna|apni|karna|hoga|hota|chalega|bolo|bhejo|dekho|dikhao|hisaab|paisa|paise|kharcha|kamai)\b/i', $q)) {
+            return 'ur-roman';
         }
 
         // 4. Turkish keywords (distinct Turkish words or characters)
@@ -97,14 +100,19 @@ class AiAssistantController extends Controller
             return 'es';
         }
 
-        // 6. French keywords (without generic English word 'support')
+        // 6. French keywords
         if (preg_match('/[àâçéèêëîïôûùüÿœæ]/u', $q) || preg_match('/\b(bonjour|facture|paramètres|aide|comment|créer|client|rappel|merci)\b/i', $q)) {
             return 'fr';
         }
 
-        // 7. German keywords (without generic English word 'support')
+        // 7. German keywords
         if (preg_match('/[äöüß]/u', $q) || preg_match('/\b(hallo|rechnung|einstellungen|hilfe|wie|erstellen|kunde|mahnung|danke)\b/i', $q)) {
             return 'de';
+        }
+
+        // 8. English Priority for standard commands
+        if (preg_match('/\b(open|support|desk|create|invoice|invoices|new|draft|publish|ticket|tickets|setting|settings|help|how|what|why|guide|tell|show|recall|verify|qr|payment|pay|customer|portal|email|smtp|promo|coupon|preset|presets|service|services|hello|hi|tour|walkin|walk-in)\b/i', $q)) {
+            return 'en';
         }
 
         // Default to English
@@ -117,7 +125,7 @@ class AiAssistantController extends Controller
     protected function getSpeechLangTag(string $lang): string
     {
         return match ($lang) {
-            'ur' => 'ur-PK',
+            'ur', 'ur-roman' => 'ur-PK',
             'ar' => 'ar-SA',
             'hi' => 'hi-IN',
             'tr' => 'tr-TR',
@@ -135,10 +143,31 @@ class AiAssistantController extends Controller
     {
         $voiceLang = $this->getSpeechLangTag($lang);
 
-        // 1. Create Invoice & Walk-in Mode
-        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|walk-in|walkin|counter sale|cash sale|نیا انوائس|انوائس بنائیں|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|neue rechnung|नया इनवॉइस|बिल बनाएं)/u', $q)) {
+        // 0. Overview / "Iske bare mein batao" / General Explanation
+        if (preg_match('/(iske bare mein|ye kya hai|yeh kya hai|is ke bare|about|overview|kya karta hai|batao|explain invoicy|invoicy kya hai)/i', $q)) {
             return [
                 'reply' => match($lang) {
+                    'ur-roman' => "Ye Invoicy SaaS billing platform hai! Yahan aap professional invoices create kar sakte hain, 1-click industry presets add kar sakte hain, drafts ko verify kar ke publish kar sakte hain, automated payment reminders bhej sakte hain, aur Stripe, PayPal ya bank transfer se online payments le sakte hain. Aap kya karna chahte hain?",
+                    'ur' => "یہ انوائسی ساس بلنگ پلیٹ فارم ہے! یہاں آپ پروفیشنل انوائسز بنا سکتے ہیں، 1-کلک انڈسٹری سروسز استعمال کر سکتے ہیں، ڈرافٹ انوائسز کو محفوظ رکھ سکتے ہیں اور آن لائن ادائیگیاں وصول کر سکتے ہیں۔ آپ کیا کرنا چاہتے ہیں؟",
+                    'ar' => "هذه منصة Invoicy لإدارة الفواتير والمدفوعات المتكاملة! يمكنك إصدار فواتير احترافية، استخدام نماذج الخدمات الجاهزة، وحماية المسودات وقبول الدفع عبر الإنترنت.",
+                    'tr' => "Bu Invoicy SaaS fatura platformudur! Profesyonel faturalar oluşturabilir, 1-tıkla sektör şablonları ekleyebilir, taslakları güvenle yönetebilir ve ödemeleri tahsil edebilirsiniz.",
+                    default => "Invoicy is a next-generation SaaS billing suite. You can create invoices, use 1-click industry service presets, protect drafts before publishing, schedule automated payment reminders, and accept online card or bank payments."
+                },
+                'lang' => $voiceLang,
+                'suggestions' => match($lang) {
+                    'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', '1-Click Presets', 'Support Desk Kholein'],
+                    'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'فوری سروسز', 'سپورٹ ڈیسک کھولیں'],
+                    'tr' => ['Yeni fatura oluştur', 'Taslaklar nasıl çalışır?', 'Hızlı Şablonlar', 'Destek Masası Aç'],
+                    default => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk']
+                }
+            ];
+        }
+
+        // 1. Create Invoice & Walk-in Mode
+        if (preg_match('/(create invoice|new invoice|make invoice|issue invoice|walk-in|walkin|counter sale|cash sale|naya invoice|invoice banana|bill banana|نیا انوائس|انوائس بنائیں|انشاء فاتورة|فاتورة جديدة|fatura oluştur|yeni fatura|crear factura|nueva factura|créer facture|nouvelle facture|rechnung erstellen|neue rechnung|नया इनवॉइस|बिल बनाएं)/u', $q)) {
+            return [
+                'reply' => match($lang) {
+                    'ur-roman' => 'Aap ke liye naya Invoice Builder open kiya ja raha hai. Aap walk-in customer ya registered client select kar ke foran bill bana sakte hain.',
                     'ur' => 'آپ کے لیے نیا انوائس بلڈر کھولا جا رہا ہے۔ آپ اپنے رجسٹرڈ کلائنٹس منتخب کر سکتے ہیں یا واک ان موڈ کے ذریعے بغیر لاگ ان فوری کیش بل بنا سکتے ہیں۔',
                     'ar' => 'جاري فتح منشئ الفواتير لإصدار فاتورة جديدة. يمكنك اختيار عميل مسجل أو استخدام وضع العميل الفوري Walk-in.',
                     'tr' => 'Yeni bir fatura oluşturmanız için fatura oluşturucu açılıyor. Kayıtlı müşteri seçebilir veya Hızlı Satış modunu kullanabilirsiniz.',
@@ -151,6 +180,7 @@ class AiAssistantController extends Controller
                 'action' => ['type' => 'navigate', 'url' => route('invoices.create')],
                 'lang' => $voiceLang,
                 'suggestions' => match($lang) {
+                    'ur-roman' => ['1-Click Industry Presets', 'Drafts kaise kaam karte hain?', 'Invoices Dashboard'],
                     'ur' => ['انڈسٹری سروس پری سیٹس', 'ڈرافٹ انوائس کیسے کام کرتا ہے؟', 'میرے انوائسز'],
                     default => ['Industry Service Presets', 'How do drafts work?', 'View Invoices Dashboard']
                 }
@@ -361,6 +391,7 @@ class AiAssistantController extends Controller
         // Smart Default Contextual Fallback
         return [
             'reply' => match($lang) {
+                'ur-roman' => "Main aap ki baat samajh raha hoon. Main naya invoice banane, draft protection, 1-click industry presets, QR verification, ya 24h SLA Support Ticket me aap ki madad kar sakta hoon. Aap kis bare me janna chahte hain?",
                 'ur' => "میں آپ کی بات سمجھ رہا ہوں۔ میں انوائس بنانے، ڈرافٹ پروٹیکشن، 1-کلک انڈسٹری پری سیٹس، کیو آر ویریفکیشن، اور 24 گھنٹے کے سپورٹ ڈیسک میں آپ کی مدد کر سکتا ہوں۔ آپ کس بارے میں جاننا چاہتے ہیں؟",
                 'ar' => "أنا هنا لمساعدتك! يمكنني إرشادك حول إنشاء الفواتير، قوالب الخدمات الذكية، حماية المسودات، أو فتح تذكرة دعم فني. كيف يمكنني خدمتك؟",
                 'tr' => "'{$q}' hakkında yardımcı olabilirim. Yeni fatura oluşturma, 1-tıkla sektör şablonları, taslak koruması veya Destek Masası hakkında bana sorabilirsiniz.",
@@ -372,6 +403,7 @@ class AiAssistantController extends Controller
             },
             'lang' => $voiceLang,
             'suggestions' => match($lang) {
+                'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', '1-Click Presets', 'Support Desk Kholein'],
                 'ur' => ['نیا انوائس بنائیں', 'ڈرافٹ انوائس کیسے کام کرتا ہے؟', 'سپورٹ ڈیسک کھولیں'],
                 default => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk']
             }

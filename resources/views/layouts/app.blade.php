@@ -445,6 +445,144 @@
                         </div>
                     </div>
 
+                    <!-- Topbar Alerts & Notifications Option (Bell Center) -->
+                    @php
+                        $userWorkspace = auth()->user()?->workspace;
+                        $topAlerts = [];
+                        if ($userWorkspace) {
+                            // 1. Pending plan change requests
+                            $pReqs = \App\Models\SubscriptionAlert::where('workspace_id', $userWorkspace->id)
+                                ->whereIn('type', ['upgrade_request', 'downgrade_request'])
+                                ->latest()
+                                ->take(2)
+                                ->get();
+                            foreach ($pReqs as $pr) {
+                                if (($pr->metadata['status'] ?? 'pending') === 'pending') {
+                                    $topAlerts[] = [
+                                        'id' => $pr->id,
+                                        'title' => 'Pending ' . ucfirst($pr->metadata['request_type'] ?? 'Upgrade') . ' Request',
+                                        'desc' => 'Your request to ' . ($pr->metadata['requested_plan_name'] ?? 'Plan') . ' is awaiting verification.',
+                                        'time' => $pr->created_at->diffForHumans(),
+                                        'icon' => 'ph-hourglass-high',
+                                        'icon_color' => 'text-amber-500',
+                                        'bg_color' => 'bg-amber-50',
+                                        'url' => route('membership.index')
+                                    ];
+                                }
+                            }
+
+                            // 2. Viewed invoices
+                            $viewedInvs = $userWorkspace->invoices()
+                                ->whereNotNull('viewed_at')
+                                ->where('status', '!=', 'draft')
+                                ->latest('viewed_at')
+                                ->take(3)
+                                ->get();
+                            foreach ($viewedInvs as $vi) {
+                                $topAlerts[] = [
+                                    'id' => 'inv-' . $vi->id,
+                                    'title' => 'Invoice ' . $vi->invoice_number . ' Viewed',
+                                    'desc' => ($vi->client?->name ?: 'Customer') . ' viewed or downloaded the invoice.',
+                                    'time' => $vi->viewed_at ? $vi->viewed_at->diffForHumans() : $vi->updated_at->diffForHumans(),
+                                    'icon' => 'ph-eye',
+                                    'icon_color' => 'text-indigo-500',
+                                    'bg_color' => 'bg-indigo-50',
+                                    'url' => route('invoices.show', $vi->id)
+                                ];
+                            }
+
+                            // 3. Open Support Tickets with 24h SLA
+                            $openTicks = \App\Models\SupportTicket::where('workspace_id', $userWorkspace->id)
+                                ->whereIn('status', ['open', 'in_progress'])
+                                ->latest()
+                                ->take(2)
+                                ->get();
+                            foreach ($openTicks as $ot) {
+                                $topAlerts[] = [
+                                    'id' => 'tk-' . $ot->id,
+                                    'title' => 'Support Ticket ' . $ot->ticket_number,
+                                    'desc' => $ot->subject . ' (24h Turnaround SLA)',
+                                    'time' => $ot->created_at->diffForHumans(),
+                                    'icon' => 'ph-lifebuoy',
+                                    'icon_color' => 'text-sky-500',
+                                    'bg_color' => 'bg-sky-50',
+                                    'url' => route('support.show', $ot->id)
+                                ];
+                            }
+                        }
+                        $unreadAlertCount = count($topAlerts);
+                    @endphp
+
+                    <div class="relative" x-data="{ openAlerts: false }">
+                        <button @click="openAlerts = !openAlerts" 
+                                type="button" 
+                                class="relative inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                                title="{{ __('Notifications & Alerts') }}">
+                            <i class="ph ph-bell text-base"></i>
+                            @if($unreadAlertCount > 0)
+                                <span class="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white shadow-xs">
+                                    {{ $unreadAlertCount }}
+                                </span>
+                            @endif
+                        </button>
+
+                        <div x-show="openAlerts" 
+                             @click.outside="openAlerts = false" 
+                             x-cloak 
+                             class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                            
+                            <!-- Header -->
+                            <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-bell-ringing text-amber-400"></i>
+                                    <h4 class="text-xs font-bold uppercase tracking-wider">{{ __('Alerts & Notifications') }}</h4>
+                                </div>
+                                @if($unreadAlertCount > 0)
+                                    <span class="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold border border-red-500/30">
+                                        {{ $unreadAlertCount }} {{ __('Active') }}
+                                    </span>
+                                @endif
+                            </div>
+
+                            <!-- Alerts List -->
+                            <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                                @forelse($topAlerts as $alert)
+                                    <a href="{{ $alert['url'] }}" @click="openAlerts = false" class="p-3.5 hover:bg-slate-50 flex items-start gap-3 transition group">
+                                        <div class="w-8 h-8 rounded-lg {{ $alert['bg_color'] }} {{ $alert['icon_color'] }} flex items-center justify-center shrink-0 mt-0.5 text-base">
+                                            <i class="ph {{ $alert['icon'] }}"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between gap-1 mb-0.5">
+                                                <h5 class="text-xs font-bold text-slate-900 group-hover:text-red-600 transition truncate">{{ $alert['title'] }}</h5>
+                                                <span class="text-[10px] text-slate-400 shrink-0">{{ $alert['time'] }}</span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-600 leading-snug line-clamp-2">{{ $alert['desc'] }}</p>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="p-8 text-center text-slate-400">
+                                        <i class="ph ph-check-circle text-3xl text-emerald-500 mb-2 inline-block"></i>
+                                        <p class="text-xs font-bold text-slate-700">{{ __('All Caught Up!') }}</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">{{ __('No pending alerts or notifications for your workspace.') }}</p>
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                                <a href="{{ route('invoices.index') }}" class="text-slate-600 hover:text-red-600 font-bold transition flex items-center gap-1">
+                                    <i class="ph ph-receipt"></i> {{ __('Invoices') }}
+                                </a>
+                                <a href="{{ route('reminders.index') }}" class="text-slate-600 hover:text-red-600 font-bold transition flex items-center gap-1">
+                                    <i class="ph ph-bell"></i> {{ __('Reminders') }}
+                                </a>
+                                <a href="{{ route('support.index') }}" class="text-slate-600 hover:text-red-600 font-bold transition flex items-center gap-1">
+                                    <i class="ph ph-lifebuoy"></i> {{ __('Support Desk') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Replay Guide & Tour Button (Item 2) -->
                     <button @click="window.dispatchEvent(new CustomEvent('open-welcome-tour'))"
                             type="button"

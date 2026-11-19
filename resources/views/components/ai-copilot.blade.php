@@ -7,6 +7,7 @@
                 isListening: false,
                 isSpeaking: false,
                 soundEnabled: true,
+                userManuallySelectedLang: false,
                 currentLang: '{{ in_array(app()->getLocale(), ["tr", "ar", "ur", "es", "fr", "de", "hi", "en"]) ? app()->getLocale() : "en" }}',
                 speechLang: '{{ match(app()->getLocale()) { "ur" => "ur-PK", "ar" => "ar-SA", "hi" => "hi-IN", "tr" => "tr-TR", "es" => "es-ES", "fr" => "fr-FR", "de" => "de-DE", default => "en-US" } }}',
                 inputMessage: '',
@@ -97,6 +98,7 @@
 
                 setLanguage(langCode) {
                     if (!this.languages[langCode]) langCode = 'en';
+                    this.userManuallySelectedLang = true;
                     this.currentLang = langCode;
                     const langObj = this.languages[langCode];
                     this.speechLang = langObj.tag;
@@ -286,7 +288,7 @@
                             },
                             body: JSON.stringify({ 
                                 message: text, 
-                                lang: this.currentLang 
+                                lang: this.userManuallySelectedLang ? this.currentLang : null 
                             })
                         });
 
@@ -299,6 +301,22 @@
                             this.speechLang = data.lang;
                             if (this.recognition) {
                                 this.recognition.lang = data.lang;
+                            }
+                            // Auto-reflect detected conversation language in header
+                            if (data.lang === 'ur-PK' && this.currentLang !== 'ur') {
+                                this.currentLang = 'ur';
+                            } else if (data.lang === 'tr-TR' && this.currentLang !== 'tr') {
+                                this.currentLang = 'tr';
+                            } else if (data.lang === 'ar-SA' && this.currentLang !== 'ar') {
+                                this.currentLang = 'ar';
+                            } else if (data.lang === 'es-ES' && this.currentLang !== 'es') {
+                                this.currentLang = 'es';
+                            } else if (data.lang === 'fr-FR' && this.currentLang !== 'fr') {
+                                this.currentLang = 'fr';
+                            } else if (data.lang === 'de-DE' && this.currentLang !== 'de') {
+                                this.currentLang = 'de';
+                            } else if (data.lang === 'hi-IN' && this.currentLang !== 'hi') {
+                                this.currentLang = 'hi';
                             }
                         }
 
