@@ -12,21 +12,52 @@ class AiAssistantController extends Controller
      */
     public function chat(Request $request)
     {
+        $requestedLang = $request->input('lang');
         $query = trim($request->input('message', ''));
+        
+        // 1. Determine active language
+        if (!empty($requestedLang) && in_array($requestedLang, ['ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de', 'en'])) {
+            $langCode = $requestedLang;
+        } else {
+            $langCode = $this->detectLanguage(mb_strtolower($query, 'UTF-8'));
+            if ($langCode === 'en' && session('locale') && in_array(session('locale'), ['ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de'])) {
+                if (!preg_match('/\b(open|create|draft|publish|ticket|setting|settings|help|how|what|why|guide|tell|show|recall|verify|qr|payment|pay|customer|portal|email|smtp|promo|coupon|preset|presets|service|services|hello|hi|tour|walkin|walk-in)\b/i', $query)) {
+                    $langCode = session('locale');
+                }
+            }
+        }
+
+        $voiceLang = $this->getSpeechLangTag($langCode);
+
         if (empty($query)) {
             return response()->json([
-                'reply' => 'Please ask a question or give a voice command!',
-                'lang' => 'en-US',
-                'suggestions' => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk']
+                'reply' => match($langCode) {
+                    'ur' => 'براہ کرم کوئی سوال پوچھیں یا مائیک پر کلک کر کے بولیں!',
+                    'ar' => 'يرجى طرح سؤال أو إعطاء أمر صوتي عبر الميكروفون!',
+                    'tr' => 'Lütfen bir soru sorun veya mikrofon ile sesli komut verin!',
+                    'hi' => 'कृपया कोई प्रश्न पूछें या माइक पर क्लिक करके बोलें!',
+                    'es' => '¡Por favor haga una pregunta o use el micrófono!',
+                    'fr' => 'Veuillez poser une question ou donner une commande vocale !',
+                    'de' => 'Bitte stellen Sie eine Frage oder geben Sie einen Sprachbefehl !',
+                    default => 'Please ask a question or give a voice command!',
+                },
+                'lang' => $voiceLang,
+                'suggestions' => match($langCode) {
+                    'tr' => ['Yeni fatura oluştur', 'Taslaklar nasıl çalışır?', 'Hızlı Şablonlar', 'Destek Masası Aç'],
+                    'ar' => ['إنشاء فاتورة جديدة', 'كيف تعمل المسودات؟', 'نماذج جاهزة', 'فتح مكتب الدعم'],
+                    'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'فوری سروسز', 'سپورٹ ڈیسک کھولیں'],
+                    'es' => ['Crear nueva factura', '¿Cómo funcionan los borradores?', 'Plantillas rápidas', 'Abrir soporte'],
+                    'fr' => ['Créer une facture', 'Fonctionnement des brouillons', 'Modèles rapides', 'Ouvrir le support'],
+                    'de' => ['Neue Rechnung erstellen', 'Wie funktionieren Entwürfe?', 'Schnellvorlagen', 'Support öffnen'],
+                    'hi' => ['नया इनवॉइस बनाएं', 'ड्राफ्ट कैसे काम करते हैं?', 'त्वरित प्रीसेट', 'सपोर्ट डेस्क खोलें'],
+                    default => ['Create new invoice', 'How do drafts work?', '1-Click Presets', 'Open Support Desk'],
+                }
             ]);
         }
 
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
         $isSuperAdmin = $user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
         $q = mb_strtolower($query, 'UTF-8');
-
-        // Detect language
-        $langCode = $this->detectLanguage($q);
 
         // Process query
         return response()->json($this->generateLocalizedResponse($q, $langCode, $isSuperAdmin));

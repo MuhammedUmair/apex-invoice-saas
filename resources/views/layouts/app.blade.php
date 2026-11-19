@@ -537,18 +537,6 @@
                         @endif
                     </div>
                 @endif
-                @if(session('message'))
-                    <div class="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-xs sm:text-sm flex items-center gap-3 shadow-2xs">
-                        <i class="ph ph-info text-lg text-sky-600 shrink-0"></i>
-                        <span>{{ session('message') }}</span>
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm flex items-center gap-3 shadow-2xs">
-                        <i class="ph ph-warning-circle text-lg text-rose-600 shrink-0"></i>
-                        <span>{{ session('error') }}</span>
-                    </div>
-                @endif
             </div>
 
             <!-- Page Body -->
@@ -597,6 +585,7 @@
     </script>
 
     <x-welcome-modal />
+    <x-toast-notification />
     <x-ai-copilot />
 
     @livewireScripts
