@@ -19,8 +19,9 @@ class InvoiceNumberService
         $year = $year ?? (int) date('Y');
 
         return DB::transaction(function () use ($workspace, $prefix, $year) {
-            // Step 1: Check existing sequence row with lock
-            $sequence = InvoiceSequence::where('workspace_id', $workspace->id)
+            // Step 1: Check existing sequence row with lock (withoutGlobalScopes allows explicit workspace queries)
+            $sequence = InvoiceSequence::withoutGlobalScopes()
+                ->where('workspace_id', $workspace->id)
                 ->where('prefix', $prefix)
                 ->where('year', $year)
                 ->lockForUpdate()
@@ -29,14 +30,15 @@ class InvoiceNumberService
             // Step 2: Initialize sequence row if it does not exist yet
             if (!$sequence) {
                 try {
-                    $sequence = InvoiceSequence::create([
+                    $sequence = InvoiceSequence::withoutGlobalScopes()->create([
                         'workspace_id' => $workspace->id,
                         'prefix' => $prefix,
                         'year' => $year,
                         'last_number' => 0,
                     ]);
                 } catch (\Throwable $e) {
-                    $sequence = InvoiceSequence::where('workspace_id', $workspace->id)
+                    $sequence = InvoiceSequence::withoutGlobalScopes()
+                        ->where('workspace_id', $workspace->id)
                         ->where('prefix', $prefix)
                         ->where('year', $year)
                         ->lockForUpdate()

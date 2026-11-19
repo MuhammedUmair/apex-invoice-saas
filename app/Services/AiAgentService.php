@@ -902,7 +902,7 @@ What would you like to explore today?",
         $userId = $user ? $user->id : (Auth::id() ?? 1);
 
         // 1. Find or create Client record
-        $client = Client::firstOrCreate(
+        $client = Client::withoutGlobalScopes()->firstOrCreate(
             [
                 'workspace_id' => $workspace->id,
                 'name' => $clientName,
