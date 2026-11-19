@@ -371,6 +371,9 @@ Route::get('/v/{token}', [InvoiceController::class, 'verifyInvoice'])->name('inv
 Route::match(['get', 'post'], '/api/ai/copilot', [App\Http\Controllers\AiAssistantController::class, 'chat'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->name('ai.copilot.chat');
+Route::post('/api/ai/copilot/clear', [App\Http\Controllers\AiAssistantController::class, 'clearHistory'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->name('ai.copilot.clear');
 
 /*
 |--------------------------------------------------------------------------

@@ -109,6 +109,61 @@
             </div>
         </div>
 
+        <!-- AI Agent Configuration (Master Prompt Phase 9) -->
+        <div class="pt-6 mt-6 border-t border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                        <i class="ph ph-robot text-rose-400 text-base"></i>
+                        <span>AI Agent & Multilingual Financial Assistant</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Controls conversational intelligence, external LLM provider, and system prompts.</p>
+                </div>
+                <div>
+                    <select name="settings[ai_agent_enabled]" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-rose-400 focus:ring-2 focus:ring-rose-500 outline-none">
+                        <option value="1" {{ ($settings['ai_agent_enabled'] ?? '1') == '1' ? 'selected' : '' }}>Enabled (Active)</option>
+                        <option value="0" {{ ($settings['ai_agent_enabled'] ?? '1') == '0' ? 'selected' : '' }}>Disabled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">AI Provider</label>
+                    <select name="settings[ai_provider]" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                        <option value="auto" {{ ($settings['ai_provider'] ?? 'auto') == 'auto' ? 'selected' : '' }}>Auto (External LLM when key set, else Built-in Engine)</option>
+                        <option value="openai" {{ ($settings['ai_provider'] ?? '') == 'openai' ? 'selected' : '' }}>OpenAI API (GPT-4o / GPT-4o-mini)</option>
+                        <option value="gemini" {{ ($settings['ai_provider'] ?? '') == 'gemini' ? 'selected' : '' }}>Google Gemini API (Gemini 1.5 Flash)</option>
+                        <option value="local" {{ ($settings['ai_provider'] ?? '') == 'local' ? 'selected' : '' }}>Built-in Multilingual High-Speed Engine (Zero API Cost)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">LLM Model Name</label>
+                    <input type="text" name="settings[ai_model]" value="{{ $settings['ai_model'] ?? 'gpt-4o-mini' }}" placeholder="e.g. gpt-4o-mini, gpt-4o, gemini-1.5-flash"
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">OpenAI API Key (Optional)</label>
+                    <input type="password" name="settings[openai_api_key]" value="{{ $settings['openai_api_key'] ?? '' }}" placeholder="sk-..."
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Gemini API Key (Optional)</label>
+                    <input type="password" name="settings[gemini_api_key]" value="{{ $settings['gemini_api_key'] ?? '' }}" placeholder="AIzaSy..."
+                           class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Custom System Instructions / Knowledge Overrides</label>
+                <textarea name="settings[ai_system_prompt]" rows="3" placeholder="Enter custom instructions or brand behavior guidelines..."
+                          class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-200">{{ $settings['ai_system_prompt'] ?? '' }}</textarea>
+            </div>
+        </div>
+
         <div class="pt-4 flex justify-end">
             <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition">
                 Save Platform Settings

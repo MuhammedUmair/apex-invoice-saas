@@ -724,7 +724,9 @@
 
     <x-welcome-modal />
     <x-toast-notification />
-    <x-ai-copilot />
+    @if(\App\Models\CmsContent::getVal('ai_agent_enabled', '1') !== '0')
+        <x-ai-copilot />
+    @endif
 
     @livewireScripts
 </body>

@@ -906,6 +906,12 @@ class SuperAdminController extends Controller
             'welcome_step3_text' => CmsContent::getVal('welcome_step3_text', 'Draft invoices are completely private. Emails are never dispatched, and PDF downloads, customer payment portals, and QR verification screens are disabled until you click "Issue & Publish".'),
             'welcome_step4_title' => CmsContent::getVal('welcome_step4_title', '4. Cryptographic QR Seals & Automated Reminders'),
             'welcome_step4_text' => CmsContent::getVal('welcome_step4_text', 'Published invoices feature authentic ISO 2D QR verification codes for fraud prevention and automated milestone payment reminder schedules (45, 30, 15, 7, 3, and 2 days before due date).'),
+            'ai_agent_enabled' => CmsContent::getVal('ai_agent_enabled', '1'),
+            'ai_provider' => CmsContent::getVal('ai_provider', 'auto'),
+            'openai_api_key' => CmsContent::getVal('openai_api_key', ''),
+            'gemini_api_key' => CmsContent::getVal('gemini_api_key', ''),
+            'ai_model' => CmsContent::getVal('ai_model', 'gpt-4o-mini'),
+            'ai_system_prompt' => CmsContent::getVal('ai_system_prompt', ''),
         ];
         return view('admin.config.general', compact('settings'));
     }
