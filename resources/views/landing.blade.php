@@ -45,7 +45,7 @@
     <div class="bg-slate-900 text-white text-xs py-2.5 px-4 text-center font-medium border-b border-slate-800 flex items-center justify-center gap-2">
         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-600 text-white uppercase tracking-wider">New</span>
         <span>Introducing <strong>Invoicy by RedMaple</strong> &bull; Automated Payment Reminders & Multi-Currency GAAP Accounting</span>
-        <a href="https://invoicy.redmapleagency.com/register" class="underline hover:text-red-400 font-bold ml-1">Get Started Free &rarr;</a>
+        <a href="{{ route('register') }}" class="underline hover:text-red-400 font-bold ml-1">Get Started Free &rarr;</a>
     </div>
 
     <!-- Navigation Header -->
@@ -85,10 +85,10 @@
                         Open Dashboard
                     </a>
                 @else
-                    <a href="https://invoicy.redmapleagency.com/login" class="text-sm font-bold text-slate-700 hover:text-red-600 px-3 py-2 transition">
+                    <a href="{{ route('login') }}" class="text-sm font-bold text-slate-700 hover:text-red-600 px-3 py-2 transition">
                         Log In
                     </a>
-                    <a href="https://invoicy.redmapleagency.com/register" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-500/20 transition">
+                    <a href="{{ route('register') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-500/20 transition">
                         Get Started Free
                     </a>
                 @endauth
@@ -115,11 +115,11 @@
 
             <!-- CTA Buttons -->
             <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="https://invoicy.redmapleagency.com/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-base shadow-lg shadow-red-600/30 transition transform hover:-translate-y-0.5">
+                <a href="{{ route('register') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-base shadow-lg shadow-red-600/30 transition transform hover:-translate-y-0.5">
                     <i class="ph ph-rocket-launch text-xl"></i>
                     {{ \App\Models\CmsContent::getVal('hero_cta_primary', 'Start Free with Invoicy') }}
                 </a>
-                <a href="https://invoicy.redmapleagency.com/login" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow transition">
+                <a href="{{ route('login') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-base shadow transition">
                     <i class="ph ph-arrow-square-out text-xl"></i>
                     {{ \App\Models\CmsContent::getVal('hero_cta_secondary', 'Launch App / Login') }}
                 </a>
@@ -155,7 +155,7 @@
                         <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
                     </div>
                     <div class="text-[11px] font-mono text-slate-400 bg-slate-900 px-4 py-1 rounded-md border border-slate-700">
-                        https://invoicy.redmapleagency.com/invoices/create
+                        {{ url('/invoices/create') }}
                     </div>
                     <div class="text-xs text-slate-400 flex items-center gap-1 font-semibold">
                         <i class="ph ph-shield-check text-emerald-400"></i> TLS Encrypted
@@ -319,7 +319,7 @@
                         Multi-currency invoices, credit notes, customer portals, automated milestone reminders, and tax calculations.
                     </p>
                     <div class="mt-6">
-                        <a href="https://invoicy.redmapleagency.com/register" class="text-xs font-bold text-red-600 hover:text-red-700 inline-flex items-center gap-1">
+                        <a href="{{ route('register') }}" class="text-xs font-bold text-red-600 hover:text-red-700 inline-flex items-center gap-1">
                             Launch Invoicy App &rarr;
                         </a>
                     </div>
@@ -428,7 +428,7 @@
                             <li class="flex items-center gap-2"><i class="ph ph-check text-emerald-600 font-bold"></i> Standard PDF Downloads</li>
                         </ul>
                     </div>
-                    <a href="https://invoicy.redmapleagency.com/register" class="mt-8 block text-center py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition">
+                    <a href="{{ route('register') }}" class="mt-8 block text-center py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition">
                         Get Started Free
                     </a>
                 </div>
@@ -453,7 +453,7 @@
                             <li class="flex items-center gap-2"><i class="ph ph-check text-red-500 font-bold"></i> Password-Protected Customer PDFs</li>
                         </ul>
                     </div>
-                    <a href="https://invoicy.redmapleagency.com/register" class="mt-8 block text-center py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md shadow-red-500/20 transition">
+                    <a href="{{ route('register') }}" class="mt-8 block text-center py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md shadow-red-500/20 transition">
                         Start 14-Day Free Trial
                     </a>
                 </div>
@@ -474,7 +474,7 @@
                             <li class="flex items-center gap-2"><i class="ph ph-check text-emerald-600 font-bold"></i> High-Throughput REST API Access</li>
                         </ul>
                     </div>
-                    <a href="https://invoicy.redmapleagency.com/register" class="mt-8 block text-center py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition">
+                    <a href="{{ route('register') }}" class="mt-8 block text-center py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition">
                         Contact Enterprise
                     </a>
                 </div>
@@ -529,8 +529,8 @@
                 <div>
                     <h5 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Account & Access</h5>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="https://invoicy.redmapleagency.com/login" class="hover:text-white transition">Portal Login</a></li>
-                        <li><a href="https://invoicy.redmapleagency.com/register" class="hover:text-white transition">Create Account</a></li>
+                        <li><a href="{{ route('login') }}" class="hover:text-white transition">Portal Login</a></li>
+                        <li><a href="{{ route('register') }}" class="hover:text-white transition">Create Account</a></li>
                         <li><a href="{{ route('docs.index') }}" class="hover:text-white transition">Documentation</a></li>
                     </ul>
                 </div>

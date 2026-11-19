@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     $host = request()->getHost();
 
-    if (str_starts_with($host, 'invoicy.')) {
+    if (str_starts_with($host, 'invoicy.') || str_starts_with($host, 'staging.')) {
         if (Auth::guard('web')->check()) {
             return redirect()->route('dashboard');
         }
