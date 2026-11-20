@@ -110,6 +110,12 @@ if (file_exists(`$stageCore . '/vendor/autoload.php')) {
     `$app = require_once `$stageCore . '/bootstrap/app.php';
     `$kernel = `$app->make(Illuminate\Contracts\Http\Kernel::class);
     `$kernel->handle(Illuminate\Http\Request::capture());
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        echo "Staging migrations executed: " . trim(\Illuminate\Support\Facades\Artisan::output()) . "\n";
+    } catch (\Throwable `$ex) {
+        echo "Migration notice: " . `$ex->getMessage() . "\n";
+    }
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
     echo "Staging caches cleared.\n";
 }

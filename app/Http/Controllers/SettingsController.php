@@ -45,6 +45,11 @@ class SettingsController extends Controller
             'phone' => 'nullable|string|max:50',
             'website' => 'nullable|url|max:255',
             'tax_id' => 'nullable|string|max:100',
+            'cra_bn_number' => 'nullable|string|max:30',
+            'qst_number' => 'nullable|string|max:30',
+            'small_supplier_exempt' => 'nullable|boolean',
+            'collect_qst' => 'nullable|boolean',
+            'collect_pst' => 'nullable|boolean',
             'country_code' => 'required|string|size:2',
             'currency' => 'required|string|size:3',
             'language' => 'required|string|max:10',
@@ -82,6 +87,22 @@ class SettingsController extends Controller
         $workspace->brand_color = $validated['brand_color'];
         $workspace->secondary_color = $validated['secondary_color'];
         $workspace->is_whitelabel_enabled = (bool)($request->has('is_whitelabel_enabled'));
+
+        // Strict Regional Tax Isolation: Scoped to Canadian workspaces only
+        if (strtoupper($validated['country_code']) === 'CA') {
+            $workspace->cra_bn_number = $request->input('cra_bn_number') ?: null;
+            $workspace->qst_number = $request->input('qst_number') ?: null;
+            $workspace->small_supplier_exempt = (bool) $request->has('small_supplier_exempt');
+            $workspace->collect_qst = (bool) $request->has('collect_qst');
+            $workspace->collect_pst = (bool) $request->has('collect_pst');
+        } else {
+            // Non-Canadian workspaces are strictly isolated from Canadian multi-tax logic
+            $workspace->cra_bn_number = null;
+            $workspace->qst_number = null;
+            $workspace->small_supplier_exempt = false;
+            $workspace->collect_qst = false;
+            $workspace->collect_pst = false;
+        }
 
         // Handle Custom Logo Upload or Removal
         if ($request->has('remove_logo') && $request->remove_logo) {

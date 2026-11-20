@@ -172,7 +172,126 @@
         </form>
     </div>
 
-    <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data" class="space-y-8">
+    <script>
+    (function() {
+        function initSettingsPresets() {
+            if (typeof Alpine !== 'undefined' && Alpine.data) {
+                Alpine.data('settingsRegionalManager', () => ({
+                    selectedCountry: '{{ old('country_code', $workspace->country_code ?? 'US') }}',
+                    originalCountry: '{{ old('country_code', $workspace->country_code ?? 'US') }}',
+                    selectedCurrency: '{{ old('currency', $workspace->currency ?? 'USD') }}',
+                    taxId: @json(old('tax_id', $workspace->tax_id ?? '')),
+                    bankInstructions: @json(old('bank_transfer_instructions', $workspace->bank_transfer_instructions ?? '')),
+                    craBnNumber: @json(old('cra_bn_number', $workspace->cra_bn_number ?? '')),
+                    qstNumber: @json(old('qst_number', $workspace->qst_number ?? '')),
+                    smallSupplierExempt: {{ old('small_supplier_exempt', $workspace->small_supplier_exempt ?? false) ? 'true' : 'false' }},
+                    collectQst: {{ old('collect_qst', $workspace->collect_qst ?? true) ? 'true' : 'false' }},
+                    collectPst: {{ old('collect_pst', $workspace->collect_pst ?? true) ? 'true' : 'false' }},
+                    showPresetPrompt: false,
+                    promptCountry: '',
+
+                    presets: {
+                        CA: {
+                            name: 'Canada',
+                            currency: 'CAD',
+                            taxLabel: 'Dynamic Place-of-Supply (GST/HST/QST)',
+                            taxIdLabel: 'CRA Business Number (BN / GST/HST)',
+                            taxIdPlaceholder: '123456789 RT0001',
+                            engineNote: 'Place of Supply Engine: 13% ON, 14% NS, 15% NB/NL/PE, 5% AB/BC/SK/MB/Territories + Provincial Tax',
+                            bankInstructions: 'Interac e-Transfer to billing@yourcompany.ca (Auto-deposit enabled). Please include Invoice # in the message.'
+                        },
+                        AE: {
+                            name: 'United Arab Emirates',
+                            currency: 'AED',
+                            taxLabel: 'VAT (5.00%)',
+                            taxIdLabel: 'Tax Registration Number (TRN)',
+                            taxIdPlaceholder: '100XXXXXXXXXXXX (15 digits)',
+                            engineNote: 'Federal Tax Authority (FTA) Standard 5.00% VAT',
+                            bankInstructions: "Bank Name: Emirates NBD / ADCB\nAccount Name: Your Company LLC\nIBAN: AE000000000000000000000\nSWIFT/BIC: EBILAEAD\nReference: Invoice #"
+                        },
+                        SA: {
+                            name: 'Saudi Arabia',
+                            currency: 'SAR',
+                            taxLabel: 'VAT (15.00%)',
+                            taxIdLabel: 'ZATCA VAT Registration Number',
+                            taxIdPlaceholder: '3XXXXXXXXXXXXX3 (15 digits starting & ending with 3)',
+                            engineNote: 'ZATCA Phase 1 & 2 Electronic Invoicing Standard',
+                            bankInstructions: "Bank Name: Al Rajhi / SNB\nAccount Name: Your Company Co.\nIBAN: SA0000000000000000000000\nSWIFT/BIC: RJHISARI\nReference: Invoice #"
+                        },
+                        TR: {
+                            name: 'Turkey',
+                            currency: 'TRY',
+                            taxLabel: 'KDV (20.00%)',
+                            taxIdLabel: 'Vergi Kimlik Numarası (VKN / TCKN)',
+                            taxIdPlaceholder: '1234567890 (10 digits)',
+                            engineNote: 'GIB Standart Katma Değer Vergisi (%20 KDV)',
+                            bankInstructions: "Banka Adı: Garanti BBVA / İş Bankası\nHesap Sahibi: Şirket Ünvanı Ltd. Şti.\nIBAN: TR00 0000 0000 0000 0000 0000 00\nAçıklama / Referans: Fatura #"
+                        },
+                        US: {
+                            name: 'United States',
+                            currency: 'USD',
+                            taxLabel: 'Sales Tax (0.00%)',
+                            taxIdLabel: 'EIN / Tax ID',
+                            taxIdPlaceholder: 'XX-XXXXXXX',
+                            engineNote: 'US State & Local Sales Tax Nexus Rules (Destination-based)',
+                            bankInstructions: "ACH / Domestic Wire Transfer\nBank Name: ...\nRouting (ABA): ...\nAccount Number: ...\nReference: Invoice #"
+                        },
+                        GB: {
+                            name: 'United Kingdom',
+                            currency: 'GBP',
+                            taxLabel: 'VAT (20.00%)',
+                            taxIdLabel: 'UK VAT Registration Number',
+                            taxIdPlaceholder: 'GB 123 4567 89',
+                            engineNote: 'HMRC Making Tax Digital Standard 20.00% VAT',
+                            bankInstructions: "Faster Payments / BACS Transfer\nAccount Name: ...\nSort Code: XX-XX-XX\nAccount Number: XXXXXXXX\nReference: Invoice #"
+                        },
+                        GLOBAL: {
+                            name: 'Global / International',
+                            currency: 'USD',
+                            taxLabel: 'Tax / VAT',
+                            taxIdLabel: 'Tax ID / VAT Number',
+                            taxIdPlaceholder: 'US-987654321 / GB123456',
+                            engineNote: 'GAAP / IFRS International Pre-Tax Discount Standard',
+                            bankInstructions: "International Wire Transfer / SWIFT\nBank Name: ...\nAccount / IBAN: ...\nSWIFT / BIC: ...\nReference: Invoice #"
+                        }
+                    },
+
+                    get currentPreset() {
+                        return this.presets[this.selectedCountry] || this.presets.GLOBAL;
+                    },
+
+                    onCountryChange() {
+                        if (this.selectedCountry !== this.originalCountry) {
+                            this.promptCountry = (this.presets[this.selectedCountry] || { name: this.selectedCountry }).name;
+                            this.showPresetPrompt = true;
+                        } else {
+                            this.showPresetPrompt = false;
+                        }
+                    },
+
+                    applyRegionalDefaults() {
+                        const p = this.currentPreset;
+                        this.selectedCurrency = p.currency;
+                        this.bankInstructions = p.bankInstructions;
+                        this.originalCountry = this.selectedCountry;
+                        this.showPresetPrompt = false;
+                    },
+
+                    dismissPresetPrompt() {
+                        this.showPresetPrompt = false;
+                    }
+                }));
+            } else {
+                document.addEventListener('alpine:init', initSettingsPresets, { once: true });
+            }
+        }
+        initSettingsPresets();
+    })();
+    </script>
+
+    <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data" 
+          x-data="settingsRegionalManager()"
+          class="space-y-8">
         @csrf
 
         <!-- Card 1: Agency Business Profile -->
@@ -195,9 +314,12 @@
                     @error('name') <span class="text-rose-600 text-xs">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">VAT / Tax Identification Number</label>
-                    <input type="text" name="tax_id" value="{{ old('tax_id', $workspace->tax_id) }}" placeholder="US-987654321 / GB123456"
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
+                           x-text="currentPreset.taxIdLabel || 'VAT / Tax Identification Number'">VAT / Tax Identification Number</label>
+                    <input type="text" name="tax_id" x-model="taxId"
+                           :placeholder="currentPreset.taxIdPlaceholder || 'US-987654321 / GB123456'"
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                    <p class="text-[11px] text-slate-500 mt-1" x-text="currentPreset.engineNote"></p>
                 </div>
             </div>
 
@@ -256,34 +378,168 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Primary Currency</label>
-                    <select name="currency" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                        <option value="USD" {{ old('currency', $workspace->currency) === 'USD' ? 'selected' : '' }}>USD ($)</option>
-                        <option value="EUR" {{ old('currency', $workspace->currency) === 'EUR' ? 'selected' : '' }}>EUR (€)</option>
-                        <option value="GBP" {{ old('currency', $workspace->currency) === 'GBP' ? 'selected' : '' }}>GBP (£)</option>
-                        <option value="AED" {{ old('currency', $workspace->currency) === 'AED' ? 'selected' : '' }}>AED (د.إ)</option>
-                        <option value="SAR" {{ old('currency', $workspace->currency) === 'SAR' ? 'selected' : '' }}>SAR (﷼)</option>
-                        <option value="CAD" {{ old('currency', $workspace->currency) === 'CAD' ? 'selected' : '' }}>CAD (C$)</option>
-                        <option value="AUD" {{ old('currency', $workspace->currency) === 'AUD' ? 'selected' : '' }}>AUD (A$)</option>
-                        <option value="INR" {{ old('currency', $workspace->currency) === 'INR' ? 'selected' : '' }}>INR (₹)</option>
-                        <option value="TRY" {{ old('currency', $workspace->currency) === 'TRY' ? 'selected' : '' }}>TRY (₺)</option>
-                        <option value="PKR" {{ old('currency', $workspace->currency) === 'PKR' ? 'selected' : '' }}>PKR (Rs)</option>
+                    <select name="currency" x-model="selectedCurrency" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-semibold">
+                        <option value="USD">USD ($)</option>
+                        <option value="CAD">CAD (C$)</option>
+                        <option value="AED">AED (د.إ)</option>
+                        <option value="SAR">SAR (﷼)</option>
+                        <option value="TRY">TRY (₺)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="AUD">AUD (A$)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="PKR">PKR (Rs)</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tax Jurisdiction Country</label>
-                    <select name="country_code" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                        <option value="US" {{ old('country_code', $workspace->country_code) === 'US' ? 'selected' : '' }}>United States</option>
-                        <option value="PK" {{ old('country_code', $workspace->country_code) === 'PK' ? 'selected' : '' }}>Pakistan</option>
-                        <option value="IN" {{ old('country_code', $workspace->country_code) === 'IN' ? 'selected' : '' }}>India</option>
-                        <option value="TR" {{ old('country_code', $workspace->country_code) === 'TR' ? 'selected' : '' }}>Turkey</option>
-                        <option value="AE" {{ old('country_code', $workspace->country_code) === 'AE' ? 'selected' : '' }}>UAE</option>
-                        <option value="SA" {{ old('country_code', $workspace->country_code) === 'SA' ? 'selected' : '' }}>Saudi Arabia</option>
-                        <option value="GB" {{ old('country_code', $workspace->country_code) === 'GB' ? 'selected' : '' }}>United Kingdom</option>
-                        <option value="CA" {{ old('country_code', $workspace->country_code) === 'CA' ? 'selected' : '' }}>Canada</option>
-                        <option value="AU" {{ old('country_code', $workspace->country_code) === 'AU' ? 'selected' : '' }}>Australia</option>
-                        <option value="DE" {{ old('country_code', $workspace->country_code) === 'DE' ? 'selected' : '' }}>Germany</option>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Tax Jurisdiction Country</label>
+                        <span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full" x-text="selectedCountry"></span>
+                    </div>
+                    <select name="country_code" x-model="selectedCountry" @change="onCountryChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-medium">
+                        <option value="US">🇺🇸 United States</option>
+                        <option value="CA">🇨🇦 Canada</option>
+                        <option value="AE">🇦🇪 United Arab Emirates (UAE)</option>
+                        <option value="SA">🇸🇦 Saudi Arabia (KSA)</option>
+                        <option value="TR">🇹🇷 Turkey (Türkiye)</option>
+                        <option value="GB">🇬🇧 United Kingdom</option>
+                        <option value="PK">🇵🇰 Pakistan</option>
+                        <option value="IN">🇮🇳 India</option>
+                        <option value="AU">🇦🇺 Australia</option>
+                        <option value="DE">🇩🇪 Germany</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Non-Destructive Regional Preset Confirmation Banner -->
+            <div x-show="showPresetPrompt" x-cloak x-transition
+                 class="mt-4 p-4 rounded-2xl bg-gradient-to-r from-red-50 via-rose-50 to-amber-50 border-2 border-red-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5">
+                    <div class="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                        <i class="ph ph-magic-wand"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-900 flex items-center gap-2">
+                            <span>Apply <span x-text="promptCountry" class="text-red-700 font-extrabold"></span> Regional Defaults?</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-200 uppercase tracking-wider" x-text="selectedCountry"></span>
+                        </h4>
+                        <p class="text-[11px] text-slate-600 mt-1 leading-relaxed">
+                            Adapts Primary Currency to <strong class="font-mono text-slate-900" x-text="currentPreset.currency"></strong>, sets tax labels to <strong x-text="currentPreset.taxLabel"></strong>, and loads pre-formatted remittance transfer instructions. Your other saved settings will be preserved.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                    <button type="button" @click="applyRegionalDefaults()"
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph ph-check-circle text-sm"></i>
+                        <span>Apply Defaults</span>
+                    </button>
+                    <button type="button" @click="dismissPresetPrompt()"
+                            class="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl border border-slate-200 transition cursor-pointer">
+                        Keep Current
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dedicated Canadian Tax & Compliance Card (CRA & Revenu Québec) -->
+        <div x-show="selectedCountry === 'CA'" x-cloak x-transition
+             class="bg-white rounded-2xl border-2 border-red-200 p-6 sm:p-8 shadow-sm space-y-6 scroll-mt-20">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-xl shrink-0">
+                        <svg class="w-6 h-6 text-red-600" viewBox="0 0 900 900" fill="currentColor">
+                            <path d="M450 50 L562 278 L732 232 L640 394 L850 472 L670 612 L760 800 L546 728 L490 880 L410 880 L354 728 L140 800 L230 612 L50 472 L260 394 L168 232 L338 278 Z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                            <span>Canadian Tax Compliance & Place-of-Supply Engine</span>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
+                                CRA & Revenu Québec
+                            </span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Configure your 15-character CRA Business Number, QST program ID, and provincial dual-tax collection</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Small Supplier Exemption Banner & Toggle -->
+            <div class="p-4 rounded-xl border transition"
+                 :class="smallSupplierExempt ? 'bg-amber-50 border-amber-200 text-amber-950' : 'bg-slate-50 border-slate-200 text-slate-800'">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="font-bold text-xs flex items-center gap-1.5">
+                            <i class="ph ph-shield-check text-sm text-amber-600"></i>
+                            <span>CRA Small-Supplier Exemption Rule (&lt; $30,000 CAD)</span>
+                        </div>
+                        <p class="text-[11px] text-slate-600 leading-relaxed">
+                            Under Excise Tax Act rules, Canadian businesses with gross worldwide revenue of $30,000 or less over 4 consecutive calendar quarters are not legally required to register for or collect GST/HST.
+                        </p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" name="small_supplier_exempt" value="1"
+                               x-model="smallSupplierExempt"
+                               class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
+                </div>
+                <template x-if="smallSupplierExempt">
+                    <div class="mt-3 pt-3 border-t border-amber-200/80 text-[11px] text-amber-900 font-semibold flex items-center gap-1.5">
+                        <i class="ph ph-info text-base text-amber-700"></i>
+                        <span>Small-Supplier Exemption Active: GST/HST collection is suppressed (0%) on issued invoices.</span>
+                    </div>
+                </template>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        CRA Business Number (BN / GST/HST)
+                    </label>
+                    <input type="text" name="cra_bn_number" x-model="craBnNumber"
+                           placeholder="123456789 RT0001"
+                           maxlength="30"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-red-500 outline-none">
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        Format: 9-digit Business Number + 2-letter program code (RT) + 4-digit account reference. Printed on Canadian client invoices for CRA input tax credits.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Revenu Québec QST Number (TQ)
+                    </label>
+                    <input type="text" name="qst_number" x-model="qstNumber"
+                           placeholder="1234567890 TQ0001"
+                           maxlength="30"
+                           class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-red-500 outline-none">
+                    <p class="text-[11px] text-slate-500 mt-1">
+                        Format: 10-digit identification number + TQ + 4-digit program reference. Mandatory if registering for Quebec Sales Tax (QST).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Dual-Tax Provincial Collection Toggles -->
+            <div class="pt-3 border-t border-slate-100 space-y-3">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Provincial Dual-Tax Engine Rules</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" name="collect_qst" value="1" x-model="collectQst"
+                               class="mt-0.5 w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500">
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Collect Quebec Sales Tax (9.975% QST)</span>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Calculated as a separate non-compounded line on invoices issued to Quebec clients.</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                        <input type="checkbox" name="collect_pst" value="1" x-model="collectPst"
+                               class="mt-0.5 w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500">
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">Collect Provincial Sales Tax (PST)</span>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Applies separate line rates in British Columbia (7%), Saskatchewan (6%), and Manitoba (7%).</p>
+                        </div>
+                    </label>
                 </div>
             </div>
         </div>
@@ -337,12 +593,21 @@
                 </label>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Bank Transfer & Interac e-Transfer Instructions
-                    </label>
-                    <textarea name="bank_transfer_instructions" rows="3"
-                              placeholder="e.g. Send Interac e-Transfer to payments@youragency.com (Auto-deposit enabled). For EFT/Wire: Institution 004, Transit 12345, Account 98765432. Please include Invoice # as payment reference."
-                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">{{ old('bank_transfer_instructions', $workspace->bank_transfer_instructions ?? '') }}</textarea>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            Bank Transfer & Remittance Instructions
+                        </label>
+                        <button type="button" 
+                                @click="bankInstructions = currentPreset.bankInstructions"
+                                class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer">
+                            <i class="ph ph-arrow-counter-clockwise"></i>
+                            <span>Load <span x-text="currentPreset.name"></span> Template</span>
+                        </button>
+                    </div>
+                    <textarea name="bank_transfer_instructions" rows="4"
+                              x-model="bankInstructions"
+                              :placeholder="currentPreset.bankInstructions"
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none">{{ old('bank_transfer_instructions', $workspace->bank_transfer_instructions ?? '') }}</textarea>
                     <p class="text-[11px] text-slate-500 mt-1">Rendered on customer payment portals and invoice PDFs with the required Invoice Number reference.</p>
                 </div>
             </div>

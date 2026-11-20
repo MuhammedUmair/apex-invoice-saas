@@ -23,6 +23,11 @@ class Workspace extends Model
         'language',
         'country_code',
         'tax_id',
+        'cra_bn_number',
+        'qst_number',
+        'small_supplier_exempt',
+        'collect_qst',
+        'collect_pst',
         'address',
         'phone',
         'email',
@@ -41,6 +46,9 @@ class Workspace extends Model
         'bank_details' => 'array',
         'enable_paypal' => 'boolean',
         'enable_bank_transfer' => 'boolean',
+        'small_supplier_exempt' => 'boolean',
+        'collect_qst' => 'boolean',
+        'collect_pst' => 'boolean',
         'stripe_keys_encrypted' => 'encrypted:array',
         'paypal_keys_encrypted' => 'encrypted:array',
         'smtp_settings_encrypted' => 'encrypted:array',
@@ -299,5 +307,13 @@ class Workspace extends Model
             return !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.secret'));
         }
         return false;
+    }
+
+    /**
+     * Check if workspace operates under Canadian taxation jurisdiction.
+     */
+    public function isCanadianWorkspace(): bool
+    {
+        return strtoupper($this->country_code ?? '') === 'CA';
     }
 }
