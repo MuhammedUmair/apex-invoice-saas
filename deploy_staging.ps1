@@ -26,6 +26,7 @@ if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 New-Item -ItemType Directory -Path $pkgDir | Out-Null
 
 Write-Host "[1/4] Collecting tracked source files from git..."
+Set-Location $repo
 $trackedFiles = git ls-files
 foreach ($f in $trackedFiles) {
     # Skip environment sensitive files and repo docs
