@@ -108,10 +108,13 @@ class PaymentController extends Controller
             return back()->withErrors(['amount_cents' => 'This invoice is already fully paid.']);
         }
 
-        // Allow amount in dollars or amount_cents directly
-        $rawAmount = $request->input('amount');
-        if ($request->has('amount') && !$request->has('amount_cents')) {
-            $request->merge(['amount_cents' => (int) round(((float) $rawAmount) * 100)]);
+        // Unit conversion safety guard: Ensure amount_cents is always the exact integer cents
+        // If explicit amount_cents is provided from Alpine modal, use it directly.
+        // If dollar amount is provided (e.g. 150.50), convert to integer cents (15050).
+        if ($request->filled('amount_cents') && is_numeric($request->input('amount_cents')) && (int) $request->input('amount_cents') > 0) {
+            $request->merge(['amount_cents' => (int) $request->input('amount_cents')]);
+        } elseif ($request->filled('amount')) {
+            $request->merge(['amount_cents' => (int) round(((float) $request->input('amount')) * 100)]);
         }
 
         $validated = $request->validate([
@@ -179,11 +182,22 @@ class PaymentController extends Controller
             abort(404, 'Payment does not belong to this invoice.');
         }
 
+        // Guard against already-voided payments before proceeding to prevent duplicate audit logs
+        if ($payment->status === 'voided' || $payment->status === 'refunded' || $payment->voided_at !== null) {
+            return redirect()->route('invoices.show', $invoice->id)
+                ->withErrors(['void' => "Payment #{$payment->payment_number} has already been voided/reversed."]);
+        }
+
         $validated = $request->validate([
             'reason' => 'required|string|min:5|max:500',
         ]);
 
-        $this->reconciliationService->voidInvoicePayment($payment, $validated['reason'], $user->id);
+        try {
+            $this->reconciliationService->voidInvoicePayment($payment, $validated['reason'], $user->id);
+        } catch (\Throwable $e) {
+            return redirect()->route('invoices.show', $invoice->id)
+                ->withErrors(['void' => $e->getMessage()]);
+        }
 
         AuditService::log('payment.voided', null, null, [
             'invoice_id' => $invoice->id,

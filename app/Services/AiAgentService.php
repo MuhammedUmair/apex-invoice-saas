@@ -67,6 +67,14 @@ class AiAgentService
             return $flowResponse;
         }
 
+        // 3.5. Instant Warm Human Greeting (Zero latency, prevents slow robotic LLM feature dumps)
+        if ($this->isPureGreeting($q)) {
+            $greetingResponse = $this->generateGreetingResponse($langCode, $voiceLang, $isRtl);
+            $this->recordAssistantReply($greetingResponse['reply']);
+            $this->logInteraction($rawQuery, $langCode, 'greeting', $greetingResponse, microtime(true) - $startTime);
+            return $greetingResponse;
+        }
+
         // 4. Attempt External LLM if Configured (OpenAI / Gemini)
         $externalResponse = $this->tryExternalLlm($rawQuery, $langCode, $workspace, $user, $history);
         if ($externalResponse !== null) {
@@ -478,6 +486,54 @@ class AiAgentService
     }
 
     /**
+     * Check if query is a pure conversational greeting without specific commands.
+     */
+    public function isPureGreeting(string $q): bool
+    {
+        return (bool) preg_match('/^(assalam|asalam|walekum|alaikum|walaikum|salam|slam|hello|hi|hey|good morning|good evening|good afternoon|namaste|marhaba|bonjour|hola|hallo|مرحبا|سلام|السلام عليكم|السلام علیکم|وعلیکم السلام|नमस्ते)\b/iu', $q)
+            && !preg_match('/\b(create|make|issue|banaye|banayein|banao|draft|preset|presets|tax|recall|overdue|unpaid|how to|invoice|bill|client|customer|ticket|support|طريقة|فاتورة|انوائس|ڈرافٹ)\b/iu', $q);
+    }
+
+    /**
+     * Generate warm, native greeting response matching the detected language.
+     */
+    public function generateGreetingResponse(string $lang, string $voiceLang, bool $isRtl): array
+    {
+        $reply = match ($lang) {
+            'ur' => "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! خوش آمدید!
+میں آپ کا انوائسی فنانشل اسسٹنٹ ہوں۔ آج میں آپ کی کیا مدد کر سکتا ہوں؟ کیا آپ نیا انوائس بنانا چاہتے ہیں یا اپنے فنانشل ریکارڈز اور کھاتے دیکھنا چاہتے ہیں؟",
+
+            'ur-roman' => "Walaikum Assalam! Khush aamdeed! Main aap ka Invoicy smart assistant hoon.
+Aaj main aap ki kya madad kar sakta hoon? Naya invoice banana hai, drafts samajhne hain, ya apna revenue aur balance check karna hai?",
+
+            'ar' => "وعليكم السلام ورحمة الله وبركاته! أهلاً وسهلاً بك في منصة Invoicy.
+كيف يمكنني مساعدتك اليوم؟ هل ترغب في إصدار فاتورة جديدة أو استعراض رصيدك المالي؟",
+
+            'hi' => "नमस्ते! Invoicy वित्तीय सहायक में आपका स्वागत है।
+आज मैं आपकी क्या सहायता कर सकता हूँ? क्या आप नया इनवॉइस बनाना चाहते हैं या अपने बिलिंग रिकॉर्ड्स देखना चाहते हैं?",
+
+            'tr' => "Merhaba! Invoicy Finans Asistanınıza hoş geldiniz.
+Bugün size nasıl yardımcı olabilirim? Yeni bir fatura mı oluşturmak istersiniz, yoksa hesap özetinize mi bakmak istersiniz?",
+
+            default => "Hello and welcome! I am your Invoicy Financial Assistant.
+How can I help you today? Would you like to create a new invoice, explore industry presets, or check your workspace stats?",
+        };
+
+        return [
+            'reply' => $reply,
+            'lang' => $voiceLang,
+            'lang_code' => $lang,
+            'is_rtl' => $isRtl,
+            'suggestions' => match ($lang) {
+                'ur' => ['نیا انوائس بنائیں', 'انوائس کیسے استعمال کریں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ڈیسک کھولیں'],
+                'ur-roman' => ['Naya Invoice Banayein', 'Invoice kaise use karein?', 'Mera Balance & Stats', 'Support Desk Kholein'],
+                'ar' => ['إنشاء فاتورة جديدة', 'كيف أستخدم الفواتير؟', 'إحصائيات حسابي', 'مكتب الدعم'],
+                default => ['Create new invoice', 'How do I use invoices?', 'My Workspace Stats', 'Open Support Desk'],
+            }
+        ];
+    }
+
+    /**
      * Localized High-Precision AI Reasoning Engine with Natural Human-like Dialogue.
      */
     protected function generateLocalIntelligenceResponse(string $q, string $rawQuery, string $lang, string $voiceLang, bool $isRtl, ?Workspace $workspace, $user): array
@@ -485,40 +541,8 @@ class AiAgentService
         // -------------------------------------------------------------
         // INTENT 0: Warm, Natural Human Greeting (Handles "Assalam Walekum", "Hello", "Hi")
         // -------------------------------------------------------------
-        if (preg_match('/^(assalam|asalam|walekum|alaikum|walaikum|salam|slam|hello|hi|hey|good morning|good evening|good afternoon|namaste|marhaba|bonjour|hola|hallo|مرحبا|سلام|السلام عليكم|السلام علیکم|وعلیکم السلام|नमस्ते)\b/iu', $q)
-            && !preg_match('/\b(create|make|issue|banaye|banayein|banao|draft|preset|presets|tax|recall|overdue|unpaid|how to|invoice|bill|client|customer|ticket|support|طريقة|فاتورة|انوائس|ڈرافٹ)\b/iu', $q)) {
-            $reply = match ($lang) {
-                'ur' => "وعلیکم السلام ورحمۃ اللہ وبرکاتہ! خوش آمدید!
-میں آپ کا انوائسی فنانشل اسسٹنٹ ہوں۔ آج میں آپ کی کیا مدد کر سکتا ہوں؟ کیا آپ نیا انوائس بنانا چاہتے ہیں یا اپنے فنانشل ریکارڈز اور کھاتے دیکھنا چاہتے ہیں؟",
-
-                'ur-roman' => "Walaikum Assalam! Khush aamdeed! Main aap ka Invoicy smart assistant hoon.
-Aaj main aap ki kya madad kar sakta hoon? Naya invoice banana hai, drafts samajhne hain, ya apna revenue aur balance check karna hai?",
-
-                'ar' => "وعليكم السلام ورحمة الله وبركاته! أهلاً وسهلاً بك في منصة Invoicy.
-كيف يمكنني مساعدتك اليوم؟ هل ترغب في إصدار فاتورة جديدة أو استعراض رصيدك المالي؟",
-
-                'hi' => "नमस्ते! Invoicy वित्तीय सहायक में आपका स्वागत है।
-आज मैं आपकी क्या सहायता कर सकता हूँ? क्या आप नया इनवॉइस बनाना चाहते हैं या अपने बिलिंग रिकॉर्ड्स देखना चाहते हैं?",
-
-                'tr' => "Merhaba! Invoicy Finans Asistanınıza hoş geldiniz.
-Bugün size nasıl yardımcı olabilirim? Yeni bir fatura mı oluşturmak istersiniz, yoksa hesap özetinize mi bakmak istersiniz?",
-
-                default => "Hello and welcome! I am your Invoicy Financial Assistant.
-How can I help you today? Would you like to create a new invoice, explore industry presets, or check your workspace stats?",
-            };
-
-            return [
-                'reply' => $reply,
-                'lang' => $voiceLang,
-                'lang_code' => $lang,
-                'is_rtl' => $isRtl,
-                'suggestions' => match ($lang) {
-                    'ur' => ['نیا انوائس بنائیں', 'انوائس کیسے استعمال کریں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ڈیسک کھولیں'],
-                    'ur-roman' => ['Naya Invoice Banayein', 'Invoice kaise use karein?', 'Mera Balance & Stats', 'Support Desk Kholein'],
-                    'ar' => ['إنشاء فاتورة جديدة', 'كيف أستخدم الفواتير؟', 'إحصائيات حسابي', 'مكتب الدعم'],
-                    default => ['Create new invoice', 'How do I use invoices?', 'My Workspace Stats', 'Open Support Desk'],
-                }
-            ];
+        if ($this->isPureGreeting($q)) {
+            return $this->generateGreetingResponse($lang, $voiceLang, $isRtl);
         }
 
         // -------------------------------------------------------------
@@ -1230,8 +1254,22 @@ What would you like to explore today?",
     protected function buildSystemPrompt(string $langCode, string $wsContext): string
     {
         $customPrompt = CmsContent::getVal('ai_system_prompt', '');
+
+        $langDirective = match ($langCode) {
+            'ur-roman' => "MANDATORY LANGUAGE: The user is writing in Roman Urdu (Urdu written in Latin alphabet, e.g. 'Assalam Walekum', 'naya invoice banana hai'). You MUST reply strictly in Roman Urdu. NEVER reply in English or Devanagari script.",
+            'ur' => "MANDATORY LANGUAGE: The user is writing in Urdu script. You MUST reply strictly in native Urdu (Nastaliq/Arabic alphabet). NEVER reply in English or Arabic.",
+            'ar' => "MANDATORY LANGUAGE: The user is writing in Arabic. You MUST reply strictly in fluent, professional Arabic. NEVER reply in English.",
+            'hi' => "MANDATORY LANGUAGE: The user is writing in Hindi (Devanagari script). You MUST reply strictly in Hindi.",
+            'tr' => "MANDATORY LANGUAGE: The user is writing in Turkish. You MUST reply strictly in Turkish.",
+            'es' => "MANDATORY LANGUAGE: The user is writing in Spanish. You MUST reply strictly in Spanish.",
+            'fr' => "MANDATORY LANGUAGE: The user is writing in French. You MUST reply strictly in French.",
+            'de' => "MANDATORY LANGUAGE: The user is writing in German. You MUST reply strictly in German.",
+            default => "MANDATORY LANGUAGE: The user is writing in English. Reply in English."
+        };
         
-        $base = "You are the conversational financial AI Agent for 'Invoicy by RedMaple', a high-precision multi-tenant SaaS billing platform.
+        $base = "{$langDirective}
+
+You are the conversational financial AI Agent for 'Invoicy by RedMaple', a high-precision multi-tenant SaaS billing platform.
 You are knowledgeable, conversational, helpful, concise, and speak naturally like a human assistant.
 
 Key Platform Knowledge:
@@ -1247,11 +1285,8 @@ Key Platform Knowledge:
 CONVERSATIONAL RULES:
 - Detect the user's language automatically and reply strictly in the user's language.
 - When user greets (e.g. 'Assalam Walekum', 'Hello', 'Hi'), reply warmly and politely without robotic feature dumping.
-- When user writes in Urdu script, respond ONLY in native Urdu (Nastaliq/Arabic script). NEVER respond in Arabic.
-- When user writes in Roman Urdu/Hinglish (e.g. 'invoice kaise use kar sakta hun', 'naya invoice banana hai'), respond naturally in Roman Urdu.
-- When user writes in Arabic, respond in fluent professional Arabic.
-- When user writes in English, Turkish, Spanish, French, German, Hindi, respond in that respective language.
-- Keep responses friendly, structured with bullet points where appropriate, and offer clear next steps.
+- Never dump all 5 platform features in a giant bullet list unless specifically asked 'What are all the features?'.
+- Keep responses friendly, conversational, concise, and offer clear next steps.
 
 {$wsContext}";
 

@@ -695,13 +695,20 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('invoices.payments.manual', $invoice->id) }}" class="space-y-4">
+            <form method="POST" action="{{ route('invoices.payments.manual', $invoice->id) }}" class="space-y-4"
+                  x-data="{ 
+                      dollarAmount: '{{ old('amount', number_format($invoice->due_cents / 100, 2, '.', '')) }}',
+                      submitting: false 
+                  }"
+                  @submit="submitting = true">
                 @csrf
+                <input type="hidden" name="amount_cents" :value="Math.round((parseFloat(dollarAmount) || 0) * 100)">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Payment Amount') }} ({{ $invoice->currency }}) *</label>
                         <input type="number" step="0.01" min="0.01" max="{{ number_format($invoice->due_cents / 100, 2, '.', '') }}"
-                               name="amount" value="{{ old('amount', number_format($invoice->due_cents / 100, 2, '.', '')) }}" required
+                               x-model="dollarAmount"
+                               name="amount" required
                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
                     </div>
                     <div>
@@ -736,11 +743,12 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                    <button type="button" @click="showPaymentModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
+                    <button type="button" @click="showPaymentModal = false" :disabled="submitting" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
                         {{ __('Cancel') }}
                     </button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm">
-                        {{ __('Confirm & Record Payment') }}
+                    <button type="submit" :disabled="submitting" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg shadow-sm">
+                        <span x-show="!submitting">{{ __('Confirm & Record Payment') }}</span>
+                        <span x-show="submitting">{{ __('Recording Payment...') }}</span>
                     </button>
                 </div>
             </form>
@@ -765,7 +773,9 @@
                 </button>
             </div>
 
-            <form method="POST" :action="'/invoices/{{ $invoice->id }}/payments/' + voidPaymentId + '/void'" class="space-y-4">
+            <form method="POST" :action="'/invoices/{{ $invoice->id }}/payments/' + voidPaymentId + '/void'" class="space-y-4"
+                  x-data="{ submittingVoid: false }"
+                  @submit="submittingVoid = true">
                 @csrf
                 <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed space-y-1">
                     <strong>{{ __('CRA Financial Compliance Notice:') }}</strong>
@@ -779,11 +789,12 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                    <button type="button" @click="showVoidModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
+                    <button type="button" @click="showVoidModal = false" :disabled="submittingVoid" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
                         {{ __('Cancel') }}
                     </button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm">
-                        {{ __('Confirm Void & Reverse Balance') }}
+                    <button type="submit" :disabled="submittingVoid" class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-lg shadow-sm">
+                        <span x-show="!submittingVoid">{{ __('Confirm Void & Reverse Balance') }}</span>
+                        <span x-show="submittingVoid">{{ __('Voiding Payment...') }}</span>
                     </button>
                 </div>
             </form>

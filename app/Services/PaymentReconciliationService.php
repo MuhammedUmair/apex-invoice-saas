@@ -135,13 +135,17 @@ class PaymentReconciliationService
      */
     public function voidInvoicePayment(Payment $payment, string $reason, int $userId): Payment
     {
-        if ($payment->status === 'voided' || $payment->status === 'refunded') {
+        if ($payment->status === 'voided' || $payment->status === 'refunded' || $payment->voided_at !== null) {
             throw new Exception("This payment has already been voided/reversed.");
         }
 
         return DB::transaction(function () use ($payment, $reason, $userId) {
             $lockedPayment = Payment::withoutGlobalScopes()->where('id', $payment->id)->lockForUpdate()->firstOrFail();
             $lockedInvoice = Invoice::withoutGlobalScopes()->where('id', $lockedPayment->invoice_id)->lockForUpdate()->firstOrFail();
+
+            if ($lockedPayment->status === 'voided' || $lockedPayment->status === 'refunded' || $lockedPayment->voided_at !== null) {
+                throw new Exception("This payment has already been voided/reversed.");
+            }
 
             $lockedPayment->status = 'refunded';
             $lockedPayment->voided_at = now();

@@ -89,5 +89,19 @@ $webclient.UploadFile("ftp://$StagingHost/deploy_stage_bridge.php", $bridgeLocal
 Remove-Item -Force $bridgeLocal
 Remove-Item -Force $zipPath
 
+Write-Host "Triggering staging bridge extraction..."
+try {
+    $res = Invoke-RestMethod -Uri "https://redmapleagency.com/deploy_stage_bridge.php" -Method Get
+    Write-Host $res
+} catch {
+    Write-Warning "Bridge execution notice: $_"
+}
+
+# Cleanup bridge file from FTP
+$ftpDel = [System.Net.FtpWebRequest]::Create("ftp://$StagingHost/deploy_stage_bridge.php")
+$ftpDel.Method = [System.Net.WebRequestMethods+Ftp]::DeleteFile
+$ftpDel.Credentials = New-Object System.Net.NetworkCredential($StagingUser, $StagingPass)
+try { $ftpDel.GetResponse().Close() } catch {}
+
 Write-Host "`nStaging pipeline executed successfully!" -ForegroundColor Green
 Write-Host "Verify your enhancements at staging subdomain before running promote_to_production.ps1." -ForegroundColor Yellow
