@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use Exception;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -33,13 +34,21 @@ class PaymentReconciliationService
         string $transactionId,
         string $idempotencyKey,
         array $paymentMethodDetails = [],
-        ?int $recordedByUserId = null
+        ?int $recordedByUserId = null,
+        int $feeCents = 0,
+        ?int $netAmountCents = null,
+        ?string $paymentDate = null
     ): Payment {
         // Fast-path: Check if already processed
         $existing = Payment::withoutGlobalScopes()->where('idempotency_key', $idempotencyKey)->first();
         if ($existing) {
             return $existing;
         }
+
+        $calculatedNet = $netAmountCents !== null ? $netAmountCents : max(0, $amountCents - $feeCents);
+        $method = $paymentMethodDetails['payment_method'] ?? ($gateway === 'manual' ? 'manual' : $gateway);
+        $refNumber = $paymentMethodDetails['reference_number'] ?? null;
+        $effectiveDate = $paymentDate ? Carbon::parse($paymentDate) : now();
 
         try {
             return DB::transaction(function () use (
@@ -49,7 +58,12 @@ class PaymentReconciliationService
                 $transactionId,
                 $idempotencyKey,
                 $paymentMethodDetails,
-                $recordedByUserId
+                $recordedByUserId,
+                $feeCents,
+                $calculatedNet,
+                $method,
+                $refNumber,
+                $effectiveDate
             ) {
                 // Lock the invoice row first to serialize balance calculations
                 $lockedInvoice = Invoice::withoutGlobalScopes()
@@ -71,13 +85,17 @@ class PaymentReconciliationService
                     'client_id' => $lockedInvoice->client_id,
                     'payment_number' => $paymentNumber,
                     'gateway' => $gateway,
+                    'payment_method' => $method,
+                    'reference_number' => $refNumber,
                     'amount_cents' => $amountCents,
+                    'fee_cents' => $feeCents,
+                    'net_amount_cents' => $calculatedNet,
                     'currency' => $lockedInvoice->currency,
                     'gateway_transaction_id' => $transactionId,
                     'idempotency_key' => $idempotencyKey,
                     'status' => 'completed',
                     'payment_method_details' => $paymentMethodDetails,
-                    'payment_date' => now(),
+                    'payment_date' => $effectiveDate,
                     'recorded_by_user_id' => $recordedByUserId,
                 ]);
 
@@ -88,7 +106,7 @@ class PaymentReconciliationService
                 $lockedInvoice->paid_cents = $newPaidCents;
                 $lockedInvoice->due_cents = $newDueCents;
 
-                if ($newDueCents === 0) {
+                if ($newDueCents === 0 && $lockedInvoice->total_cents > 0) {
                     $lockedInvoice->status = 'paid';
                     $lockedInvoice->paid_at = now();
                 } elseif ($newPaidCents > 0) {
@@ -110,6 +128,58 @@ class PaymentReconciliationService
             }
             throw $e;
         }
+    }
+
+    /**
+     * Void / reverse an existing payment entry with mandatory reason and CRA audit trail.
+     */
+    public function voidInvoicePayment(Payment $payment, string $reason, int $userId): Payment
+    {
+        if ($payment->status === 'voided' || $payment->status === 'refunded') {
+            throw new Exception("This payment has already been voided/reversed.");
+        }
+
+        return DB::transaction(function () use ($payment, $reason, $userId) {
+            $lockedPayment = Payment::withoutGlobalScopes()->where('id', $payment->id)->lockForUpdate()->firstOrFail();
+            $lockedInvoice = Invoice::withoutGlobalScopes()->where('id', $lockedPayment->invoice_id)->lockForUpdate()->firstOrFail();
+
+            $lockedPayment->status = 'refunded';
+            $lockedPayment->voided_at = now();
+            $lockedPayment->void_reason = $reason;
+            $lockedPayment->voided_by_user_id = $userId;
+            
+            $details = $lockedPayment->payment_method_details ?? [];
+            $details['void_audit'] = [
+                'voided_at' => now()->toIso8601String(),
+                'voided_by_user_id' => $userId,
+                'reason' => $reason,
+            ];
+            $lockedPayment->payment_method_details = $details;
+            $lockedPayment->save();
+
+            // Re-aggregate only active (non-voided/non-refunded) payments
+            $activePaymentsSum = Payment::withoutGlobalScopes()
+                ->where('invoice_id', $lockedInvoice->id)
+                ->where('status', 'completed')
+                ->sum('amount_cents');
+
+            $lockedInvoice->paid_cents = $activePaymentsSum;
+            $lockedInvoice->due_cents = max(0, $lockedInvoice->total_cents - $activePaymentsSum);
+
+            if ($lockedInvoice->due_cents === 0 && $lockedInvoice->total_cents > 0) {
+                $lockedInvoice->status = 'paid';
+            } elseif ($activePaymentsSum > 0) {
+                $lockedInvoice->status = 'partially_paid';
+                $lockedInvoice->paid_at = null;
+            } else {
+                $lockedInvoice->status = $lockedInvoice->sent_at ? 'sent' : 'issued';
+                $lockedInvoice->paid_at = null;
+            }
+
+            $lockedInvoice->save();
+
+            return $lockedPayment;
+        }, 5);
     }
 
     /**

@@ -139,9 +139,11 @@
     <!-- Payment Processing Options or Trial/Remittance Notice (Request 13) -->
     @if($invoice->due_cents > 0)
         @php
-            $hasOnlinePayment = $invoice->hasPaymentConfigured();
+            $workspace = $invoice->workspace;
             $hasStripe = $invoice->isStripeAvailable();
-            $hasPaypal = $invoice->isPaypalAvailable();
+            $hasPaypal = $workspace && ($workspace->enable_paypal ?? true) && $workspace->hasConfiguredPaypal();
+            $hasBankTransfer = $workspace && ($workspace->enable_bank_transfer ?? true) && (!empty($workspace->bank_transfer_instructions) || $workspace->hasConfiguredBankDetails());
+            $hasOnlinePayment = $hasStripe || $hasPaypal;
         @endphp
 
         @if($invoice->isTrialInvoice())
@@ -152,7 +154,7 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-amber-900 text-base">{{ __('Online Payment Disabled • Evaluation Free Trial') }}</h3>
-                        <p class="text-xs text-amber-700">{{ __('Online payment processing (Stripe & PayPal) is disabled during the Free Trial evaluation period.') }}</p>
+                        <p class="text-xs text-amber-700">{{ __('Online payment processing is disabled during the Free Trial evaluation period.') }}</p>
                     </div>
                 </div>
                 <div class="p-3 bg-white/80 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
@@ -160,56 +162,127 @@
                     <span>{{ __('For settlement or official inquiries, please contact the issuing vendor directly using their registered agency contact details or remittance instructions below.') }}</span>
                 </div>
             </div>
-        @elseif($hasOnlinePayment)
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">
-                <h3 class="font-bold text-slate-900 text-base">{{ __('Select Online Payment Method') }}</h3>
-                <p class="text-xs text-slate-500">{{ __('Pay securely online using credit card, debit card, or PayPal account.') }}</p>
-
-                <div class="grid grid-cols-1 {{ ($hasStripe && $hasPaypal) ? 'sm:grid-cols-2' : '' }} gap-4 pt-2">
-                    @if($hasStripe)
-                    <!-- Stripe Option -->
-                    <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
-                        @csrf
-                        <input type="hidden" name="gateway" value="stripe">
-                        <button type="submit" class="w-full p-4 rounded-xl border-2 border-blue-600 bg-blue-50/50 hover:bg-blue-50 text-blue-900 flex items-center justify-between transition group shadow-sm hover:shadow">
-                            <div class="{{ $isRtl ? 'text-right' : 'text-left' }}">
-                                <span class="block font-bold text-sm">{{ __('Pay with Credit Card') }}</span>
-                                <span class="text-[11px] text-blue-700">{{ __('Visa, Mastercard, Amex via Stripe') }}</span>
-                            </div>
-                            <i class="ph ph-credit-card text-2xl text-blue-600 group-hover:scale-110 transition-transform"></i>
-                        </button>
-                    </form>
-                    @endif
-
-                    @if($hasPaypal)
-                    <!-- PayPal Option -->
-                    <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
-                        @csrf
-                        <input type="hidden" name="gateway" value="paypal">
-                        <button type="submit" class="w-full p-4 rounded-xl border-2 border-amber-500 bg-amber-50/50 hover:bg-amber-50 text-amber-900 flex items-center justify-between transition group shadow-sm hover:shadow">
-                            <div class="{{ $isRtl ? 'text-right' : 'text-left' }}">
-                                <span class="block font-bold text-sm">{{ __('Pay with PayPal') }}</span>
-                                <span class="text-[11px] text-amber-700">{{ __('PayPal balance or linked cards') }}</span>
-                            </div>
-                            <i class="ph ph-wallet text-2xl text-amber-600 group-hover:scale-110 transition-transform"></i>
-                        </button>
-                    </form>
-                    @endif
-                </div>
-            </div>
         @else
-            <!-- Notice When Payment Gateways Are Not Configured (Request 13) -->
-            <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-xl shrink-0">
-                        <i class="ph ph-receipt"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-base">{{ __('Direct Vendor Settlement') }}</h3>
-                        <p class="text-xs text-slate-600">{{ __('Online card processing is not configured for this invoice. Please remit payment directly to the issuer using the payment terms or bank wire instructions provided below.') }}</p>
+            <!-- Online Payment Gateways (Stripe & PayPal) -->
+            @if($hasOnlinePayment)
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6 sm:p-8 space-y-4">
+                    <h3 class="font-bold text-slate-900 text-base">{{ __('Select Online Payment Method') }}</h3>
+                    <p class="text-xs text-slate-500">{{ __('Pay securely online using credit card, debit card, or PayPal account.') }}</p>
+
+                    <div class="grid grid-cols-1 {{ ($hasStripe && $hasPaypal) ? 'sm:grid-cols-2' : '' }} gap-4 pt-2">
+                        @if($hasStripe)
+                        <!-- Stripe Option -->
+                        <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
+                            @csrf
+                            <input type="hidden" name="gateway" value="stripe">
+                            <button type="submit" class="w-full p-4 rounded-xl border-2 border-blue-600 bg-blue-50/50 hover:bg-blue-50 text-blue-900 flex items-center justify-between transition group shadow-sm hover:shadow">
+                                <div class="{{ $isRtl ? 'text-right' : 'text-left' }}">
+                                    <span class="block font-bold text-sm">{{ __('Pay with Credit Card') }}</span>
+                                    <span class="text-[11px] text-blue-700">{{ __('Visa, Mastercard, Amex via Stripe') }}</span>
+                                </div>
+                                <i class="ph ph-credit-card text-2xl text-blue-600 group-hover:scale-110 transition-transform"></i>
+                            </button>
+                        </form>
+                        @endif
+
+                        @if($hasPaypal)
+                        <!-- PayPal Hosted Option -->
+                        <form method="POST" action="{{ route('invoices.pay', $invoice->public_secure_token) }}">
+                            @csrf
+                            <input type="hidden" name="gateway" value="paypal">
+                            <button type="submit" class="w-full p-4 rounded-xl border-2 border-amber-500 bg-amber-50/50 hover:bg-amber-50 text-amber-900 flex items-center justify-between transition group shadow-sm hover:shadow">
+                                <div class="{{ $isRtl ? 'text-right' : 'text-left' }}">
+                                    <span class="block font-bold text-sm">{{ __('Pay with PayPal') }}</span>
+                                    <span class="text-[11px] text-amber-700">{{ __('PayPal balance, linked bank, or card') }}</span>
+                                </div>
+                                <i class="ph ph-wallet text-2xl text-amber-600 group-hover:scale-110 transition-transform"></i>
+                            </button>
+                        </form>
+                        @endif
                     </div>
                 </div>
-            </div>
+            @endif
+
+            <!-- Manual / Offline Payment (Bank Wire, EFT & Interac e-Transfer) -->
+            @if($hasBankTransfer)
+                <div class="bg-gradient-to-br from-emerald-50/70 to-teal-50/40 rounded-2xl border-2 border-emerald-300/80 shadow-sm p-6 sm:p-8 space-y-4">
+                    <div class="flex items-start justify-between gap-4 flex-wrap">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
+                                <i class="ph ph-bank"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                                    <span>{{ __('Pay via Bank Transfer / Interac e-Transfer') }}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        {{ __('Direct Settlement') }}
+                                    </span>
+                                </h3>
+                                <p class="text-xs text-slate-600">{{ __('Send payment directly via your bank, EFT, wire, or Canadian Interac e-Transfer app.') }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Reference Box -->
+                        <div class="bg-white px-4 py-2.5 rounded-xl border border-emerald-300 text-xs shadow-2xs">
+                            <span class="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">{{ __('Required Payment Reference') }}</span>
+                            <span class="font-mono font-bold text-slate-900 text-sm flex items-center gap-1.5 mt-0.5">
+                                <i class="ph ph-hash text-emerald-600"></i> {{ $invoice->invoice_number }}
+                            </span>
+                        </div>
+                    </div>
+
+                    @if(!empty($workspace->bank_transfer_instructions))
+                        <div class="bg-white rounded-xl p-4 border border-emerald-200 text-xs text-slate-800 space-y-1.5 leading-relaxed">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">{{ __('Transfer Instructions') }}</span>
+                            <div class="whitespace-pre-line font-medium text-slate-700">{!! nl2br(e($workspace->bank_transfer_instructions)) !!}</div>
+                        </div>
+                    @endif
+
+                    @if(!empty($invoice->workspace_snapshot['bank_details']))
+                        @php $b = $invoice->workspace_snapshot['bank_details']; @endphp
+                        @if(!empty($b['bank_name']) || !empty($b['account_number']))
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/70 p-3.5 rounded-xl border border-emerald-200 text-xs">
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-bold">{{ __('Bank Name') }}</span>
+                                    <span class="font-semibold text-slate-800">{{ $b['bank_name'] ?? 'N/A' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-bold">{{ __('Account / IBAN') }}</span>
+                                    <span class="font-mono font-semibold text-slate-800">{{ $b['account_number'] ?? 'N/A' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-bold">{{ __('Routing / Transit') }}</span>
+                                    <span class="font-mono font-semibold text-slate-800">{{ $b['routing_number'] ?? 'N/A' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[10px] uppercase font-bold">{{ __('SWIFT / BIC') }}</span>
+                                    <span class="font-mono font-semibold text-slate-800">{{ $b['swift'] ?? 'N/A' }}</span>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
+                    <div class="p-3 bg-white/90 rounded-xl border border-emerald-200/80 text-[11px] text-slate-600 flex items-center gap-2">
+                        <i class="ph ph-shield-check text-emerald-600 text-base shrink-0"></i>
+                        <span>{{ __('Important: Please include Invoice #') }}<strong>{{ $invoice->invoice_number }}</strong> {{ __('in your transfer memo so our accounts team can promptly reconcile and mark your balance as settled.') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            @if(!$hasOnlinePayment && !$hasBankTransfer)
+                <!-- Notice When No Payment Methods Configured -->
+                <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-xl shrink-0">
+                            <i class="ph ph-receipt"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base">{{ __('Direct Vendor Settlement') }}</h3>
+                            <p class="text-xs text-slate-600">{{ __('Online payment methods are not active for this invoice. Please contact the issuer directly using their registered agency contact details below.') }}</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
         @endif
     @endif
 

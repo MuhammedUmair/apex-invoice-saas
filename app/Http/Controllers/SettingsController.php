@@ -58,6 +58,9 @@ class SettingsController extends Controller
             'account_number' => 'nullable|string|max:100',
             'routing_number' => 'nullable|string|max:100',
             'swift' => 'nullable|string|max:50',
+            'bank_transfer_instructions' => 'nullable|string|max:3000',
+            'enable_paypal' => 'nullable|boolean',
+            'enable_bank_transfer' => 'nullable|boolean',
             'stripe_publishable_key' => 'nullable|string',
             'stripe_secret_key' => 'nullable|string',
             'stripe_webhook_secret' => 'nullable|string',
@@ -125,13 +128,16 @@ class SettingsController extends Controller
             $workspace->logo_url = $validated['logo_url'];
         }
 
-        // Save bank details array
+        // Save bank details array and transfer instructions
         $workspace->bank_details = [
             'bank_name' => $validated['bank_name'] ?? '',
             'account_number' => $validated['account_number'] ?? '',
             'routing_number' => $validated['routing_number'] ?? '',
             'swift' => $validated['swift'] ?? '',
         ];
+        $workspace->bank_transfer_instructions = $validated['bank_transfer_instructions'] ?? null;
+        $workspace->enable_paypal = (bool) $request->has('enable_paypal');
+        $workspace->enable_bank_transfer = (bool) $request->has('enable_bank_transfer');
 
         // Save Gateway keys if provided (allowed for active paid plans or Super Admin, locked in trial)
         if ($user->isSuperAdmin() || !$workspace->isTrial()) {

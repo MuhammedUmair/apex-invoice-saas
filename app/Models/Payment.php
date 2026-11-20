@@ -18,7 +18,11 @@ class Payment extends Model
         'client_id',
         'payment_number',
         'gateway',
+        'payment_method',
+        'reference_number',
         'amount_cents',
+        'fee_cents',
+        'net_amount_cents',
         'currency',
         'gateway_transaction_id',
         'idempotency_key',
@@ -27,12 +31,18 @@ class Payment extends Model
         'payment_date',
         'notes',
         'recorded_by_user_id',
+        'voided_at',
+        'void_reason',
+        'voided_by_user_id',
     ];
 
     protected $casts = [
         'amount_cents' => 'integer',
+        'fee_cents' => 'integer',
+        'net_amount_cents' => 'integer',
         'payment_method_details' => 'array',
         'payment_date' => 'datetime',
+        'voided_at' => 'datetime',
     ];
 
     public function invoice(): BelongsTo
@@ -50,8 +60,35 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'recorded_by_user_id');
     }
 
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by_user_id');
+    }
+
     public function getFormattedAmountAttribute(): string
     {
         return number_format($this->amount_cents / 100, 2) . ' ' . $this->currency;
+    }
+
+    public function getFormattedFeeAttribute(): string
+    {
+        return number_format(($this->fee_cents ?? 0) / 100, 2) . ' ' . $this->currency;
+    }
+
+    public function getFormattedNetAmountAttribute(): string
+    {
+        return number_format(($this->net_amount_cents ?? $this->amount_cents) / 100, 2) . ' ' . $this->currency;
+    }
+
+    public function getMethodDisplayAttribute(): string
+    {
+        return match ($this->payment_method) {
+            'interac_etransfer' => 'Interac e-Transfer',
+            'bank_transfer' => 'Bank Wire / EFT',
+            'cheque' => 'Cheque',
+            'cash' => 'Cash',
+            'other' => 'Other / Offline',
+            default => ucfirst(str_replace('_', ' ', $this->payment_method ?: $this->gateway)),
+        };
     }
 }

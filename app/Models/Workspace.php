@@ -28,6 +28,9 @@ class Workspace extends Model
         'email',
         'website',
         'bank_details',
+        'bank_transfer_instructions',
+        'enable_paypal',
+        'enable_bank_transfer',
         'stripe_keys_encrypted',
         'paypal_keys_encrypted',
         'smtp_settings_encrypted',
@@ -36,6 +39,8 @@ class Workspace extends Model
 
     protected $casts = [
         'bank_details' => 'array',
+        'enable_paypal' => 'boolean',
+        'enable_bank_transfer' => 'boolean',
         'stripe_keys_encrypted' => 'encrypted:array',
         'paypal_keys_encrypted' => 'encrypted:array',
         'smtp_settings_encrypted' => 'encrypted:array',
@@ -212,11 +217,24 @@ class Workspace extends Model
      */
     public function hasConfiguredPaypal(): bool
     {
+        if (isset($this->enable_paypal) && !$this->enable_paypal) {
+            return false;
+        }
+
         $keys = $this->paypal_keys_encrypted;
         if (empty($keys) || !is_array($keys)) {
             return false;
         }
         return !empty($keys['client_id']) && !empty($keys['secret']);
+    }
+
+    /**
+     * Check if Bank transfer / Interac e-Transfer is enabled and configured.
+     */
+    public function hasBankTransferAvailable(): bool
+    {
+        $enabled = $this->enable_bank_transfer ?? true;
+        return $enabled && (!empty($this->bank_transfer_instructions) || $this->hasConfiguredBankDetails());
     }
 
     /**
@@ -242,7 +260,7 @@ class Workspace extends Model
         $owner = $this->users()->first();
         if ($owner && method_exists($owner, 'isSuperAdmin') && $owner->isSuperAdmin()) {
             $systemStripe = !empty(config('services.stripe.key')) && !empty(config('services.stripe.secret'));
-            $systemPaypal = !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.secret'));
+            $systemPaypal = (!isset($this->enable_paypal) || $this->enable_paypal) && !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.secret'));
             return $systemStripe || $systemPaypal;
         }
 
@@ -269,6 +287,10 @@ class Workspace extends Model
      */
     public function isPaypalAvailable(): bool
     {
+        if (isset($this->enable_paypal) && !$this->enable_paypal) {
+            return false;
+        }
+
         if ($this->hasConfiguredPaypal()) {
             return true;
         }

@@ -207,6 +207,32 @@
         </div>
     @endif
 
+    @php
+        $ws = $invoice->workspace;
+        $bankInst = $ws?->bank_transfer_instructions ?? ($invoice->workspace_snapshot['bank_transfer_instructions'] ?? null);
+        $bankDetails = $invoice->workspace_snapshot['bank_details'] ?? ($ws?->bank_details ?? []);
+    @endphp
+
+    @if(!empty($bankInst) || (!empty($bankDetails['bank_name']) && !empty($bankDetails['account_number'])))
+        <div style="margin-top: 15px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 11px; color: #475569;">
+            <strong style="color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">{{ __('Remittance / Payment Instructions') }}:</strong><br>
+            @if(!empty($bankInst))
+                <div style="margin-top: 4px; white-space: pre-line;">{{ $bankInst }}</div>
+            @endif
+            @if(!empty($bankDetails['bank_name']) && !empty($bankDetails['account_number']))
+                <div style="margin-top: 4px;">
+                    <strong>{{ __('Bank') }}:</strong> {{ $bankDetails['bank_name'] }} |
+                    <strong>{{ __('Account') }}:</strong> {{ $bankDetails['account_number'] }}
+                    @if(!empty($bankDetails['routing_number'])) | <strong>{{ __('Transit/Routing') }}:</strong> {{ $bankDetails['routing_number'] }} @endif
+                    @if(!empty($bankDetails['swift'])) | <strong>{{ __('SWIFT/BIC') }}:</strong> {{ $bankDetails['swift'] }} @endif
+                </div>
+            @endif
+            <div style="margin-top: 4px; color: #b91c1c; font-size: 10px; font-weight: bold;">
+                {{ __('Please include Invoice #') }}{{ $invoice->invoice_number }} {{ __('in transfer details.') }}
+            </div>
+        </div>
+    @endif
+
     <!-- Authentic Verification & QR Code -->
     <table style="width: 100%; border-collapse: collapse; margin-top: 25px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
         <tr>

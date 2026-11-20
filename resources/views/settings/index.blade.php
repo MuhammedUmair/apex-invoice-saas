@@ -328,6 +328,24 @@
                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 outline-none">
                 </div>
             </div>
+
+            <div class="pt-3 border-t border-slate-100 space-y-4">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="enable_bank_transfer" value="1" {{ old('enable_bank_transfer', $workspace->enable_bank_transfer ?? true) ? 'checked' : '' }}
+                           class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                    <span class="text-sm font-semibold text-slate-800">Enable Bank Transfer & Interac e-Transfer for Client Invoices</span>
+                </label>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Bank Transfer & Interac e-Transfer Instructions
+                    </label>
+                    <textarea name="bank_transfer_instructions" rows="3"
+                              placeholder="e.g. Send Interac e-Transfer to payments@youragency.com (Auto-deposit enabled). For EFT/Wire: Institution 004, Transit 12345, Account 98765432. Please include Invoice # as payment reference."
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">{{ old('bank_transfer_instructions', $workspace->bank_transfer_instructions ?? '') }}</textarea>
+                    <p class="text-[11px] text-slate-500 mt-1">Rendered on customer payment portals and invoice PDFs with the required Invoice Number reference.</p>
+                </div>
+            </div>
         </div>
 
         <!-- Card 4: Brand Identity, Custom Logo & Colors -->
@@ -474,9 +492,16 @@
                     </div>
 
                     <div class="space-y-4 pt-4 border-t border-slate-100">
-                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                            <i class="ph ph-paypal-logo text-lg text-sky-600"></i> PayPal Integration
-                        </h4>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                                <i class="ph ph-paypal-logo text-lg text-sky-600"></i> PayPal Integration
+                            </h4>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="enable_paypal" value="1" {{ old('enable_paypal', $workspace->enable_paypal ?? true) ? 'checked' : '' }}
+                                       class="w-4 h-4 text-sky-600 rounded border-slate-300 focus:ring-sky-500">
+                                <span class="text-xs font-semibold text-slate-700">Enable PayPal Checkout for Clients</span>
+                            </label>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-medium text-slate-600 mb-1">Client ID</label>

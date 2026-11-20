@@ -136,6 +136,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'sendEmail'])->name('invoices.send');
     Route::post('/invoices/{invoice}/reminder', [InvoiceController::class, 'sendReminder'])->name('invoices.reminder');
     Route::post('/invoices/{invoice}/recall', [InvoiceController::class, 'recall'])->name('invoices.recall');
+    Route::post('/invoices/{invoice}/payments/manual', [PaymentController::class, 'recordManualPayment'])->name('invoices.payments.manual');
+    Route::post('/invoices/{invoice}/payments/{payment}/void', [PaymentController::class, 'voidPayment'])->name('invoices.payments.void');
     Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
 
     // Comprehensive Help Center & Interactive Visual Guides

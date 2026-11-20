@@ -6,7 +6,7 @@
 @endphp
 
 @section('content')
-<div class="w-full space-y-6" x-data="{ showCreditModal: false, showRecallModal: false, openActions: false }">
+<div class="w-full space-y-6" x-data="{ showCreditModal: false, showRecallModal: false, openActions: false, showPaymentModal: false, showVoidModal: false, voidPaymentId: null, voidPaymentNumber: '' }">
     <!-- Top Action Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <div>
@@ -94,6 +94,13 @@
                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
                     <i class="ph ph-arrow-square-out text-base"></i> {{ __('Pay Portal') }}
                 </a>
+
+                @if($invoice->status !== 'draft' && $invoice->due_cents > 0)
+                    <button @click="showPaymentModal = true" type="button"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                        <i class="ph ph-receipt text-base"></i> {{ __('Record Payment') }}
+                    </button>
+                @endif
 
                 @if($invoice->status !== 'paid')
                     <button @click="showRecallModal = true" type="button"
@@ -417,6 +424,121 @@
         @endif
     </div>
 
+    <!-- Recorded Payments & Settlement Ledger Card -->
+    @php
+        $payments = $invoice->payments()->with(['recorder', 'voidedBy'])->orderBy('payment_date', 'desc')->get();
+    @endphp
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+                    <i class="ph ph-receipt"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <span>{{ __('Recorded Payments & Settlement Ledger') }}</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                            {{ $payments->count() }} {{ __('Total') }}
+                        </span>
+                    </h3>
+                    <p class="text-xs text-slate-500">{{ __('Idempotent transaction ledger with CRA compliance audit history') }}</p>
+                </div>
+            </div>
+
+            @if($invoice->status !== 'draft' && $invoice->due_cents > 0)
+                <button @click="showPaymentModal = true" type="button"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition">
+                    <i class="ph ph-plus-circle text-base"></i> {{ __('Record Manual Payment') }}
+                </button>
+            @endif
+        </div>
+
+        @if($payments->count() > 0)
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left">
+                    <thead class="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-bold">
+                        <tr>
+                            <th class="py-2.5 px-2">{{ __('Receipt #') }}</th>
+                            <th class="py-2.5 px-2">{{ __('Date') }}</th>
+                            <th class="py-2.5 px-2">{{ __('Method') }}</th>
+                            <th class="py-2.5 px-2">{{ __('Reference') }}</th>
+                            <th class="py-2.5 px-2">{{ __('Recorded By') }}</th>
+                            <th class="py-2.5 px-2 text-right">{{ __('Amount') }}</th>
+                            <th class="py-2.5 px-2 text-center">{{ __('Status') }}</th>
+                            <th class="py-2.5 px-2 text-right">{{ __('Action') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($payments as $p)
+                            <tr class="{{ $p->status === 'refunded' ? 'bg-slate-50/70 opacity-70' : '' }}">
+                                <td class="py-3 px-2 font-mono font-bold text-slate-900">{{ $p->payment_number }}</td>
+                                <td class="py-3 px-2 text-slate-600">{{ $p->payment_date ? $p->payment_date->format('M d, Y') : $p->created_at->format('M d, Y') }}</td>
+                                <td class="py-3 px-2">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800">
+                                        @if(in_array($p->payment_method, ['interac_etransfer', 'interac']))
+                                            <i class="ph ph-arrows-left-right text-amber-600"></i>
+                                        @elseif($p->payment_method === 'bank_transfer')
+                                            <i class="ph ph-bank text-emerald-600"></i>
+                                        @elseif($p->payment_method === 'cheque')
+                                            <i class="ph ph-notepad text-indigo-600"></i>
+                                        @elseif($p->payment_method === 'cash')
+                                            <i class="ph ph-money text-green-600"></i>
+                                        @elseif($p->gateway === 'stripe')
+                                            <i class="ph ph-stripe-logo text-indigo-600"></i>
+                                        @elseif($p->gateway === 'paypal')
+                                            <i class="ph ph-paypal-logo text-sky-600"></i>
+                                        @else
+                                            <i class="ph ph-wallet text-slate-600"></i>
+                                        @endif
+                                        <span>{{ $p->method_display }}</span>
+                                    </span>
+                                </td>
+                                <td class="py-3 px-2 font-mono text-slate-600">{{ $p->reference_number ?: ($p->gateway_transaction_id ?: '-') }}</td>
+                                <td class="py-3 px-2 text-slate-600">{{ $p->recorder?->name ?? 'System' }}</td>
+                                <td class="py-3 px-2 text-right font-bold {{ $p->status === 'refunded' ? 'line-through text-slate-400' : 'text-slate-900' }}">
+                                    {{ $p->formatted_amount }}
+                                </td>
+                                <td class="py-3 px-2 text-center">
+                                    @if($p->status === 'completed')
+                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                            {{ __('Completed') }}
+                                        </span>
+                                    @elseif($p->status === 'refunded')
+                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800" title="{{ __('Void reason: ') }}{{ $p->void_reason }}">
+                                            {{ __('Voided / Reversed') }}
+                                        </span>
+                                    @else
+                                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                                            {{ ucfirst($p->status) }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="py-3 px-2 text-right">
+                                    @if($p->status === 'completed')
+                                        <button @click="voidPaymentId = '{{ $p->id }}'; voidPaymentNumber = '{{ $p->payment_number }}'; showVoidModal = true" type="button"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:text-white hover:bg-rose-600 rounded-lg border border-rose-300 transition"
+                                                title="{{ __('Void / reverse payment for CRA compliance') }}">
+                                            <i class="ph ph-x-circle text-xs"></i> {{ __('Void') }}
+                                        </button>
+                                    @else
+                                        <span class="text-[10px] text-slate-400 font-mono" title="{{ $p->void_reason }}">
+                                            {{ __('Voided') }}
+                                        </span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="p-6 text-center text-slate-500 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                <i class="ph ph-receipt text-2xl text-slate-400 block mb-1"></i>
+                <span>{{ __('No payments recorded on this invoice yet.') }}</span>
+            </div>
+        @endif
+    </div>
+
     <!-- Credit Notes & Ledger Adjustments Card -->
     @if($invoice->creditNotes->isNotEmpty())
         <div class="bg-rose-50/50 rounded-2xl border border-rose-200 p-6 shadow-sm space-y-3">
@@ -549,6 +671,119 @@
                     </button>
                     <button type="submit" class="px-5 py-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-sm">
                         {{ __('Confirm Recall & Revert to Draft') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Manual Payment Modal -->
+    <div x-show="showPaymentModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200" @click.outside="showPaymentModal = false">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <i class="ph ph-receipt text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">{{ __('Record Payment') }}</h3>
+                        <p class="text-xs text-slate-500">Invoice #{{ $invoice->invoice_number }} &bull; {{ __('Balance Due') }}: {{ number_format($invoice->due_cents / 100, 2) }} {{ $invoice->currency }}</p>
+                    </div>
+                </div>
+                <button @click="showPaymentModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('invoices.payments.manual', $invoice->id) }}" class="space-y-4">
+                @csrf
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Payment Amount') }} ({{ $invoice->currency }}) *</label>
+                        <input type="number" step="0.01" min="0.01" max="{{ number_format($invoice->due_cents / 100, 2, '.', '') }}"
+                               name="amount" value="{{ old('amount', number_format($invoice->due_cents / 100, 2, '.', '')) }}" required
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Payment Method') }} *</label>
+                        <select name="payment_method" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 bg-white outline-none">
+                            <option value="bank_transfer">{{ __('Bank Transfer / Wire / EFT') }}</option>
+                            <option value="interac_etransfer">{{ __('Interac e-Transfer') }}</option>
+                            <option value="cheque">{{ __('Cheque') }}</option>
+                            <option value="cash">{{ __('Cash') }}</option>
+                            <option value="other">{{ __('Other Offline Payment') }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Date Received') }} *</label>
+                        <input type="date" name="paid_at" value="{{ old('paid_at', now()->format('Y-m-d')) }}" required
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Reference / Cheque #') }}</label>
+                        <input type="text" name="reference_number" placeholder="e.g. Interac Ref #, Cheque #402"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Internal Notes') }}</label>
+                    <textarea name="notes" rows="2" placeholder="e.g. Received via RBC business account wire deposit"
+                              class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showPaymentModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
+                        {{ __('Cancel') }}
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm">
+                        {{ __('Confirm & Record Payment') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Void Payment Modal (CRA Audit Compliance) -->
+    <div x-show="showVoidModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200" @click.outside="showVoidModal = false">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                        <i class="ph ph-warning text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">{{ __('Void / Reverse Payment') }}</h3>
+                        <p class="text-xs text-slate-500">{{ __('Receipt #') }}<span class="font-mono font-bold" x-text="voidPaymentNumber"></span></p>
+                    </div>
+                </div>
+                <button @click="showVoidModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+
+            <form method="POST" :action="'/invoices/{{ $invoice->id }}/payments/' + voidPaymentId + '/void'" class="space-y-4">
+                @csrf
+                <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 leading-relaxed space-y-1">
+                    <strong>{{ __('CRA Financial Compliance Notice:') }}</strong>
+                    <p>{{ __('In compliance with tax authority rules, payment entries cannot be silently deleted. Voiding this payment preserves the original entry in your audit ledger, reverses the balance, and stamps your user identity.') }}</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{{ __('Reason for Voiding') }} *</label>
+                    <textarea name="reason" rows="2" required minlength="5" placeholder="e.g. Cheque returned NSF, entered incorrect client account, duplicated entry"
+                              class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-rose-500 outline-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showVoidModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">
+                        {{ __('Cancel') }}
+                    </button>
+                    <button type="submit" class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm">
+                        {{ __('Confirm Void & Reverse Balance') }}
                     </button>
                 </div>
             </form>
