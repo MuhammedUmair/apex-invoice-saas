@@ -65,10 +65,42 @@ if (!is_dir(`$stageCore)) {
 
 `$zip = new ZipArchive();
 if (`$zip->open(`$zipPath) === true) {
-    `$zip->extractTo(`$stageCore);
+    for (`$i = 0; `$i < `$zip->numFiles; `$i++) {
+        `$entryName = `$zip->getNameIndex(`$i);
+        // Normalize Windows backslashes to Linux forward slashes
+        `$normalized = str_replace('\\', '/', `$entryName);
+        `$targetFile = `$stageCore . '/' . `$normalized;
+
+        if (substr(`$normalized, -1) === '/') {
+            if (!is_dir(`$targetFile)) {
+                mkdir(`$targetFile, 0755, true);
+            }
+        } else {
+            `$targetDir = dirname(`$targetFile);
+            if (!is_dir(`$targetDir)) {
+                mkdir(`$targetDir, 0755, true);
+            }
+            `$stream = `$zip->getStream(`$entryName);
+            if (`$stream) {
+                file_put_contents(`$targetFile, stream_get_contents(`$stream));
+                fclose(`$stream);
+            }
+        }
+    }
     `$zip->close();
     @unlink(`$zipPath);
-    echo "Staging archive unpacked successfully.\n";
+    echo "Staging archive unpacked successfully with normalized paths.\n";
+
+    // Clean up any stray backslash files created by previous Windows zip extracts
+    `$dh = opendir(`$stageCore);
+    if (`$dh) {
+        while ((`$file = readdir(`$dh)) !== false) {
+            if (strpos(`$file, '\\') !== false) {
+                @unlink(`$stageCore . '/' . `$file);
+            }
+        }
+        closedir(`$dh);
+    }
 } else {
     echo "FAILED to open staging archive.\n";
 }
