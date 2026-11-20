@@ -70,8 +70,14 @@ class TaxCalculationService
             return null;
         }
 
-        $clean = strtoupper(trim($province));
-        return self::$canadianProvinces[$clean] ?? null;
+        $upper = mb_strtoupper(trim($province), 'UTF-8');
+        if (isset(self::$canadianProvinces[$upper])) {
+            return self::$canadianProvinces[$upper];
+        }
+
+        // Also normalize accents (e.g. É -> E)
+        $unaccented = str_replace(['É', 'È', 'Ê', 'Ë', 'Â', 'À'], ['E', 'E', 'E', 'E', 'A', 'A'], $upper);
+        return self::$canadianProvinces[$unaccented] ?? null;
     }
 
     /**
