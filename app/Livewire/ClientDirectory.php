@@ -23,6 +23,7 @@ class ClientDirectory extends Component
     public string $tax_id = '';
     public string $address = '';
     public string $city = '';
+    public string $province = '';
     public string $country_code = 'US';
     public string $preferred_currency = 'USD';
     public string $preferred_language = 'en';
@@ -57,6 +58,7 @@ class ClientDirectory extends Component
         'tax_id' => 'nullable|string|max:100',
         'address' => 'nullable|string',
         'city' => 'nullable|string|max:100',
+        'province' => 'nullable|string|max:50',
         'country_code' => 'required|string|size:2',
         'preferred_currency' => 'required|string|size:3',
         'preferred_language' => 'required|string|max:10',
@@ -71,7 +73,7 @@ class ClientDirectory extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['name', 'company_name', 'email', 'phone', 'tax_id', 'address', 'city', 'editingClientId']);
+        $this->reset(['name', 'company_name', 'email', 'phone', 'tax_id', 'address', 'city', 'province', 'editingClientId']);
         $this->is_tax_exempt = false;
         $this->country_code = 'US';
         $this->preferred_currency = 'USD';
@@ -92,6 +94,7 @@ class ClientDirectory extends Component
         $this->tax_id = $client->tax_id ?? '';
         $this->address = $client->address ?? '';
         $this->city = $client->city ?? '';
+        $this->province = $client->province ?? $client->state ?? '';
         $this->country_code = $client->country_code ?? 'US';
         $this->preferred_currency = $client->preferred_currency ?? 'USD';
         $this->preferred_language = $client->preferred_language ?? 'en';
@@ -115,6 +118,8 @@ class ClientDirectory extends Component
             'tax_id' => $this->tax_id,
             'address' => $this->address,
             'city' => $this->city,
+            'state' => $this->province,
+            'province' => $this->province,
             'country_code' => $this->country_code,
             'preferred_currency' => $this->preferred_currency,
             'preferred_language' => $this->preferred_language,
@@ -139,6 +144,8 @@ class ClientDirectory extends Component
             'tax_id' => $this->tax_id,
             'address' => $this->address,
             'city' => $this->city,
+            'state' => $this->province,
+            'province' => $this->province,
             'country_code' => $this->country_code,
             'preferred_currency' => $this->preferred_currency,
             'preferred_language' => $this->preferred_language,

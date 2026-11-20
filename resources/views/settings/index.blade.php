@@ -194,7 +194,8 @@
                         CA: {
                             name: 'Canada',
                             currency: 'CAD',
-                            taxLabel: 'Dynamic Place-of-Supply (GST/HST/QST)',
+                            taxRate: 0.00,
+                            taxLabel: 'Dynamic Place-of-Supply (5% - 15% GST/HST/QST/PST)',
                             taxIdLabel: 'CRA Business Number (BN / GST/HST)',
                             taxIdPlaceholder: '123456789 RT0001',
                             engineNote: 'Place of Supply Engine: 13% ON, 14% NS, 15% NB/NL/PE, 5% AB/BC/SK/MB/Territories + Provincial Tax',
@@ -409,6 +410,21 @@
                         <option value="AU">🇦🇺 Australia</option>
                         <option value="DE">🇩🇪 Germany</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Dynamic Canadian Place-of-Supply Informational Badge -->
+            <div x-show="selectedCountry === 'CA'" x-cloak
+                 class="mt-4 p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-3">
+                <i class="ph ph-info text-blue-600 text-lg shrink-0 mt-0.5"></i>
+                <div>
+                    <div class="font-bold text-xs text-blue-950 flex items-center gap-2">
+                        <span>Dynamic Canadian Place-of-Supply Enabled</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 uppercase">Automated</span>
+                    </div>
+                    <p class="text-[11px] text-blue-800 mt-0.5 leading-relaxed">
+                        Tax rates (5% to 15% GST/HST/QST/PST) are automatically calculated from each client's province when creating an invoice. Non-Canadian clients are automatically zero-rated (0.00%).
+                    </p>
                 </div>
             </div>
 

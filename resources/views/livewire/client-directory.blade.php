@@ -232,11 +232,40 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">City</label>
-                            <input type="text" wire:model.live="city" placeholder="London / Istanbul / Karachi / Dubai"
+                            <input type="text" wire:model.live="city" placeholder="Toronto / New York / Dubai"
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Province / State
+                                @if($country_code === 'CA')
+                                    <span class="text-[10px] text-red-600 font-bold">(Place-of-Supply)</span>
+                                @endif
+                            </label>
+                            @if($country_code === 'CA')
+                                <select wire:model.live="province" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-medium">
+                                    <option value="">Select Province / Territory</option>
+                                    <option value="AB">AB - Alberta (5% GST)</option>
+                                    <option value="BC">BC - British Columbia (5% GST + 7% PST)</option>
+                                    <option value="MB">MB - Manitoba (5% GST + 7% PST)</option>
+                                    <option value="NB">NB - New Brunswick (15% HST)</option>
+                                    <option value="NL">NL - Newfoundland and Labrador (15% HST)</option>
+                                    <option value="NS">NS - Nova Scotia (14% HST)</option>
+                                    <option value="NT">NT - Northwest Territories (5% GST)</option>
+                                    <option value="NU">NU - Nunavut (5% GST)</option>
+                                    <option value="ON">ON - Ontario (13% HST)</option>
+                                    <option value="PE">PE - Prince Edward Island (15% HST)</option>
+                                    <option value="QC">QC - Quebec (5% GST + 9.975% QST)</option>
+                                    <option value="SK">SK - Saskatchewan (5% GST + 6% PST)</option>
+                                    <option value="YT">YT - Yukon (5% GST)</option>
+                                </select>
+                            @else
+                                <input type="text" wire:model.live="province" placeholder="State / Province / Region"
+                                       class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
+                            @endif
                         </div>
                         <div class="flex items-center pt-6">
                             <label class="flex items-center gap-2 cursor-pointer">

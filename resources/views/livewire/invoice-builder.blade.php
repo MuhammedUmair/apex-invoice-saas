@@ -77,8 +77,8 @@
                                         
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
-                                                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">{{ __('Email address') }}</label>
-                                                <input type="email" wire:model.live="walkinEmail" placeholder="name@company.com" 
+                                                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">{{ __('Email address') }} <span class="text-slate-400 font-normal">({{ __('Optional') }})</span></label>
+                                                <input type="email" wire:model.live="walkinEmail" placeholder="{{ __('Optional') }}" 
                                                        class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
                                             </div>
                                             <div>
@@ -181,13 +181,35 @@
                             </div>
                         </div>
 
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block text-[11px] font-semibold text-slate-700">{{ __('Applied Tax Rate (%)') }}</label>
-                                <span class="text-xs font-bold text-red-600">{{ $taxName }}</span>
+                        @php
+                            $isCanadianWorkspace = auth()->user()?->workspace?->isCanadianWorkspace();
+                        @endphp
+                        @if($isCanadianWorkspace)
+                            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-[11px] font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
+                                        <i class="ph ph-shield-check text-blue-600 text-sm"></i>
+                                        <span>Canadian Place-of-Supply Engine</span>
+                                    </label>
+                                    <span class="text-xs font-mono font-bold text-blue-800">{{ $taxName }}</span>
+                                </div>
+                                <p class="text-[11px] text-blue-800 leading-relaxed">
+                                    @if($taxCalculationNote)
+                                        {{ $taxCalculationNote }}
+                                    @else
+                                        Tax rates (5% to 15% GST/HST/QST/PST) are automatically calculated from client province.
+                                    @endif
+                                </p>
                             </div>
-                            <input type="number" step="0.01" wire:model.live.debounce.250ms="taxRate" value="{{ $taxRate }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
-                        </div>
+                        @else
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[11px] font-semibold text-slate-700">{{ __('Applied Tax Rate (%)') }}</label>
+                                    <span class="text-xs font-bold text-red-600">{{ $taxName }}</span>
+                                </div>
+                                <input type="number" step="0.01" wire:model.live.debounce.250ms="taxRate" value="{{ $taxRate }}" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                            </div>
+                        @endif
 
                         <!-- Future Scheduled Banner -->
                         @if($isScheduled || strtotime($issueDate) > strtotime(date('Y-m-d')))
@@ -601,10 +623,23 @@
                             @endif
                         </div>
 
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-slate-500 font-medium">{{ $taxName }} ({{ number_format($taxRate, 2) }}%)</span>
-                            <span class="font-bold text-slate-900">{{ number_format($taxAmount, 2) }} {{ $currency }}</span>
-                        </div>
+                        @if($isDualTax)
+                            <div class="space-y-1.5 pt-1">
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-slate-500 font-medium">{{ $federalTaxName }} ({{ number_format($federalTaxRate, 3) }}%)</span>
+                                    <span class="font-bold text-slate-900">{{ number_format($federalTaxAmount, 2) }} {{ $currency }}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs">
+                                    <span class="text-slate-500 font-medium">{{ $provincialTaxName }} ({{ number_format($provincialTaxRate, 3) }}%)</span>
+                                    <span class="font-bold text-slate-900">{{ number_format($provincialTaxAmount, 2) }} {{ $currency }}</span>
+                                </div>
+                            </div>
+                        @else
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-slate-500 font-medium">{{ $taxName }} ({{ number_format($taxRate, 2) }}%)</span>
+                                <span class="font-bold text-slate-900">{{ number_format($taxAmount, 2) }} {{ $currency }}</span>
+                            </div>
+                        @endif
 
                         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
                             <span class="text-base font-bold text-slate-900">{{ __('Total Due') }}</span>
@@ -858,10 +893,21 @@
                     <span class="font-bold">-{{ number_format($discountAmount, 2) }} {{ $currency }}</span>
                 </div>
                 @endif
+                @if($isDualTax)
                 <div class="flex justify-between text-slate-600">
-                    <span>{{ __('Tax') }} ({{ number_format($taxRate, 2) }}%):</span>
+                    <span>{{ $federalTaxName }} ({{ number_format($federalTaxRate, 3) }}%):</span>
+                    <span class="font-bold text-slate-900">+{{ number_format($federalTaxAmount, 2) }} {{ $currency }}</span>
+                </div>
+                <div class="flex justify-between text-slate-600">
+                    <span>{{ $provincialTaxName }} ({{ number_format($provincialTaxRate, 3) }}%):</span>
+                    <span class="font-bold text-slate-900">+{{ number_format($provincialTaxAmount, 2) }} {{ $currency }}</span>
+                </div>
+                @else
+                <div class="flex justify-between text-slate-600">
+                    <span>{{ $taxName }} ({{ number_format($taxRate, 2) }}%):</span>
                     <span class="font-bold text-slate-900">+{{ number_format($taxAmount, 2) }} {{ $currency }}</span>
                 </div>
+                @endif
                 <div class="pt-2 border-t border-red-200 flex justify-between items-center text-sm font-black">
                     <span class="text-slate-900">{{ __('Final Total Due') }}:</span>
                     <span class="text-xl text-red-600">{{ number_format($totalAmount, 2) }} {{ $currency }}</span>

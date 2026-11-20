@@ -927,13 +927,16 @@ What would you like to explore today?",
         $userId = $user ? $user->id : (Auth::id() ?? 1);
 
         // 1. Find or create Client record
+        $isWalkin = str_contains(strtolower($clientName), 'walk-in') || str_contains(strtolower($clientName), 'walkin');
+        $clientEmail = $isWalkin ? null : (Str::slug($clientName) . '@client.local');
+
         $client = Client::withoutGlobalScopes()->firstOrCreate(
             [
                 'workspace_id' => $workspace->id,
                 'name' => $clientName,
             ],
             [
-                'email' => Str::slug($clientName) . '@client.local',
+                'email' => $clientEmail,
                 'preferred_currency' => $currency,
             ]
         );

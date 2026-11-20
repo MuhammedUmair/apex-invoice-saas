@@ -115,6 +115,12 @@
                 @if(!empty($invoice->workspace_snapshot['tax_id']) || !empty($invoice->workspace?->tax_id))
                     <div style="color: #475569; font-size: 12px; margin-top: 2px;">{{ __('Tax ID') }}: {{ $invoice->workspace_snapshot['tax_id'] ?? $invoice->workspace?->tax_id }}</div>
                 @endif
+                @if(!empty($invoice->workspace?->cra_bn_number))
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">CRA Business No: {{ $invoice->workspace->cra_bn_number }}</div>
+                @endif
+                @if(!empty($invoice->workspace?->qst_number))
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Revenu Québec QST: {{ $invoice->workspace->qst_number }}</div>
+                @endif
             </td>
             <td class="party-cell">
                 <div class="label">{{ __('Billed To') }}:</div>
@@ -164,10 +170,21 @@
                 <td class="text-right" style="color: #16a34a;"><strong>-{{ number_format($invoice->discount_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
             </tr>
         @endif
-        <tr>
-            <td style="color: #64748b;">{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</td>
-            <td class="text-right"><strong>+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
-        </tr>
+        @if($invoice->is_dual_tax)
+            <tr>
+                <td style="color: #64748b;">{{ $invoice->federal_tax_name ?: 'GST' }} ({{ number_format($invoice->federal_tax_rate, 3) }}%):</td>
+                <td class="text-right"><strong>+{{ number_format($invoice->federal_tax_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
+            </tr>
+            <tr>
+                <td style="color: #64748b;">{{ $invoice->provincial_tax_name ?: 'QST/PST' }} ({{ number_format($invoice->provincial_tax_rate, 3) }}%):</td>
+                <td class="text-right"><strong>+{{ number_format($invoice->provincial_tax_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
+            </tr>
+        @else
+            <tr>
+                <td style="color: #64748b;">{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</td>
+                <td class="text-right"><strong>+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</strong></td>
+            </tr>
+        @endif
         <tr class="total-row">
             <td>{{ __('Total') }}:</td>
             <td class="text-right">{{ number_format($invoice->total_cents / 100, 2) }} {{ $invoice->currency }}</td>

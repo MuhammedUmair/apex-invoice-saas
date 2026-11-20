@@ -23,6 +23,7 @@ class Client extends Model
         'address',
         'city',
         'state',
+        'province',
         'postal_code',
         'country_code',
         'preferred_currency',
@@ -54,6 +55,17 @@ class Client extends Model
     public function getDisplayNameAttribute(): string
     {
         return $this->company_name ? "{$this->company_name} ({$this->name})" : $this->name;
+    }
+
+    public function getProvinceAttribute(): ?string
+    {
+        return $this->attributes['province'] ?? $this->attributes['state'] ?? null;
+    }
+
+    public function setProvinceAttribute($value): void
+    {
+        $this->attributes['province'] = $value;
+        $this->attributes['state'] = $value;
     }
 
     /**

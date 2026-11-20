@@ -380,10 +380,21 @@
                         <span class="font-semibold">-{{ number_format($invoice->discount_cents / 100, 2) }} {{ $invoice->currency }}</span>
                     </div>
                 @endif
-                <div class="flex justify-between text-slate-600">
-                    <span>{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</span>
-                    <span class="font-semibold text-slate-900">+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</span>
-                </div>
+                @if($invoice->is_dual_tax)
+                    <div class="flex justify-between text-slate-600">
+                        <span>{{ $invoice->federal_tax_name ?: 'GST' }} ({{ number_format($invoice->federal_tax_rate, 3) }}%):</span>
+                        <span class="font-semibold text-slate-900">+{{ number_format($invoice->federal_tax_cents / 100, 2) }} {{ $invoice->currency }}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>{{ $invoice->provincial_tax_name ?: 'QST/PST' }} ({{ number_format($invoice->provincial_tax_rate, 3) }}%):</span>
+                        <span class="font-semibold text-slate-900">+{{ number_format($invoice->provincial_tax_cents / 100, 2) }} {{ $invoice->currency }}</span>
+                    </div>
+                @else
+                    <div class="flex justify-between text-slate-600">
+                        <span>{{ $invoice->tax_name }} ({{ number_format($invoice->tax_rate, 2) }}%):</span>
+                        <span class="font-semibold text-slate-900">+{{ number_format($invoice->tax_cents / 100, 2) }} {{ $invoice->currency }}</span>
+                    </div>
+                @endif
                 <div class="flex justify-between border-t border-slate-200 pt-2 text-base font-black text-slate-900">
                     <span>{{ __('Total Amount') }}:</span>
                     <span class="text-red-600">{{ number_format($invoice->total_cents / 100, 2) }} {{ $invoice->currency }}</span>

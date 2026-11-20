@@ -167,8 +167,12 @@
                class="bg-slate-900 border-r border-slate-800 shrink-0 flex flex-col transition-all duration-300 ease-in-out z-40 select-none">
             
             <!-- Branding Header -->
-            <div class="h-16 flex items-center justify-between px-4 border-b border-slate-800">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 overflow-hidden" title="Super Admin Control Centre">
+            <div class="h-16 flex items-center border-b border-slate-800 transition-all duration-300"
+                 :class="sidebarCollapsed ? 'justify-center px-1 relative' : 'justify-between px-4'">
+                <a href="{{ route('admin.dashboard') }}" 
+                   class="flex items-center overflow-hidden shrink-0" 
+                   :class="sidebarCollapsed ? 'justify-center' : 'gap-3'"
+                   title="Super Admin Control Centre">
                     @php
                         $adminLogo = \App\Models\CmsContent::getLoginLogo();
                     @endphp
@@ -194,8 +198,11 @@
                         </div>
                     </div>
                 </a>
-                <button @click="toggleSidebar()" type="button" class="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer" title="Toggle Sidebar">
-                    <i :class="sidebarCollapsed ? 'ph ph-arrow-line-right' : 'ph ph-arrow-line-left'" class="text-lg"></i>
+                <button @click="toggleSidebar()" type="button" 
+                        class="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer shrink-0" 
+                        :class="sidebarCollapsed ? 'absolute -right-3 top-5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full w-6 h-6 flex items-center justify-center shadow-md z-50 text-xs' : ''"
+                        title="Toggle Sidebar">
+                    <i :class="sidebarCollapsed ? 'ph ph-caret-right text-xs text-amber-400' : 'ph ph-arrow-line-left text-lg'"></i>
                 </button>
             </div>
 

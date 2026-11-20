@@ -33,21 +33,11 @@
                 A sign-in request to the Invoicy Control Panel was initiated for your administrator account. Use the following 6-character alphanumeric security passcode to complete authentication:
             </p>
             
-            <div class="otp-box" style="cursor: pointer; -webkit-user-select: all; -moz-user-select: all; -ms-user-select: all; user-select: all;" title="Click to copy passcode">
-                <div style="font-size: 10px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; color: #b45309; margin-bottom: 6px;">
-                    📋 Click or Tap Code to Select & Copy
-                </div>
-                <div class="otp-code" style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #78350f; -webkit-user-select: all; user-select: all;">{{ $otp }}</div>
+            <div class="otp-box">
+                <div class="otp-code" style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #78350f;">{{ $otp }}</div>
                 <div style="font-size: 11px; color: #92400e; font-weight: 600; margin-top: 8px;">
                     Valid for 10 minutes &bull; Single-use security passcode
                 </div>
-            </div>
-
-            <div style="text-align: center; margin: 24px 0 16px;">
-                <a href="{{ route('cp.otp', ['code' => $otp]) }}" 
-                   style="display: inline-block; background: #0f172a; color: #fbbf24; padding: 13px 26px; border-radius: 12px; font-weight: 800; font-size: 13px; text-decoration: none; border: 1px solid #1e293b;">
-                    ⚡ 1-Click Auto-Fill in Control Panel &rarr;
-                </a>
             </div>
 
             <p class="meta">

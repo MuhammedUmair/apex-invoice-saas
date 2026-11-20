@@ -37,6 +37,14 @@ class InvoiceBuilder extends Component
     public string $countryTaxCode = 'US';
     public string $taxName = 'VAT';
     public float $taxRate = 0.00;
+    public string $federalTaxName = 'GST';
+    public float $federalTaxRate = 0.00;
+    public float $federalTaxAmount = 0.00;
+    public ?string $provincialTaxName = null;
+    public float $provincialTaxRate = 0.00;
+    public float $provincialTaxAmount = 0.00;
+    public bool $isDualTax = false;
+    public ?string $taxCalculationNote = null;
     public float $discountAmount = 0.00;
     public string $notes = '';
     public string $terms = 'Payment is due within the specified payment terms. Please remit payment via the portal link or wire details below.';
@@ -506,6 +514,13 @@ class InvoiceBuilder extends Component
             $this->language = $invoice->language ?: (session('locale') ?: ($workspace->language ?: 'en'));
             $this->taxName = $invoice->tax_name;
             $this->taxRate = (float) $invoice->tax_rate;
+            $this->federalTaxName = $invoice->federal_tax_name ?? $invoice->tax_name;
+            $this->federalTaxRate = (float) ($invoice->federal_tax_rate ?? $invoice->tax_rate);
+            $this->federalTaxAmount = ($invoice->federal_tax_cents ?? 0) / 100;
+            $this->provincialTaxName = $invoice->provincial_tax_name;
+            $this->provincialTaxRate = (float) ($invoice->provincial_tax_rate ?? 0);
+            $this->provincialTaxAmount = ($invoice->provincial_tax_cents ?? 0) / 100;
+            $this->isDualTax = (bool) ($invoice->is_dual_tax ?? false);
             $this->discountAmount = $invoice->discount_cents / 100;
             $this->notes = $invoice->notes ?? '';
             $this->terms = $invoice->terms ?? '';
@@ -600,6 +615,7 @@ class InvoiceBuilder extends Component
                     }
                 }
             }
+            $this->recalculate();
         } elseif ($propertyName === 'issueDate') {
             $this->updatedIssueDate($this->issueDate);
         } elseif ($propertyName === 'dueDate') {
@@ -945,18 +961,56 @@ class InvoiceBuilder extends Component
 
         $discountCents = (int) round(((float)$this->discountAmount) * 100);
 
-        $client = $this->clientId ? Client::find($this->clientId) : null;
+        $client = ($this->clientId && $this->clientId !== 'walkin') ? Client::find($this->clientId) : null;
+        $workspace = Auth::user()?->workspace;
 
-        $calcs = $this->taxService->calculateTotals(
-            $subtotalCents,
-            $discountCents,
-            (float) $this->taxRate,
-            $client
-        );
+        if ($workspace && $workspace->isCanadianWorkspace()) {
+            $calcs = $this->taxService->calculateForClient(
+                $workspace,
+                $client,
+                $subtotalCents,
+                $discountCents,
+                (float) $this->taxRate,
+                $this->taxName
+            );
 
-        $this->subtotal = $calcs['subtotal_cents'] / 100;
-        $this->taxAmount = $calcs['tax_cents'] / 100;
-        $this->totalAmount = $calcs['total_cents'] / 100;
+            $this->taxName = $calcs['tax_name'];
+            $this->taxRate = (float) $calcs['tax_rate'];
+            $this->taxAmount = $calcs['tax_cents'] / 100;
+
+            $this->federalTaxName = $calcs['federal_tax_name'];
+            $this->federalTaxRate = (float) $calcs['federal_tax_rate'];
+            $this->federalTaxAmount = $calcs['federal_tax_cents'] / 100;
+
+            $this->provincialTaxName = $calcs['provincial_tax_name'];
+            $this->provincialTaxRate = (float) $calcs['provincial_tax_rate'];
+            $this->provincialTaxAmount = $calcs['provincial_tax_cents'] / 100;
+
+            $this->isDualTax = (bool) $calcs['is_dual_tax'];
+            $this->taxCalculationNote = $calcs['note'];
+
+            $this->subtotal = $calcs['subtotal_cents'] / 100;
+            $this->totalAmount = $calcs['total_cents'] / 100;
+        } else {
+            $calcs = $this->taxService->calculateTotals(
+                $subtotalCents,
+                $discountCents,
+                (float) $this->taxRate,
+                $client
+            );
+
+            $this->subtotal = $calcs['subtotal_cents'] / 100;
+            $this->taxAmount = $calcs['tax_cents'] / 100;
+            $this->totalAmount = $calcs['total_cents'] / 100;
+            $this->federalTaxName = $this->taxName;
+            $this->federalTaxRate = (float) $this->taxRate;
+            $this->federalTaxAmount = $this->taxAmount;
+            $this->provincialTaxName = null;
+            $this->provincialTaxRate = 0.00;
+            $this->provincialTaxAmount = 0.00;
+            $this->isDualTax = false;
+            $this->taxCalculationNote = null;
+        }
     }
 
     /**
@@ -1082,6 +1136,8 @@ class InvoiceBuilder extends Component
             'tax_id' => $client->tax_id,
             'address' => $client->address,
             'city' => $client->city,
+            'province' => $client->province ?? $client->state ?? null,
+            'state' => $client->state ?? $client->province ?? null,
             'country_code' => $client->country_code,
         ];
 
@@ -1103,6 +1159,13 @@ class InvoiceBuilder extends Component
                 'tax_name' => $this->taxName,
                 'tax_rate' => $this->taxRate,
                 'tax_cents' => $taxCents,
+                'federal_tax_name' => $this->federalTaxName ?: $this->taxName,
+                'federal_tax_rate' => $this->federalTaxRate ?: $this->taxRate,
+                'federal_tax_cents' => (int) round($this->federalTaxAmount * 100),
+                'provincial_tax_name' => $this->provincialTaxName,
+                'provincial_tax_rate' => $this->provincialTaxRate,
+                'provincial_tax_cents' => (int) round($this->provincialTaxAmount * 100),
+                'is_dual_tax' => $this->isDualTax,
                 'discount_cents' => $discountCents,
                 'total_cents' => $totalCents,
                 'due_cents' => max(0, $totalCents - $paidCents),
@@ -1138,6 +1201,13 @@ class InvoiceBuilder extends Component
                 'tax_name' => $this->taxName,
                 'tax_rate' => $this->taxRate,
                 'tax_cents' => $taxCents,
+                'federal_tax_name' => $this->federalTaxName ?: $this->taxName,
+                'federal_tax_rate' => $this->federalTaxRate ?: $this->taxRate,
+                'federal_tax_cents' => (int) round($this->federalTaxAmount * 100),
+                'provincial_tax_name' => $this->provincialTaxName,
+                'provincial_tax_rate' => $this->provincialTaxRate,
+                'provincial_tax_cents' => (int) round($this->provincialTaxAmount * 100),
+                'is_dual_tax' => $this->isDualTax,
                 'discount_cents' => $discountCents,
                 'total_cents' => $totalCents,
                 'paid_cents' => 0,
