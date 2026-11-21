@@ -130,7 +130,38 @@
                     </button>
                 </div>
 
-                <form wire:submit.prevent="{{ $showEditModal ? 'updateClient' : 'saveClient' }}" class="space-y-4">
+                <form wire:submit.prevent="{{ $showEditModal ? 'updateClient' : 'saveClient' }}" 
+                      x-data="{
+                          countryCurrencyMap: {
+                              CA: 'CAD',
+                              AE: 'AED',
+                              SA: 'SAR',
+                              TR: 'TRY',
+                              US: 'USD',
+                              GB: 'GBP',
+                              DE: 'EUR',
+                              FR: 'EUR',
+                              IT: 'EUR',
+                              ES: 'EUR',
+                              NL: 'EUR',
+                              BE: 'EUR',
+                              AT: 'EUR',
+                              IE: 'EUR',
+                              PT: 'EUR',
+                              FI: 'EUR',
+                              GR: 'EUR',
+                              IN: 'INR',
+                              PK: 'PKR',
+                              AU: 'AUD'
+                          },
+                          onCountryChange(country) {
+                              const cur = this.countryCurrencyMap[country];
+                              if (cur) {
+                                  $wire.set('preferred_currency', cur);
+                              }
+                          }
+                      }"
+                      class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Company / Organization</label>
@@ -206,18 +237,23 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Country</label>
-                            <select wire:model.live="country_code" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                                <option value="US">United States</option>
-                                <option value="PK">Pakistan</option>
-                                <option value="IN">India</option>
-                                <option value="TR">Turkey</option>
-                                <option value="AE">UAE</option>
-                                <option value="SA">Saudi Arabia</option>
-                                <option value="GB">United Kingdom</option>
-                                <option value="CA">Canada</option>
-                                <option value="AU">Australia</option>
-                                <option value="DE">Germany</option>
-                                <option value="FR">France</option>
+                            <select wire:model.live="country_code" 
+                                    @change="onCountryChange($event.target.value)"
+                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
+                                <option value="US">🇺🇸 United States</option>
+                                <option value="CA">🇨🇦 Canada</option>
+                                <option value="AE">🇦🇪 UAE</option>
+                                <option value="SA">🇸🇦 Saudi Arabia</option>
+                                <option value="GB">🇬🇧 United Kingdom</option>
+                                <option value="TR">🇹🇷 Turkey</option>
+                                <option value="PK">🇵🇰 Pakistan</option>
+                                <option value="IN">🇮🇳 India</option>
+                                <option value="AU">🇦🇺 Australia</option>
+                                <option value="DE">🇩🇪 Germany (EUR)</option>
+                                <option value="FR">🇫🇷 France (EUR)</option>
+                                <option value="IT">🇮🇹 Italy (EUR)</option>
+                                <option value="ES">🇪🇸 Spain (EUR)</option>
+                                <option value="NL">🇳🇱 Netherlands (EUR)</option>
                             </select>
                         </div>
                         <div>

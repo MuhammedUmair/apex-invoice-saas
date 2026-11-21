@@ -188,7 +188,7 @@
                     collectQst: {{ old('collect_qst', $workspace->collect_qst ?? true) ? 'true' : 'false' }},
                     collectPst: {{ old('collect_pst', $workspace->collect_pst ?? true) ? 'true' : 'false' }},
                     selectedProvince: '{{ old('province', $workspace->province ?? 'ON') }}',
-                    defaultTaxRate: {{ old('default_tax_rate', $workspace->default_tax_rate ?? 13.00) }},
+                    defaultTaxRate: {{ old('default_tax_rate', $workspace->default_tax_rate ?? 0.00) }},
                     showPresetPrompt: false,
                     promptCountry: '',
 
@@ -303,6 +303,51 @@
                             engineNote: 'HMRC Making Tax Digital Standard 20.00% VAT',
                             bankInstructions: "Faster Payments / BACS Transfer\nAccount Name: ...\nSort Code: XX-XX-XX\nAccount Number: XXXXXXXX\nReference: Invoice #"
                         },
+                        DE: {
+                            name: 'Germany',
+                            currency: 'EUR',
+                            taxLabel: 'MwSt (19.00%)',
+                            taxIdLabel: 'Umsatzsteuer-Identifikationsnummer (USt-IdNr.)',
+                            taxIdPlaceholder: 'DE123456789',
+                            engineNote: 'German Standard 19.00% Umsatzsteuer (MwSt)',
+                            bankInstructions: "SEPA Bank Transfer\nBank Name: Deutsche Bank\nIBAN: DE00 0000 0000 0000 0000 00\nBIC: DEUTDEDDXXX\nReference: Invoice #"
+                        },
+                        FR: {
+                            name: 'France',
+                            currency: 'EUR',
+                            taxLabel: 'TVA (20.00%)',
+                            taxIdLabel: 'Numéro de TVA Intracommunautaire',
+                            taxIdPlaceholder: 'FR 12 345678901',
+                            engineNote: 'French Standard 20.00% TVA',
+                            bankInstructions: "Virement SEPA\nBanque: BNP Paribas\nIBAN: FR76 0000 0000 0000 0000 0000 000\nBIC: BNPAFR2X\nRéférence: Facture #"
+                        },
+                        PK: {
+                            name: 'Pakistan',
+                            currency: 'PKR',
+                            taxLabel: 'Sales Tax / SST (16.00%)',
+                            taxIdLabel: 'National Tax Number (NTN / STRN)',
+                            taxIdPlaceholder: '1234567-8',
+                            engineNote: 'FBR / Provincial Revenue Authority Standard Sales Tax',
+                            bankInstructions: "Bank Account Title: Company Ltd.\nBank: Meezan Bank / HBL\nIBAN: PK00MEZN0000000000000000\nReference: Invoice #"
+                        },
+                        IN: {
+                            name: 'India',
+                            currency: 'INR',
+                            taxLabel: 'GST (18.00%)',
+                            taxIdLabel: 'GSTIN (Goods and Services Tax ID)',
+                            taxIdPlaceholder: '22AAAAA0000A1Z5',
+                            engineNote: 'GST Council Standard 18.00% GST (CGST + SGST / IGST)',
+                            bankInstructions: "Bank Name: HDFC Bank / ICICI\nAccount Name: Company Private Ltd.\nAccount Number: 000000000000\nIFSC Code: HDFC0000000\nReference: Invoice #"
+                        },
+                        AU: {
+                            name: 'Australia',
+                            currency: 'AUD',
+                            taxLabel: 'GST (10.00%)',
+                            taxIdLabel: 'Australian Business Number (ABN)',
+                            taxIdPlaceholder: '12 345 678 901',
+                            engineNote: 'ATO Standard 10.00% Goods and Services Tax (GST)',
+                            bankInstructions: "BSB: 000-000\nAccount Number: 0000 0000\nAccount Name: Company Pty Ltd\nBank: Commonwealth Bank / ANZ\nReference: Invoice #"
+                        },
                         GLOBAL: {
                             name: 'Global / International',
                             currency: 'USD',
@@ -319,6 +364,35 @@
                     },
 
                     onCountryChange() {
+                        const countryCurrencyMap = {
+                            CA: 'CAD',
+                            AE: 'AED',
+                            SA: 'SAR',
+                            TR: 'TRY',
+                            US: 'USD',
+                            GB: 'GBP',
+                            DE: 'EUR',
+                            FR: 'EUR',
+                            IT: 'EUR',
+                            ES: 'EUR',
+                            NL: 'EUR',
+                            BE: 'EUR',
+                            AT: 'EUR',
+                            IE: 'EUR',
+                            PT: 'EUR',
+                            FI: 'EUR',
+                            GR: 'EUR',
+                            IN: 'INR',
+                            PK: 'PKR',
+                            AU: 'AUD'
+                        };
+                        if (countryCurrencyMap[this.selectedCountry]) {
+                            this.selectedCurrency = countryCurrencyMap[this.selectedCountry];
+                        }
+                        if (this.selectedCountry === 'CA') {
+                            this.selectedProvince = this.selectedProvince || 'ON';
+                            this.onProvinceChange();
+                        }
                         if (this.selectedCountry !== this.originalCountry) {
                             this.promptCountry = (this.presets[this.selectedCountry] || { name: this.selectedCountry }).name;
                             this.showPresetPrompt = true;

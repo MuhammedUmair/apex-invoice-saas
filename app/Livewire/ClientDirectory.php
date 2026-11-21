@@ -50,6 +50,37 @@ class ClientDirectory extends Component
         'net_60' => 'Net 60 Days',
     ];
 
+    public static array $countryCurrencyMap = [
+        'CA' => 'CAD',
+        'AE' => 'AED',
+        'SA' => 'SAR',
+        'TR' => 'TRY',
+        'US' => 'USD',
+        'GB' => 'GBP',
+        'DE' => 'EUR',
+        'FR' => 'EUR',
+        'IT' => 'EUR',
+        'ES' => 'EUR',
+        'NL' => 'EUR',
+        'BE' => 'EUR',
+        'AT' => 'EUR',
+        'IE' => 'EUR',
+        'PT' => 'EUR',
+        'FI' => 'EUR',
+        'GR' => 'EUR',
+        'IN' => 'INR',
+        'PK' => 'PKR',
+        'AU' => 'AUD',
+    ];
+
+    public function updatedCountryCode($value)
+    {
+        $code = strtoupper(trim((string)$value));
+        if (isset(self::$countryCurrencyMap[$code])) {
+            $this->preferred_currency = self::$countryCurrencyMap[$code];
+        }
+    }
+
     protected $rules = [
         'name' => 'required|string|max:255',
         'company_name' => 'nullable|string|max:255',

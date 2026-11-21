@@ -239,7 +239,8 @@ class TaxCalculationService
         int $subtotalCents,
         int $discountCents = 0,
         float $fallbackTaxRate = 0.00,
-        string $fallbackTaxName = 'VAT'
+        string $fallbackTaxName = 'VAT',
+        ?string $overrideProvince = null
     ): array {
         $subtotalCents = max(0, $subtotalCents);
         $discountCents = min($subtotalCents, max(0, $discountCents));
@@ -279,7 +280,7 @@ class TaxCalculationService
                     0.00,
                     0,
                     false,
-                    'CRA Small-Supplier Exemption Active (< $30,000 CAD)'
+                    'CRA Small-Supplier Exempt (0% Tax)'
                 );
             }
 
@@ -298,12 +299,12 @@ class TaxCalculationService
                     0.00,
                     0,
                     false,
-                    'Zero-Rated Export: Client resides outside Canadian tax jurisdiction'
+                    'Export Outside Canada (0% Zero-Rated)'
                 );
             }
 
-            // Client resides in Canada: evaluate Place-of-Supply province (fallback to workspace province)
-            $rawProvince = $client?->province ?? $client?->state ?? $workspace->province ?? 'ON';
+            // Client resides in Canada: evaluate Place-of-Supply province (override > client > workspace province)
+            $rawProvince = $overrideProvince ?: ($client?->province ?? $client?->state ?? $workspace->province ?? 'ON');
             $provinceCode = self::normalizeCanadianProvince($rawProvince) ?: 'ON';
 
             return $this->calculateCanadianPlaceOfSupply(
@@ -442,6 +443,23 @@ class TaxCalculationService
         $federalTaxCents = (int) round(($taxableAmountCents * $federalTaxRate) / 100);
         $provincialTaxCents = $isDualTax ? (int) round(($taxableAmountCents * $provincialTaxRate) / 100) : 0;
 
+        $provinceNames = [
+            'AB' => 'Alberta',
+            'BC' => 'British Columbia',
+            'MB' => 'Manitoba',
+            'NB' => 'New Brunswick',
+            'NL' => 'Newfoundland and Labrador',
+            'NS' => 'Nova Scotia',
+            'NT' => 'Northwest Territories',
+            'NU' => 'Nunavut',
+            'ON' => 'Ontario',
+            'PE' => 'Prince Edward Island',
+            'QC' => 'Quebec',
+            'SK' => 'Saskatchewan',
+            'YT' => 'Yukon',
+        ];
+        $provinceName = $provinceNames[$provinceCode] ?? $provinceCode;
+
         return $this->buildTaxResult(
             $subtotalCents,
             $discountCents,
@@ -453,7 +471,7 @@ class TaxCalculationService
             $provincialTaxRate,
             $provincialTaxCents,
             $isDualTax,
-            "Place of Supply: {$provinceCode} - {$label}"
+            "Place of Supply: {$provinceName} ({$label})"
         );
     }
 

@@ -115,18 +115,31 @@
                 @if(!empty($invoice->workspace_snapshot['tax_id']) || !empty($invoice->workspace?->tax_id))
                     <div style="color: #475569; font-size: 12px; margin-top: 2px;">{{ __('Tax ID') }}: {{ $invoice->workspace_snapshot['tax_id'] ?? $invoice->workspace?->tax_id }}</div>
                 @endif
-                @if(!empty($invoice->workspace?->cra_bn_number))
-                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">CRA Business No: {{ $invoice->workspace->cra_bn_number }}</div>
+                @php
+                    $craBn = $invoice->workspace_snapshot['cra_bn_number'] ?? $invoice->workspace?->cra_bn_number;
+                    $qstNum = $invoice->workspace_snapshot['qst_number'] ?? $invoice->workspace?->qst_number;
+                    $clientProv = $invoice->client_snapshot['province'] ?? $invoice->client_snapshot['state'] ?? $invoice->client?->province ?? $invoice->client?->state;
+                    $clientCountry = $invoice->client_snapshot['country_code'] ?? $invoice->client?->country_code;
+                    $clientCity = $invoice->client_snapshot['city'] ?? $invoice->client?->city;
+                    $locParts = array_filter([$clientCity, $clientProv, $clientCountry]);
+                @endphp
+                @if(!empty($craBn))
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;"><strong>CRA Business No:</strong> <span style="font-family: monospace;">{{ $craBn }}</span></div>
                 @endif
-                @if(!empty($invoice->workspace?->qst_number))
-                    <div style="color: #475569; font-size: 12px; margin-top: 2px;">Revenu Québec QST: {{ $invoice->workspace->qst_number }}</div>
+                @if(!empty($qstNum) && ($invoice->provincial_tax_name === 'QST' || $clientProv === 'QC' || $invoice->workspace?->country_code === 'CA'))
+                    <div style="color: #475569; font-size: 12px; margin-top: 2px;"><strong>Revenu Québec QST:</strong> <span style="font-family: monospace;">{{ $qstNum }}</span></div>
                 @endif
             </td>
             <td class="party-cell">
                 <div class="label">{{ __('Billed To') }}:</div>
                 <div class="party-name">{{ $invoice->client_snapshot['company_name'] ?? $invoice->client?->company_name ?? $invoice->client?->name ?? __('Walk-in / General Customer') }}</div>
                 <div style="color: #475569; font-size: 12px;">{{ __('Attn') }}: {{ $invoice->client_snapshot['name'] ?? $invoice->client?->name ?? __('Walk-in / General Customer') }}</div>
-                <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->client_snapshot['address'] ?? $invoice->client?->address ?? '' }}</div>
+                @if(!empty($invoice->client_snapshot['address']))
+                    <div style="color: #475569; font-size: 12px; white-space: pre-line;">{{ $invoice->client_snapshot['address'] }}</div>
+                @endif
+                @if(!empty($locParts))
+                    <div style="color: #1e293b; font-weight: 600; font-size: 12px; margin-top: 2px;">{{ implode(', ', $locParts) }}</div>
+                @endif
                 @if(!empty($invoice->client_snapshot['tax_id']) || !empty($invoice->client?->tax_id))
                     <div style="color: #475569; font-size: 12px; margin-top: 2px;">{{ __('VAT/Tax ID') }}: {{ $invoice->client_snapshot['tax_id'] ?? $invoice->client?->tax_id }}</div>
                 @endif

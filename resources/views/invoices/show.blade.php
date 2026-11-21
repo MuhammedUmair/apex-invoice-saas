@@ -313,6 +313,21 @@
                 @if(!empty($invoice->workspace_snapshot['tax_id']))
                     <p class="text-xs text-slate-500 mt-1">{{ __('Tax ID') }}: <span class="font-mono">{{ $invoice->workspace_snapshot['tax_id'] }}</span></p>
                 @endif
+                @php
+                    $ws = auth()->user()?->workspace ?? $invoice->workspace;
+                    $craBn = $invoice->workspace_snapshot['cra_bn_number'] ?? $ws?->cra_bn_number;
+                    $qstNum = $invoice->workspace_snapshot['qst_number'] ?? $ws?->qst_number;
+                    $clientProv = $invoice->client_snapshot['province'] ?? $invoice->client_snapshot['state'] ?? $invoice->client?->province ?? $invoice->client?->state;
+                    $clientCountry = $invoice->client_snapshot['country_code'] ?? $invoice->client?->country_code;
+                    $clientCity = $invoice->client_snapshot['city'] ?? $invoice->client?->city;
+                    $locParts = array_filter([$clientCity, $clientProv, $clientCountry]);
+                @endphp
+                @if(!empty($craBn))
+                    <p class="text-xs text-slate-600 mt-1"><strong>CRA BN:</strong> <span class="font-mono font-semibold">{{ $craBn }}</span></p>
+                @endif
+                @if(!empty($qstNum) && ($invoice->provincial_tax_name === 'QST' || $clientProv === 'QC' || ($ws && $ws->country_code === 'CA')))
+                    <p class="text-xs text-slate-600 mt-0.5"><strong>Revenu Québec QST:</strong> <span class="font-mono font-semibold">{{ $qstNum }}</span></p>
+                @endif
                 @if(!empty($invoice->workspace_snapshot['email']))
                     <p class="text-xs text-slate-500 mt-0.5">{{ $invoice->workspace_snapshot['email'] }}</p>
                 @endif
@@ -324,7 +339,15 @@
                 @if(!empty($invoice->client_snapshot['company_name']))
                     <p class="text-xs text-slate-600 font-medium">{{ $invoice->client_snapshot['name'] }}</p>
                 @endif
-                <p class="text-xs text-slate-500 whitespace-pre-line mt-1">{{ $invoice->client_snapshot['address'] ?? __('Address on file') }}</p>
+                @if(!empty($invoice->client_snapshot['address']))
+                    <p class="text-xs text-slate-500 whitespace-pre-line mt-1">{{ $invoice->client_snapshot['address'] }}</p>
+                @endif
+                @if(!empty($locParts))
+                    <p class="text-xs text-slate-700 font-semibold mt-1 flex items-center gap-1">
+                        <i class="ph ph-map-pin text-slate-400 text-sm shrink-0"></i>
+                        <span>{{ implode(', ', $locParts) }}</span>
+                    </p>
+                @endif
                 @if(!empty($invoice->client_snapshot['tax_id']))
                     <p class="text-xs text-slate-500 mt-1">{{ __('VAT/Tax ID') }}: <span class="font-mono">{{ $invoice->client_snapshot['tax_id'] }}</span></p>
                 @endif

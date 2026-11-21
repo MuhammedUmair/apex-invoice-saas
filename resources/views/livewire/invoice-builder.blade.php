@@ -67,7 +67,7 @@
 
                                 @if($isWalkin)
                                     <!-- Walk-in Customer Form -->
-                                    <div class="space-y-2 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
+                                    <div class="space-y-2.5 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
                                         <div>
                                             <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">{{ __('Customer Name') }}</label>
                                             <input type="text" wire:model.live="walkinName" placeholder="{{ __('Customer Name (e.g. ABC Trading Co.)') }}" 
@@ -75,6 +75,42 @@
                                         </div>
                                         @error('walkinName') <span class="text-rose-600 text-[11px] block">{{ $message }}</span> @enderror
                                         
+                                        @php
+                                            $workspace = auth()->user()?->workspace;
+                                            $isCanadianWorkspace = $workspace?->isCanadianWorkspace();
+                                        @endphp
+                                        @if($isCanadianWorkspace)
+                                            <div>
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                                                        {{ __('Point of Sale / Client Province (Place of Supply)') }}
+                                                    </label>
+                                                    <span class="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full font-mono">
+                                                        {{ $walkinProvince }}
+                                                    </span>
+                                                </div>
+                                                <select wire:model.live="walkinProvince" 
+                                                        class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-red-500 bg-white font-semibold text-slate-800">
+                                                    <option value="AB">🇨🇦 Alberta (AB - 5% GST)</option>
+                                                    <option value="BC">🇨🇦 British Columbia (BC - 5% GST + 7% PST)</option>
+                                                    <option value="MB">🇨🇦 Manitoba (MB - 5% GST + 7% PST)</option>
+                                                    <option value="NB">🇨🇦 New Brunswick (NB - 15% HST)</option>
+                                                    <option value="NL">🇨🇦 Newfoundland and Labrador (NL - 15% HST)</option>
+                                                    <option value="NS">🇨🇦 Nova Scotia (NS - 14% HST)</option>
+                                                    <option value="NT">🇨🇦 Northwest Territories (NT - 5% GST)</option>
+                                                    <option value="NU">🇨🇦 Nunavut (NU - 5% GST)</option>
+                                                    <option value="ON">🇨🇦 Ontario (ON - 13% HST)</option>
+                                                    <option value="PE">🇨🇦 Prince Edward Island (PE - 15% HST)</option>
+                                                    <option value="QC">🇨🇦 Quebec (QC - 5% GST + 9.975% QST)</option>
+                                                    <option value="SK">🇨🇦 Saskatchewan (SK - 5% GST + 6% PST)</option>
+                                                    <option value="YT">🇨🇦 Yukon (YT - 5% GST)</option>
+                                                </select>
+                                                <p class="text-[10px] text-slate-500 mt-0.5">
+                                                    {{ __('Sets dynamic provincial tax for retail walk-in point-of-sale.') }}
+                                                </p>
+                                            </div>
+                                        @endif
+
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">{{ __('Email address') }} <span class="text-slate-400 font-normal">({{ __('Optional') }})</span></label>
@@ -162,7 +198,7 @@
                                     <option value="US" @selected($countryTaxCode === 'US')>United States - 0% (Sales Tax)</option>
                                     <option value="DE" @selected($countryTaxCode === 'DE')>Germany - 19% MwSt</option>
                                     <option value="FR" @selected($countryTaxCode === 'FR')>France - 20% TVA</option>
-                                    <option value="CA" @selected($countryTaxCode === 'CA')>Canada - 13% GST/HST</option>
+                                    <option value="CA" @selected($countryTaxCode === 'CA')>Canada - Dynamic Place-of-Supply (5%-15%)</option>
                                     <option value="AU" @selected($countryTaxCode === 'AU')>Australia - 10% GST</option>
                                     <option value="IN" @selected($countryTaxCode === 'IN')>India - 18% GST</option>
                                     <option value="TR" @selected($countryTaxCode === 'TR')>Turkey - 20% KDV</option>
@@ -182,10 +218,11 @@
                         </div>
 
                         @php
-                            $isCanadianWorkspace = auth()->user()?->workspace?->isCanadianWorkspace();
+                            $workspace = auth()->user()?->workspace;
+                            $isCanadianWorkspace = $workspace?->isCanadianWorkspace();
                         @endphp
                         @if($isCanadianWorkspace)
-                            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 space-y-1.5">
+                            <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 space-y-2">
                                 <div class="flex items-center justify-between">
                                     <label class="block text-[11px] font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
                                         <i class="ph ph-shield-check text-blue-600 text-sm"></i>
@@ -193,13 +230,42 @@
                                     </label>
                                     <span class="text-xs font-mono font-bold text-blue-800">{{ $taxName }}</span>
                                 </div>
-                                <p class="text-[11px] text-blue-800 leading-relaxed">
-                                    @if($taxCalculationNote)
-                                        {{ $taxCalculationNote }}
+
+                                <!-- Applied Place-of-Supply Rule -->
+                                <div class="text-[11px] text-blue-900 font-medium flex items-center gap-1.5">
+                                    <i class="ph ph-map-pin text-blue-600 text-xs shrink-0"></i>
+                                    <span>
+                                        @if($taxCalculationNote)
+                                            {{ $taxCalculationNote }}
+                                        @else
+                                            Place of Supply: {{ $isWalkin ? ($walkinProvince ?: ($workspace->province ?? 'ON')) : ($this->selectedClient?->province ?: ($workspace->province ?? 'ON')) }}
+                                        @endif
+                                    </span>
+                                </div>
+
+                                <!-- Seller's Active Tax Registration Numbers & Badges -->
+                                <div class="pt-2 border-t border-blue-200/60 flex flex-wrap items-center gap-2 text-[10px]">
+                                    @if($workspace->small_supplier_exempt)
+                                        <span class="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                            CRA Small-Supplier Exempt (0% Tax)
+                                        </span>
                                     @else
-                                        Tax rates (5% to 15% GST/HST/QST/PST) are automatically calculated from client province.
+                                        @if($workspace->cra_bn_number)
+                                            <span class="px-2 py-0.5 rounded-full font-mono font-semibold bg-blue-100 text-blue-900 border border-blue-300">
+                                                CRA BN: {{ $workspace->cra_bn_number }}
+                                            </span>
+                                        @endif
+                                        @php
+                                            $effectiveProv = $isWalkin ? ($walkinProvince ?: ($workspace->province ?? 'ON')) : ($this->selectedClient?->province ?? $workspace->province ?? 'ON');
+                                            $normalizedEffectiveProv = \App\Services\TaxCalculationService::normalizeCanadianProvince($effectiveProv);
+                                        @endphp
+                                        @if($normalizedEffectiveProv === 'QC' && $workspace->collect_qst && $workspace->qst_number)
+                                            <span class="px-2 py-0.5 rounded-full font-mono font-semibold bg-indigo-100 text-indigo-900 border border-indigo-300">
+                                                QST #: {{ $workspace->qst_number }}
+                                            </span>
+                                        @endif
                                     @endif
-                                </p>
+                                </div>
                             </div>
                         @else
                             <div>

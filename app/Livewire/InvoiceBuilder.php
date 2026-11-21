@@ -27,6 +27,7 @@ class InvoiceBuilder extends Component
     public string $walkinEmail = '';
     public string $walkinPhone = '';
     public string $walkinAddress = '';
+    public string $walkinProvince = 'ON';
 
     public ?string $clientId = '';
     public string $invoiceNumber = '';
@@ -497,6 +498,7 @@ class InvoiceBuilder extends Component
     {
         $workspace = Auth::user()->workspace;
         $this->presetIndustryFilter = $workspace->business_category ?? 'all';
+        $this->walkinProvince = $workspace->province ?? $workspace->state ?? 'ON';
 
         if ($invoiceId) {
             $invoice = Invoice::where('workspace_id', $workspace->id)
@@ -546,6 +548,7 @@ class InvoiceBuilder extends Component
                     $this->walkinName = $client->name;
                     $this->walkinEmail = $client->email ?? '';
                     $this->walkinPhone = $client->phone ?? '';
+                    $this->walkinProvince = $client->province ?? $client->state ?? ($workspace->province ?? 'ON');
                 }
             }
 
@@ -598,6 +601,10 @@ class InvoiceBuilder extends Component
         } elseif ($propertyName === 'clientId') {
             if ($this->clientId === 'walkin') {
                 $this->isWalkin = true;
+                $workspace = Auth::user()?->workspace;
+                if ($workspace && $workspace->isCanadianWorkspace()) {
+                    $this->walkinProvince = $this->walkinProvince ?: ($workspace->province ?? $workspace->state ?? 'ON');
+                }
             } else {
                 $this->isWalkin = false;
                 if (!empty($this->clientId)) {
@@ -615,6 +622,8 @@ class InvoiceBuilder extends Component
                     }
                 }
             }
+            $this->recalculate();
+        } elseif ($propertyName === 'walkinProvince') {
             $this->recalculate();
         } elseif ($propertyName === 'issueDate') {
             $this->updatedIssueDate($this->issueDate);
@@ -965,13 +974,15 @@ class InvoiceBuilder extends Component
         $workspace = Auth::user()?->workspace;
 
         if ($workspace && $workspace->isCanadianWorkspace()) {
+            $overrideProv = $this->isWalkin ? ($this->walkinProvince ?: ($workspace->province ?? 'ON')) : null;
             $calcs = $this->taxService->calculateForClient(
                 $workspace,
                 $client,
                 $subtotalCents,
                 $discountCents,
                 (float) $this->taxRate,
-                $this->taxName
+                $this->taxName,
+                $overrideProv
             );
 
             $this->taxName = $calcs['tax_name'];
@@ -1097,16 +1108,21 @@ class InvoiceBuilder extends Component
             if (!empty($walkEmail)) {
                 $searchCriteria['email'] = $walkEmail;
             }
+            $effectiveWalkinProv = $workspace->isCanadianWorkspace() ? ($this->walkinProvince ?: ($workspace->province ?? 'ON')) : null;
             $client = Client::firstOrCreate(
                 $searchCriteria,
                 [
                     'email' => $walkEmail,
                     'phone' => $this->walkinPhone,
                     'address' => $this->walkinAddress,
-                    'country_code' => $this->countryTaxCode ?: 'US',
+                    'province' => $effectiveWalkinProv,
+                    'country_code' => $workspace->isCanadianWorkspace() ? 'CA' : ($this->countryTaxCode ?: 'US'),
                     'preferred_currency' => $this->currency ?: 'USD',
                 ]
             );
+            if ($workspace->isCanadianWorkspace() && $effectiveWalkinProv && $client->province !== $effectiveWalkinProv) {
+                $client->update(['province' => $effectiveWalkinProv]);
+            }
             $this->clientId = $client->id;
         } else {
             $client = Client::findOrFail($this->clientId);
@@ -1126,7 +1142,16 @@ class InvoiceBuilder extends Component
             'email' => $workspace->email,
             'website' => $workspace->website,
             'bank_details' => $workspace->bank_details,
+            'cra_bn_number' => $workspace->cra_bn_number,
+            'qst_number' => $workspace->qst_number,
         ];
+
+        $effectiveClientProv = $this->isWalkin
+            ? ($this->walkinProvince ?: ($workspace->province ?? 'ON'))
+            : ($client->province ?? $client->state ?? null);
+        $effectiveClientCountry = $this->isWalkin && $workspace->isCanadianWorkspace()
+            ? 'CA'
+            : ($client->country_code ?? 'US');
 
         $clientSnapshot = [
             'name' => $client->name,
@@ -1136,9 +1161,9 @@ class InvoiceBuilder extends Component
             'tax_id' => $client->tax_id,
             'address' => $client->address,
             'city' => $client->city,
-            'province' => $client->province ?? $client->state ?? null,
-            'state' => $client->state ?? $client->province ?? null,
-            'country_code' => $client->country_code,
+            'province' => $effectiveClientProv,
+            'state' => $effectiveClientProv,
+            'country_code' => $effectiveClientCountry,
         ];
 
         // If scheduled, invoice starts as draft with schedule flags

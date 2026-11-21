@@ -105,10 +105,18 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                 x-data="{
+                     countryMap: { CA:'CAD', AE:'AED', SA:'SAR', TR:'TRY', US:'USD', GB:'GBP', DE:'EUR', FR:'EUR', ES:'EUR', AU:'AUD', IN:'INR', PK:'PKR' },
+                     onCountryChange(val) {
+                         if (this.countryMap[val]) {
+                             document.getElementById('currency').value = this.countryMap[val];
+                         }
+                     }
+                 }">
                 <div>
                     <label for="country_code" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Country (for Tax)</label>
-                    <select id="country_code" name="country_code" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
+                    <select id="country_code" name="country_code" @change="onCountryChange($event.target.value)" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition bg-white">
                         <option value="US">United States (Sales Tax)</option>
                         <option value="GB">United Kingdom (VAT 20%)</option>
                         <option value="DE">Germany (MwSt 19%)</option>
@@ -117,7 +125,7 @@
                         <option value="AE">United Arab Emirates (VAT 5%)</option>
                         <option value="SA">Saudi Arabia (VAT 15%)</option>
                         <option value="AU">Australia (GST 10%)</option>
-                        <option value="CA">Canada (GST/HST 13%)</option>
+                        <option value="CA">Canada (Dynamic GST/HST/QST)</option>
                         <option value="IN">India (GST 18%)</option>
                         <option value="TR">Turkey (KDV 20%)</option>
                         <option value="PK">Pakistan (SST 16%)</option>
