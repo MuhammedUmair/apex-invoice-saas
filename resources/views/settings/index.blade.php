@@ -81,6 +81,20 @@
         </nav>
     </div>
 
+    @if ($errors->any())
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1 shadow-xs">
+            <div class="font-bold flex items-center gap-2">
+                <i class="ph ph-warning-circle text-base text-rose-600 shrink-0"></i>
+                <span>There were errors saving your settings:</span>
+            </div>
+            <ul class="list-disc list-inside pl-4 text-[11px] font-normal space-y-0.5">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     @if (session('success'))
         <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <i class="ph ph-check-circle text-base text-emerald-600"></i>

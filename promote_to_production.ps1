@@ -137,6 +137,13 @@ if (file_exists(`$prodCore . '/vendor/autoload.php')) {
     `$kernel = `$app->make(Illuminate\Contracts\Http\Kernel::class);
     `$kernel->handle(Illuminate\Http\Request::capture());
     
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        echo "Production migrations executed: " . trim(\Illuminate\Support\Facades\Artisan::output()) . "\n";
+    } catch (\Throwable `$ex) {
+        echo "Migration notice: " . `$ex->getMessage() . "\n";
+    }
+
     \Illuminate\Support\Facades\Artisan::call('view:clear');
     \Illuminate\Support\Facades\Artisan::call('route:clear');
     \Illuminate\Support\Facades\Artisan::call('config:clear');
