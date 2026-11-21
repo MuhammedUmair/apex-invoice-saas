@@ -79,7 +79,7 @@
                                             $workspace = auth()->user()?->workspace;
                                             $isCanadianWorkspace = $workspace?->isCanadianWorkspace();
                                         @endphp
-                                        @if($isCanadianWorkspace)
+                                        @if($countryTaxCode === 'CA')
                                             <div>
                                                 <div class="flex items-center justify-between mb-1">
                                                     <label class="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
@@ -191,6 +191,7 @@
                                 <select wire:key="tax-country-select" 
                                         wire:model.live="countryTaxCode" 
                                         class="w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-red-500 bg-white text-slate-800">
+                                    <option value="EXPORT" @selected($countryTaxCode === 'EXPORT')>Zero-Rated Export (0.00%)</option>
                                     <option value="PK" @selected($countryTaxCode === 'PK')>Pakistan - 16% SST</option>
                                     <option value="AE" @selected($countryTaxCode === 'AE')>UAE - 5% VAT</option>
                                     <option value="SA" @selected($countryTaxCode === 'SA')>Saudi Arabia - 15% ZATCA VAT</option>
@@ -221,7 +222,7 @@
                             $workspace = auth()->user()?->workspace;
                             $isCanadianWorkspace = $workspace?->isCanadianWorkspace();
                         @endphp
-                        @if($isCanadianWorkspace)
+                        @if($countryTaxCode === 'CA')
                             <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 space-y-2">
                                 <div class="flex items-center justify-between">
                                     <label class="block text-[11px] font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
@@ -238,34 +239,55 @@
                                         @if($taxCalculationNote)
                                             {{ $taxCalculationNote }}
                                         @else
-                                            Place of Supply: {{ $isWalkin ? ($walkinProvince ?: ($workspace->province ?? 'ON')) : ($this->selectedClient?->province ?: ($workspace->province ?? 'ON')) }}
+                                            Place of Supply: {{ $isWalkin ? ($walkinProvince ?: ($workspace?->province ?? 'ON')) : ($this->selectedClient?->province ?: ($workspace?->province ?? 'ON')) }}
                                         @endif
                                     </span>
                                 </div>
 
                                 <!-- Seller's Active Tax Registration Numbers & Badges -->
                                 <div class="pt-2 border-t border-blue-200/60 flex flex-wrap items-center gap-2 text-[10px]">
-                                    @if($workspace->small_supplier_exempt)
+                                    @if($workspace?->small_supplier_exempt)
                                         <span class="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900 border border-amber-300">
                                             CRA Small-Supplier Exempt (0% Tax)
                                         </span>
                                     @else
-                                        @if($workspace->cra_bn_number)
+                                        @if($workspace?->cra_bn_number)
                                             <span class="px-2 py-0.5 rounded-full font-mono font-semibold bg-blue-100 text-blue-900 border border-blue-300">
                                                 CRA BN: {{ $workspace->cra_bn_number }}
                                             </span>
                                         @endif
                                         @php
-                                            $effectiveProv = $isWalkin ? ($walkinProvince ?: ($workspace->province ?? 'ON')) : ($this->selectedClient?->province ?? $workspace->province ?? 'ON');
+                                            $effectiveProv = $isWalkin ? ($walkinProvince ?: ($workspace?->province ?? 'ON')) : ($this->selectedClient?->province ?? $workspace?->province ?? 'ON');
                                             $normalizedEffectiveProv = \App\Services\TaxCalculationService::normalizeCanadianProvince($effectiveProv);
                                         @endphp
-                                        @if($normalizedEffectiveProv === 'QC' && $workspace->collect_qst && $workspace->qst_number)
+                                        @if($normalizedEffectiveProv === 'QC' && $workspace?->collect_qst && $workspace?->qst_number)
                                             <span class="px-2 py-0.5 rounded-full font-mono font-semibold bg-indigo-100 text-indigo-900 border border-indigo-300">
                                                 QST #: {{ $workspace->qst_number }}
                                             </span>
                                         @endif
                                     @endif
                                 </div>
+                            </div>
+                        @elseif($countryTaxCode === 'EXPORT' || ($isCanadianWorkspace && $this->selectedClient && ($this->selectedClient->country_code ?? 'CA') !== 'CA'))
+                            <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-[11px] font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                                        <i class="ph ph-globe text-emerald-600 text-sm"></i>
+                                        <span>CANADIAN EXPORT RULE: Zero-Rated International Supply (0.00%)</span>
+                                    </label>
+                                    <span class="text-xs font-mono font-bold text-emerald-800">0.00%</span>
+                                </div>
+                                <div class="text-[11px] text-emerald-900 font-medium flex items-center gap-1.5">
+                                    <i class="ph ph-info text-emerald-600 text-xs shrink-0"></i>
+                                    <span>Client is outside Canada. Services and supplies delivered to international clients are 0% Zero-Rated under CRA excise tax guidelines.</span>
+                                </div>
+                                @if($workspace?->cra_bn_number)
+                                    <div class="pt-2 border-t border-emerald-200/60 flex items-center gap-2 text-[10px]">
+                                        <span class="px-2 py-0.5 rounded-full font-mono font-semibold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                            CRA BN: {{ $workspace->cra_bn_number }}
+                                        </span>
+                                    </div>
+                                @endif
                             </div>
                         @else
                             <div>

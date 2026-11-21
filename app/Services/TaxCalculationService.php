@@ -23,6 +23,7 @@ class TaxCalculationService
         'IN' => ['name' => 'GST', 'rate' => 18.00, 'type' => 'gst'],
         'TR' => ['name' => 'KDV (VAT)', 'rate' => 20.00, 'type' => 'kdv'],
         'PK' => ['name' => 'Sales Tax / SST', 'rate' => 16.00, 'type' => 'sales_tax'],
+        'EXPORT' => ['name' => 'Zero-Rated Export', 'rate' => 0.00, 'type' => 'export'],
     ];
 
     /**
@@ -299,7 +300,7 @@ class TaxCalculationService
                     0.00,
                     0,
                     false,
-                    'Export Outside Canada (0% Zero-Rated)'
+                    'CANADIAN EXPORT RULE: Zero-Rated International Supply (0.00%)'
                 );
             }
 
@@ -363,21 +364,21 @@ class TaxCalculationService
                 // GST only (5.000%)
                 $federalTaxName = 'GST';
                 $federalTaxRate = 5.000;
-                $label = 'GST (5.00%)';
+                $label = '5.00% GST';
                 break;
 
             case 'ON':
                 // Ontario HST (13.000%)
                 $federalTaxName = 'HST';
                 $federalTaxRate = 13.000;
-                $label = 'HST (13.00%)';
+                $label = '13.00% HST';
                 break;
 
             case 'NS':
                 // Nova Scotia HST (14.000%)
                 $federalTaxName = 'HST';
                 $federalTaxRate = 14.000;
-                $label = 'HST (14.00%)';
+                $label = '14.00% HST';
                 break;
 
             case 'NB':
@@ -386,7 +387,7 @@ class TaxCalculationService
                 // Atlantic 15.000% HST
                 $federalTaxName = 'HST';
                 $federalTaxRate = 15.000;
-                $label = 'HST (15.00%)';
+                $label = '15.00% HST';
                 break;
 
             case 'QC':
@@ -397,9 +398,9 @@ class TaxCalculationService
                     $provincialTaxName = 'QST';
                     $provincialTaxRate = 9.975;
                     $isDualTax = true;
-                    $label = 'GST (5.00%) + QST (9.975%)';
+                    $label = '5.00% GST + 9.975% QST';
                 } else {
-                    $label = 'GST (5.00%)';
+                    $label = '5.00% GST';
                 }
                 break;
 
@@ -412,9 +413,9 @@ class TaxCalculationService
                     $provincialTaxName = 'PST';
                     $provincialTaxRate = 7.000;
                     $isDualTax = true;
-                    $label = "GST (5.00%) + PST (7.00%)";
+                    $label = '5.00% GST + 7.00% PST';
                 } else {
-                    $label = 'GST (5.00%)';
+                    $label = '5.00% GST';
                 }
                 break;
 
@@ -426,9 +427,9 @@ class TaxCalculationService
                     $provincialTaxName = 'PST';
                     $provincialTaxRate = 6.000;
                     $isDualTax = true;
-                    $label = 'GST (5.00%) + PST (6.00%)';
+                    $label = '5.00% GST + 6.00% PST';
                 } else {
-                    $label = 'GST (5.00%)';
+                    $label = '5.00% GST';
                 }
                 break;
 
@@ -436,7 +437,7 @@ class TaxCalculationService
                 // Fallback for unknown Canadian territory
                 $federalTaxName = 'GST';
                 $federalTaxRate = 5.000;
-                $label = 'GST (5.00%)';
+                $label = '5.00% GST';
                 break;
         }
 

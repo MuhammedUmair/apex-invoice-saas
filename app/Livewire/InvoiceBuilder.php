@@ -498,7 +498,8 @@ class InvoiceBuilder extends Component
     {
         $workspace = Auth::user()->workspace;
         $this->presetIndustryFilter = $workspace->business_category ?? 'all';
-        $this->walkinProvince = $workspace->province ?? $workspace->state ?? 'ON';
+        $wsCountry = strtoupper($workspace->country_code ?? 'US');
+        $this->walkinProvince = $wsCountry === 'CA' ? ($workspace->province ?? $workspace->state ?? 'ON') : '';
 
         if ($invoiceId) {
             $invoice = Invoice::where('workspace_id', $workspace->id)
@@ -542,7 +543,7 @@ class InvoiceBuilder extends Component
 
             $client = $invoice->client;
             if ($client) {
-                $this->countryTaxCode = $client->country_code ?? 'US';
+                $this->countryTaxCode = $client->country_code ?? $wsCountry;
                 if (str_contains(strtolower($client->name), 'walk-in') || str_contains(strtolower($client->name), 'general customer')) {
                     $this->isWalkin = true;
                     $this->walkinName = $client->name;
@@ -550,6 +551,8 @@ class InvoiceBuilder extends Component
                     $this->walkinPhone = $client->phone ?? '';
                     $this->walkinProvince = $client->province ?? $client->state ?? ($workspace->province ?? 'ON');
                 }
+            } else {
+                $this->countryTaxCode = $wsCountry;
             }
 
             $this->items = [];
@@ -574,19 +577,25 @@ class InvoiceBuilder extends Component
             return;
         }
 
-        // New invoice defaults
+        // New invoice defaults initialized directly from workspace regional settings
         $this->issueDate = date('Y-m-d');
         $this->dueDate = date('Y-m-d', strtotime('+14 days'));
         $this->scheduledPublishDate = date('Y-m-d', strtotime('+7 days'));
         $this->recurringNextDate = date('Y-m-d', strtotime('+1 month'));
-        $this->currency = $workspace->currency ?? 'USD';
+
+        $this->countryTaxCode = $wsCountry;
+        $this->currency = $workspace->currency ?? ($wsCountry === 'AE' ? 'AED' : ($wsCountry === 'CA' ? 'CAD' : 'USD'));
         $this->language = session('locale') ?: ($workspace->language ?: 'en');
-        $this->countryTaxCode = $workspace->country_code ?? 'US';
 
         $this->applyCountryTaxPreset($this->countryTaxCode);
 
+        if ($workspace->default_tax_rate !== null && (float)$workspace->default_tax_rate > 0) {
+            $this->taxRate = (float) $workspace->default_tax_rate;
+        }
+
         // Add 1 default empty item
         $this->addItem();
+        $this->recalculate();
     }
 
     /**
@@ -599,11 +608,22 @@ class InvoiceBuilder extends Component
         } elseif ($propertyName === 'countryTaxCode') {
             $this->onCountryTaxChange($this->countryTaxCode);
         } elseif ($propertyName === 'clientId') {
+            $workspace = Auth::user()?->workspace;
+            $wsCountry = strtoupper($workspace->country_code ?? 'US');
+
             if ($this->clientId === 'walkin') {
                 $this->isWalkin = true;
-                $workspace = Auth::user()?->workspace;
-                if ($workspace && $workspace->isCanadianWorkspace()) {
+                if ($wsCountry === 'CA') {
                     $this->walkinProvince = $this->walkinProvince ?: ($workspace->province ?? $workspace->state ?? 'ON');
+                    $this->countryTaxCode = 'CA';
+                    $this->applyCountryTaxPreset('CA');
+                } else {
+                    $this->walkinProvince = '';
+                    $this->countryTaxCode = $wsCountry;
+                    $this->applyCountryTaxPreset($wsCountry);
+                    if ($workspace->default_tax_rate !== null && (float)$workspace->default_tax_rate > 0) {
+                        $this->taxRate = (float) $workspace->default_tax_rate;
+                    }
                 }
             } else {
                 $this->isWalkin = false;
@@ -611,13 +631,45 @@ class InvoiceBuilder extends Component
                     $client = Client::find($this->clientId);
                     if ($client) {
                         if ($client->preferred_currency) {
-                            $this->onCurrencyChange($client->preferred_currency);
+                            $this->currency = $client->preferred_currency;
                         }
                         if ($client->preferred_language) {
                             $this->language = $client->preferred_language;
                         }
-                        if ($client->country_code) {
-                            $this->onCountryTaxChange($client->country_code);
+                        $clCountry = strtoupper($client->country_code ?? $wsCountry);
+
+                        if ($wsCountry === 'CA') {
+                            if ($clCountry !== 'CA') {
+                                // Canadian workspace billing international client (e.g. AE, US, GB)
+                                $this->countryTaxCode = 'EXPORT';
+                                $this->taxName = 'Zero-Rated Export';
+                                $this->taxRate = 0.00;
+                                foreach ($this->items as $i => $item) {
+                                    $this->items[$i]['tax_rate'] = 0.00;
+                                }
+                            } else {
+                                // Canadian domestic client
+                                $this->countryTaxCode = 'CA';
+                                $this->applyCountryTaxPreset('CA');
+                            }
+                        } else {
+                            // Non-Canadian workspace (e.g. UAE)
+                            if ($clCountry === $wsCountry) {
+                                // Domestic client (e.g. UAE client for UAE workspace)
+                                $this->countryTaxCode = $wsCountry;
+                                $this->applyCountryTaxPreset($wsCountry);
+                                if ($workspace->default_tax_rate !== null && (float)$workspace->default_tax_rate > 0) {
+                                    $this->taxRate = (float) $workspace->default_tax_rate;
+                                }
+                            } else {
+                                // Cross-border export for non-CA workspace
+                                $this->countryTaxCode = 'EXPORT';
+                                $this->taxName = 'Zero-Rated Export';
+                                $this->taxRate = 0.00;
+                                foreach ($this->items as $i => $item) {
+                                    $this->items[$i]['tax_rate'] = 0.00;
+                                }
+                            }
                         }
                     }
                 }
@@ -651,10 +703,6 @@ class InvoiceBuilder extends Component
     public function onCurrencyChange($val)
     {
         $this->currency = $val;
-        if (isset($this->currencyToTaxMap[$val])) {
-            $this->countryTaxCode = $this->currencyToTaxMap[$val];
-            $this->applyCountryTaxPreset($this->countryTaxCode);
-        }
         $this->recalculate();
     }
 
@@ -667,9 +715,6 @@ class InvoiceBuilder extends Component
     {
         $this->countryTaxCode = $val;
         $this->applyCountryTaxPreset($val);
-        if (isset($this->taxToCurrencyMap[$val])) {
-            $this->currency = $this->taxToCurrencyMap[$val];
-        }
         $this->recalculate();
     }
 
@@ -973,7 +1018,21 @@ class InvoiceBuilder extends Component
         $client = ($this->clientId && $this->clientId !== 'walkin') ? Client::find($this->clientId) : null;
         $workspace = Auth::user()?->workspace;
 
-        if ($workspace && $workspace->isCanadianWorkspace()) {
+        if ($this->countryTaxCode === 'EXPORT' || ($workspace && $workspace->isCanadianWorkspace() && $client && strtoupper($client->country_code ?? 'CA') !== 'CA')) {
+            $this->taxName = 'Zero-Rated Export';
+            $this->taxRate = 0.00;
+            $this->taxAmount = 0.00;
+            $this->federalTaxName = 'Zero-Rated Export';
+            $this->federalTaxRate = 0.00;
+            $this->federalTaxAmount = 0.00;
+            $this->provincialTaxName = null;
+            $this->provincialTaxRate = 0.00;
+            $this->provincialTaxAmount = 0.00;
+            $this->isDualTax = false;
+            $this->taxCalculationNote = 'CANADIAN EXPORT RULE: Zero-Rated International Supply (0.00%)';
+            $this->subtotal = max(0, $subtotalCents) / 100;
+            $this->totalAmount = max(0, $subtotalCents - $discountCents) / 100;
+        } elseif ($this->countryTaxCode === 'CA' && $workspace && $workspace->isCanadianWorkspace()) {
             $overrideProv = $this->isWalkin ? ($this->walkinProvince ?: ($workspace->province ?? 'ON')) : null;
             $calcs = $this->taxService->calculateForClient(
                 $workspace,
@@ -1116,7 +1175,7 @@ class InvoiceBuilder extends Component
                     'phone' => $this->walkinPhone,
                     'address' => $this->walkinAddress,
                     'province' => $effectiveWalkinProv,
-                    'country_code' => $workspace->isCanadianWorkspace() ? 'CA' : ($this->countryTaxCode ?: 'US'),
+                    'country_code' => $workspace->isCanadianWorkspace() ? 'CA' : (($this->countryTaxCode && $this->countryTaxCode !== 'EXPORT') ? $this->countryTaxCode : ($workspace->country_code ?: 'US')),
                     'preferred_currency' => $this->currency ?: 'USD',
                 ]
             );
@@ -1149,8 +1208,8 @@ class InvoiceBuilder extends Component
         $effectiveClientProv = $this->isWalkin
             ? ($this->walkinProvince ?: ($workspace->province ?? 'ON'))
             : ($client->province ?? $client->state ?? null);
-        $effectiveClientCountry = $this->isWalkin && $workspace->isCanadianWorkspace()
-            ? 'CA'
+        $effectiveClientCountry = $this->isWalkin
+            ? ($workspace->isCanadianWorkspace() ? 'CA' : (($this->countryTaxCode && $this->countryTaxCode !== 'EXPORT') ? $this->countryTaxCode : ($workspace->country_code ?? 'US')))
             : ($client->country_code ?? 'US');
 
         $clientSnapshot = [
