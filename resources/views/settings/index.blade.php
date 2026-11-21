@@ -177,9 +177,9 @@
         function initSettingsPresets() {
             if (typeof Alpine !== 'undefined' && Alpine.data) {
                 Alpine.data('settingsRegionalManager', () => ({
-                    selectedCountry: '{{ old('country_code', $workspace->country_code ?? 'US') }}',
-                    originalCountry: '{{ old('country_code', $workspace->country_code ?? 'US') }}',
-                    selectedCurrency: '{{ old('currency', $workspace->currency ?? 'USD') }}',
+                    selectedCountry: '{{ strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) }}',
+                    originalCountry: '{{ strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) }}',
+                    selectedCurrency: '{{ strtoupper(old('currency', $workspace->currency ?? 'USD')) }}',
                     taxId: @json(old('tax_id', $workspace->tax_id ?? '')),
                     bankInstructions: @json(old('bank_transfer_instructions', $workspace->bank_transfer_instructions ?? '')),
                     craBnNumber: @json(old('cra_bn_number', $workspace->cra_bn_number ?? '')),
@@ -261,6 +261,7 @@
                         AE: {
                             name: 'United Arab Emirates',
                             currency: 'AED',
+                            taxRate: 5.00,
                             taxLabel: 'VAT (5.00%)',
                             taxIdLabel: 'Tax Registration Number (TRN)',
                             taxIdPlaceholder: '100XXXXXXXXXXXX (15 digits)',
@@ -270,6 +271,7 @@
                         SA: {
                             name: 'Saudi Arabia',
                             currency: 'SAR',
+                            taxRate: 15.00,
                             taxLabel: 'VAT (15.00%)',
                             taxIdLabel: 'ZATCA VAT Registration Number',
                             taxIdPlaceholder: '3XXXXXXXXXXXXX3 (15 digits starting & ending with 3)',
@@ -279,6 +281,7 @@
                         TR: {
                             name: 'Turkey',
                             currency: 'TRY',
+                            taxRate: 20.00,
                             taxLabel: 'KDV (20.00%)',
                             taxIdLabel: 'Vergi Kimlik Numarası (VKN / TCKN)',
                             taxIdPlaceholder: '1234567890 (10 digits)',
@@ -288,6 +291,7 @@
                         US: {
                             name: 'United States',
                             currency: 'USD',
+                            taxRate: 0.00,
                             taxLabel: 'Sales Tax (0.00%)',
                             taxIdLabel: 'EIN / Tax ID',
                             taxIdPlaceholder: 'XX-XXXXXXX',
@@ -297,6 +301,7 @@
                         GB: {
                             name: 'United Kingdom',
                             currency: 'GBP',
+                            taxRate: 20.00,
                             taxLabel: 'VAT (20.00%)',
                             taxIdLabel: 'UK VAT Registration Number',
                             taxIdPlaceholder: 'GB 123 4567 89',
@@ -306,6 +311,7 @@
                         DE: {
                             name: 'Germany',
                             currency: 'EUR',
+                            taxRate: 19.00,
                             taxLabel: 'MwSt (19.00%)',
                             taxIdLabel: 'Umsatzsteuer-Identifikationsnummer (USt-IdNr.)',
                             taxIdPlaceholder: 'DE123456789',
@@ -315,6 +321,7 @@
                         FR: {
                             name: 'France',
                             currency: 'EUR',
+                            taxRate: 20.00,
                             taxLabel: 'TVA (20.00%)',
                             taxIdLabel: 'Numéro de TVA Intracommunautaire',
                             taxIdPlaceholder: 'FR 12 345678901',
@@ -324,6 +331,7 @@
                         PK: {
                             name: 'Pakistan',
                             currency: 'PKR',
+                            taxRate: 16.00,
                             taxLabel: 'Sales Tax / SST (16.00%)',
                             taxIdLabel: 'National Tax Number (NTN / STRN)',
                             taxIdPlaceholder: '1234567-8',
@@ -333,6 +341,7 @@
                         IN: {
                             name: 'India',
                             currency: 'INR',
+                            taxRate: 18.00,
                             taxLabel: 'GST (18.00%)',
                             taxIdLabel: 'GSTIN (Goods and Services Tax ID)',
                             taxIdPlaceholder: '22AAAAA0000A1Z5',
@@ -342,6 +351,7 @@
                         AU: {
                             name: 'Australia',
                             currency: 'AUD',
+                            taxRate: 10.00,
                             taxLabel: 'GST (10.00%)',
                             taxIdLabel: 'Australian Business Number (ABN)',
                             taxIdPlaceholder: '12 345 678 901',
@@ -351,6 +361,7 @@
                         GLOBAL: {
                             name: 'Global / International',
                             currency: 'USD',
+                            taxRate: 0.00,
                             taxLabel: 'Tax / VAT',
                             taxIdLabel: 'Tax ID / VAT Number',
                             taxIdPlaceholder: 'US-987654321 / GB123456',
@@ -392,6 +403,9 @@
                         if (this.selectedCountry === 'CA') {
                             this.selectedProvince = this.selectedProvince || 'ON';
                             this.onProvinceChange();
+                        } else {
+                            const p = this.presets[this.selectedCountry] || this.presets.GLOBAL;
+                            this.defaultTaxRate = p.taxRate ?? 0.00;
                         }
                         if (this.selectedCountry !== this.originalCountry) {
                             this.promptCountry = (this.presets[this.selectedCountry] || { name: this.selectedCountry }).name;
@@ -501,32 +515,32 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Default Language</label>
-                    <select name="language" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                        <option value="en" {{ old('language', $workspace->language) === 'en' ? 'selected' : '' }}>🇺🇸 English</option>
-                        <option value="ur" {{ old('language', $workspace->language) === 'ur' ? 'selected' : '' }}>🇵🇰 Urdu (اردو)</option>
-                        <option value="hi" {{ old('language', $workspace->language) === 'hi' ? 'selected' : '' }}>🇮🇳 Hindi (हिन्दी)</option>
-                        <option value="tr" {{ old('language', $workspace->language) === 'tr' ? 'selected' : '' }}>🇹🇷 Turkish (Türkçe)</option>
-                        <option value="ar" {{ old('language', $workspace->language) === 'ar' ? 'selected' : '' }}>🇦🇪 Arabic (العربية)</option>
-                        <option value="es" {{ old('language', $workspace->language) === 'es' ? 'selected' : '' }}>🇪🇸 Spanish (Español)</option>
-                        <option value="fr" {{ old('language', $workspace->language) === 'fr' ? 'selected' : '' }}>🇫🇷 French (Français)</option>
-                        <option value="de" {{ old('language', $workspace->language) === 'de' ? 'selected' : '' }}>🇩🇪 German (Deutsch)</option>
-                        <option value="zh" {{ old('language', $workspace->language) === 'zh' ? 'selected' : '' }}>🇨🇳 Chinese (中文)</option>
+                    <select name="default_language" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-medium">
+                        <option value="en" {{ old('default_language', old('language', $workspace->language)) === 'en' ? 'selected' : '' }}>🇺🇸 English</option>
+                        <option value="ur" {{ old('default_language', old('language', $workspace->language)) === 'ur' ? 'selected' : '' }}>🇵🇰 Urdu (اردو)</option>
+                        <option value="hi" {{ old('default_language', old('language', $workspace->language)) === 'hi' ? 'selected' : '' }}>🇮🇳 Hindi (हिन्दी)</option>
+                        <option value="tr" {{ old('default_language', old('language', $workspace->language)) === 'tr' ? 'selected' : '' }}>🇹🇷 Turkish (Türkçe)</option>
+                        <option value="ar" {{ old('default_language', old('language', $workspace->language)) === 'ar' ? 'selected' : '' }}>🇦🇪 Arabic (العربية)</option>
+                        <option value="es" {{ old('default_language', old('language', $workspace->language)) === 'es' ? 'selected' : '' }}>🇪🇸 Spanish (Español)</option>
+                        <option value="fr" {{ old('default_language', old('language', $workspace->language)) === 'fr' ? 'selected' : '' }}>🇫🇷 French (Français)</option>
+                        <option value="de" {{ old('default_language', old('language', $workspace->language)) === 'de' ? 'selected' : '' }}>🇩🇪 German (Deutsch)</option>
+                        <option value="zh" {{ old('default_language', old('language', $workspace->language)) === 'zh' ? 'selected' : '' }}>🇨🇳 Chinese (中文)</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Primary Currency</label>
                     <select name="currency" x-model="selectedCurrency" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-semibold">
-                        <option value="USD">USD ($)</option>
-                        <option value="CAD">CAD (C$)</option>
-                        <option value="AED">AED (د.إ)</option>
-                        <option value="SAR">SAR (﷼)</option>
-                        <option value="TRY">TRY (₺)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="AUD">AUD (A$)</option>
-                        <option value="INR">INR (₹)</option>
-                        <option value="PKR">PKR (Rs)</option>
+                        <option value="USD" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'USD')>USD ($)</option>
+                        <option value="CAD" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'CAD')>CAD (C$)</option>
+                        <option value="AED" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'AED')>AED (د.إ)</option>
+                        <option value="SAR" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'SAR')>SAR (﷼)</option>
+                        <option value="TRY" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'TRY')>TRY (₺)</option>
+                        <option value="GBP" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'GBP')>GBP (£)</option>
+                        <option value="EUR" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'EUR')>EUR (€)</option>
+                        <option value="AUD" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'AUD')>AUD (A$)</option>
+                        <option value="INR" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'INR')>INR (₹)</option>
+                        <option value="PKR" @selected(strtoupper(old('currency', $workspace->currency ?? 'USD')) === 'PKR')>PKR (Rs)</option>
                     </select>
                 </div>
 
@@ -536,16 +550,17 @@
                         <span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full" x-text="selectedCountry"></span>
                     </div>
                     <select name="country_code" x-model="selectedCountry" @change="onCountryChange()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-medium">
-                        <option value="US">🇺🇸 United States</option>
-                        <option value="CA">🇨🇦 Canada</option>
-                        <option value="AE">🇦🇪 United Arab Emirates (UAE)</option>
-                        <option value="SA">🇸🇦 Saudi Arabia (KSA)</option>
-                        <option value="TR">🇹🇷 Turkey (Türkiye)</option>
-                        <option value="GB">🇬🇧 United Kingdom</option>
-                        <option value="PK">🇵🇰 Pakistan</option>
-                        <option value="IN">🇮🇳 India</option>
-                        <option value="AU">🇦🇺 Australia</option>
-                        <option value="DE">🇩🇪 Germany</option>
+                        <option value="US" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'US')>🇺🇸 United States</option>
+                        <option value="CA" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'CA')>🇨🇦 Canada</option>
+                        <option value="AE" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'AE')>🇦🇪 United Arab Emirates (UAE)</option>
+                        <option value="SA" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'SA')>🇸🇦 Saudi Arabia (KSA)</option>
+                        <option value="TR" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'TR')>🇹🇷 Turkey (Türkiye)</option>
+                        <option value="GB" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'GB')>🇬🇧 United Kingdom</option>
+                        <option value="PK" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'PK')>🇵🇰 Pakistan</option>
+                        <option value="IN" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'IN')>🇮🇳 India</option>
+                        <option value="AU" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'AU')>🇦🇺 Australia</option>
+                        <option value="DE" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'DE')>🇩🇪 Germany</option>
+                        <option value="FR" @selected(strtoupper(old('country_code', old('country', $workspace->country_code ?? 'US'))) === 'FR')>🇫🇷 France</option>
                     </select>
                 </div>
             </div>
@@ -591,11 +606,34 @@
                         </div>
                         <div class="relative">
                             <input type="number" step="0.001" name="default_tax_rate" x-model="defaultTaxRate" readonly
+                                   :disabled="selectedCountry !== 'CA'"
                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-mono font-bold text-slate-900 outline-none">
                             <span class="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">%</span>
                         </div>
                         <p class="text-[11px] text-slate-500 mt-1 leading-relaxed" x-text="currentProvinceInfo.note"></p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Non-Canadian Standard Default Tax Rate -->
+            <div x-show="selectedCountry !== 'CA'" x-cloak x-transition
+                 class="pt-5 border-t border-slate-100">
+                <div class="max-w-md">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            Default Tax Rate (%)
+                        </label>
+                        <span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full font-mono" x-text="currentPreset.taxLabel || 'VAT'"></span>
+                    </div>
+                    <div class="relative">
+                        <input type="number" step="0.01" min="0" max="100" name="default_tax_rate" x-model="defaultTaxRate"
+                               :disabled="selectedCountry === 'CA'"
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono font-bold text-slate-900 focus:ring-2 focus:ring-red-500 outline-none bg-white">
+                        <span class="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">%</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-1 text-slate-500">
+                        Default tax rate applied to domestic sales and standard non-export invoices.
+                    </p>
                 </div>
             </div>
 

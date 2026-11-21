@@ -50,11 +50,14 @@ class SettingsController extends Controller
             'small_supplier_exempt' => 'nullable|boolean',
             'collect_qst' => 'nullable|boolean',
             'collect_pst' => 'nullable|boolean',
-            'country_code' => 'required|string|size:2',
+            'country_code' => 'nullable|string|size:2',
+            'country' => 'nullable|string|size:2',
             'province' => 'nullable|string|max:50',
             'default_tax_rate' => 'nullable|numeric|min:0|max:100',
             'currency' => 'required|string|size:3',
-            'language' => 'required|string|max:10',
+            'default_language' => 'nullable|string|max:10',
+            'language' => 'nullable|string|max:10',
+            'locale' => 'nullable|string|max:10',
             'address' => 'nullable|string',
             'brand_color' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/',
             'secondary_color' => 'required|string|regex:/^#[a-fA-F0-9]{6}$/',
@@ -77,21 +80,33 @@ class SettingsController extends Controller
             'is_whitelabel_enabled' => 'nullable|boolean',
         ]);
 
+        $countryCode = strtoupper(trim($request->input('country_code') ?? $request->input('country') ?? $workspace->country_code ?? 'US'));
+        $currency = strtoupper(trim($request->input('currency') ?? $workspace->currency ?? 'USD'));
+        $language = trim($request->input('default_language') ?? $request->input('language') ?? $request->input('locale') ?? $workspace->language ?? 'en');
+
         $workspace->name = $validated['name'];
         $workspace->email = $validated['email'] ?? null;
         $workspace->phone = $validated['phone'] ?? null;
         $workspace->website = $validated['website'] ?? null;
         $workspace->tax_id = $validated['tax_id'] ?? null;
-        $workspace->country_code = $validated['country_code'];
-        $workspace->currency = $validated['currency'];
-        $workspace->language = $validated['language'];
+
+        $workspace->country_code = $countryCode;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('workspaces', 'country')) {
+            $workspace->country = $countryCode;
+        }
+
+        $workspace->currency = $currency;
+
+        $workspace->language = $language;
+        $workspace->default_language = $language;
+
         $workspace->address = $validated['address'] ?? null;
         $workspace->brand_color = $validated['brand_color'];
         $workspace->secondary_color = $validated['secondary_color'];
         $workspace->is_whitelabel_enabled = (bool)($request->has('is_whitelabel_enabled'));
 
         // Strict Regional Tax Isolation: Scoped to Canadian workspaces only
-        if (strtoupper($validated['country_code']) === 'CA') {
+        if ($countryCode === 'CA') {
             $workspace->province = $request->input('province') ? strtoupper(trim($request->input('province'))) : 'ON';
             $workspace->small_supplier_exempt = (bool) $request->has('small_supplier_exempt');
             $workspace->collect_qst = (bool) $request->has('collect_qst');
@@ -105,12 +120,18 @@ class SettingsController extends Controller
             $workspace->default_tax_rate = $workspace->small_supplier_exempt
                 ? 0.000
                 : (float) ($request->input('default_tax_rate') ?? $details['total_rate']);
+            $workspace->default_tax_name = 'GST/HST/QST';
             $workspace->cra_bn_number = $request->input('cra_bn_number') ?: null;
             $workspace->qst_number = $request->input('qst_number') ?: null;
         } else {
             // Non-Canadian workspaces are strictly isolated from Canadian multi-tax logic
             $workspace->province = null;
-            $workspace->default_tax_rate = (float) ($request->input('default_tax_rate') ?? 0.00);
+            $preset = app(\App\Services\TaxCalculationService::class)->getPresetForCountry($countryCode);
+            $presetRate = (float) ($preset['rate'] ?? 0.00);
+            $workspace->default_tax_rate = $request->filled('default_tax_rate')
+                ? (float) $request->input('default_tax_rate')
+                : $presetRate;
+            $workspace->default_tax_name = $preset['name'] ?? 'VAT';
             $workspace->cra_bn_number = null;
             $workspace->qst_number = null;
             $workspace->small_supplier_exempt = false;

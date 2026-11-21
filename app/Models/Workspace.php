@@ -21,10 +21,13 @@ class Workspace extends Model
         'secondary_color',
         'currency',
         'language',
+        'default_language',
         'country_code',
+        'country',
         'province',
         'tax_id',
         'default_tax_rate',
+        'default_tax_name',
         'cra_bn_number',
         'qst_number',
         'small_supplier_exempt',
@@ -310,6 +313,65 @@ class Workspace extends Model
             return !empty(config('services.paypal.client_id')) && !empty(config('services.paypal.secret'));
         }
         return false;
+    }
+
+    /**
+     * Virtual mapping for default_language -> language.
+     */
+    public function getDefaultLanguageAttribute(): ?string
+    {
+        return $this->language;
+    }
+
+    public function setDefaultLanguageAttribute(?string $value): void
+    {
+        $this->attributes['language'] = $value;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('workspaces', 'default_language')) {
+            $this->attributes['default_language'] = $value;
+        }
+    }
+
+    /**
+     * Virtual mapping for country -> country_code.
+     */
+    public function getCountryAttribute(): ?string
+    {
+        return $this->country_code;
+    }
+
+    public function setCountryAttribute(?string $value): void
+    {
+        $code = $value ? strtoupper(trim($value)) : null;
+        $this->attributes['country_code'] = $code;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('workspaces', 'country')) {
+            $this->attributes['country'] = $code;
+        }
+    }
+
+    /**
+     * Default tax name accessor / mutator with country preset defaults.
+     */
+    public function getDefaultTaxNameAttribute(): ?string
+    {
+        if (!empty($this->attributes['default_tax_name'])) {
+            return $this->attributes['default_tax_name'];
+        }
+        return match(strtoupper($this->country_code ?? 'US')) {
+            'CA' => 'GST/HST/QST',
+            'AE' => 'VAT',
+            'SA' => 'VAT (ZATCA)',
+            'GB', 'DE', 'FR', 'ES', 'IT' => 'VAT',
+            'TR' => 'KDV',
+            'AU', 'IN' => 'GST',
+            default => 'Sales Tax',
+        };
+    }
+
+    public function setDefaultTaxNameAttribute(?string $value): void
+    {
+        if (\Illuminate\Support\Facades\Schema::hasColumn('workspaces', 'default_tax_name')) {
+            $this->attributes['default_tax_name'] = $value;
+        }
     }
 
     /**
