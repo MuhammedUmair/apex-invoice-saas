@@ -9,14 +9,15 @@ param(
     [string]$ProdHost = "82.29.185.64",
     [string]$ProdUser = "u858731124.redmapleagency.com",
     [string]$ProdPass = '786@&^*(?1BmA238',
-    [string]$ProdCore = "/home/u858731124/domains/redmapleagency.com/redmaple_core"
+    [string]$ProdCore = "/home/u858731124/domains/redmapleagency.com/redmaple_core",
+    [string]$ReleaseName = "release_two"
 )
 
 $ErrorActionPreference = "Stop"
 $repo = $PSScriptRoot
 Set-Location $repo
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$snapshotName = "restore_point_prod_$timestamp.zip"
+$snapshotName = "restore_point_${ReleaseName}_$timestamp.zip"
 $backupDir = Join-Path $repo "restore_points"
 
 Write-Host "==========================================" -ForegroundColor Red
@@ -57,7 +58,10 @@ foreach ($f in $trackedFiles) {
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($pkgDir, $restoreZip)
 Remove-Item -Recurse -Force $pkgDir
+$namedRestoreZip = Join-Path $backupDir "restore_point_${ReleaseName}.zip"
+Copy-Item $restoreZip -Destination $namedRestoreZip -Force
 Write-Host "Restore point created: $restoreZip" -ForegroundColor Green
+Write-Host "Permanent release restore point: $namedRestoreZip" -ForegroundColor Green
 
 # 3. Upload payload to production
 Write-Host "[3/5] Uploading verified code payload to production..."
