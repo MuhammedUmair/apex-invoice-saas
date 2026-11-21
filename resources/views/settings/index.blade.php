@@ -187,8 +187,65 @@
                     smallSupplierExempt: {{ old('small_supplier_exempt', $workspace->small_supplier_exempt ?? false) ? 'true' : 'false' }},
                     collectQst: {{ old('collect_qst', $workspace->collect_qst ?? true) ? 'true' : 'false' }},
                     collectPst: {{ old('collect_pst', $workspace->collect_pst ?? true) ? 'true' : 'false' }},
+                    selectedProvince: '{{ old('province', $workspace->province ?? 'ON') }}',
+                    defaultTaxRate: {{ old('default_tax_rate', $workspace->default_tax_rate ?? 13.00) }},
                     showPresetPrompt: false,
                     promptCountry: '',
+
+                    canadianProvinces: {
+                        ON: { name: 'Ontario', rate: 13.000, taxName: 'HST (13.00%)', note: '13% Harmonized Sales Tax (HST)' },
+                        QC: { name: 'Quebec', rate: 14.975, taxName: 'GST (5%) + QST (9.975%)', note: '5% Federal GST + 9.975% Revenu Québec QST (Non-compounded)' },
+                        BC: { name: 'British Columbia', rate: 12.000, taxName: 'GST (5%) + PST (7%)', note: '5% Federal GST + 7% BC PST' },
+                        AB: { name: 'Alberta', rate: 5.000, taxName: 'GST (5.00%)', note: '5% Federal GST (No Provincial Sales Tax)' },
+                        MB: { name: 'Manitoba', rate: 12.000, taxName: 'GST (5%) + PST (7%)', note: '5% Federal GST + 7% Manitoba PST' },
+                        SK: { name: 'Saskatchewan', rate: 11.000, taxName: 'GST (5%) + PST (6%)', note: '5% Federal GST + 6% Saskatchewan PST' },
+                        NS: { name: 'Nova Scotia', rate: 14.000, taxName: 'HST (14.00%)', note: '14% Harmonized Sales Tax (HST)' },
+                        NB: { name: 'New Brunswick', rate: 15.000, taxName: 'HST (15.00%)', note: '15% Harmonized Sales Tax (HST)' },
+                        NL: { name: 'Newfoundland and Labrador', rate: 15.000, taxName: 'HST (15.00%)', note: '15% Harmonized Sales Tax (HST)' },
+                        PE: { name: 'Prince Edward Island', rate: 15.000, taxName: 'HST (15.00%)', note: '15% Harmonized Sales Tax (HST)' },
+                        NT: { name: 'Northwest Territories', rate: 5.000, taxName: 'GST (5.00%)', note: '5% Federal GST' },
+                        NU: { name: 'Nunavut', rate: 5.000, taxName: 'GST (5.00%)', note: '5% Federal GST' },
+                        YT: { name: 'Yukon', rate: 5.000, taxName: 'GST (5.00%)', note: '5% Federal GST' }
+                    },
+
+                    get currentProvinceInfo() {
+                        const prov = this.canadianProvinces[this.selectedProvince] || this.canadianProvinces.ON;
+                        if (this.smallSupplierExempt) {
+                            return {
+                                name: prov.name,
+                                rate: 0.000,
+                                taxName: 'Exempt (0.00%)',
+                                note: 'Small-Supplier Exemption Active (< $30,000 CAD) — 0.00% tax collected'
+                            };
+                        }
+                        let rate = prov.rate;
+                        let taxName = prov.taxName;
+                        let note = prov.note;
+                        if (this.selectedProvince === 'QC' && !this.collectQst) {
+                            rate = 5.000;
+                            taxName = 'GST (5.00%)';
+                            note = '5% Federal GST Only (Revenu Québec QST Collection Disabled)';
+                        } else if (['BC', 'MB'].includes(this.selectedProvince) && !this.collectPst) {
+                            rate = 5.000;
+                            taxName = 'GST (5.00%)';
+                            note = '5% Federal GST Only (Provincial PST Collection Disabled)';
+                        } else if (this.selectedProvince === 'SK' && !this.collectPst) {
+                            rate = 5.000;
+                            taxName = 'GST (5.00%)';
+                            note = '5% Federal GST Only (Saskatchewan PST Collection Disabled)';
+                        }
+                        return { name: prov.name, rate, taxName, note };
+                    },
+
+                    onProvinceChange() {
+                        this.defaultTaxRate = this.currentProvinceInfo.rate;
+                    },
+
+                    init() {
+                        if (this.selectedCountry === 'CA') {
+                            this.onProvinceChange();
+                        }
+                    },
 
                     presets: {
                         CA: {
@@ -274,6 +331,12 @@
                         const p = this.currentPreset;
                         this.selectedCurrency = p.currency;
                         this.bankInstructions = p.bankInstructions;
+                        if (this.selectedCountry === 'CA') {
+                            this.selectedProvince = 'ON';
+                            this.onProvinceChange();
+                        } else {
+                            this.defaultTaxRate = p.taxRate ?? 0.00;
+                        }
                         this.originalCountry = this.selectedCountry;
                         this.showPresetPrompt = false;
                     },
@@ -413,6 +476,55 @@
                 </div>
             </div>
 
+            <!-- Canadian Province / Territory Selection & Dynamic Province Tax Rate -->
+            <div x-show="selectedCountry === 'CA'" x-cloak x-transition
+                 class="pt-5 border-t border-slate-100">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Canadian Province / Territory (Place of Supply)
+                            </label>
+                            <span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full font-mono" x-text="selectedProvince"></span>
+                        </div>
+                        <select name="province" x-model="selectedProvince" @change="onProvinceChange()"
+                                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-semibold">
+                            <option value="AB">🇨🇦 Alberta (AB - 5% GST)</option>
+                            <option value="BC">🇨🇦 British Columbia (BC - 5% GST + 7% PST)</option>
+                            <option value="MB">🇨🇦 Manitoba (MB - 5% GST + 7% PST)</option>
+                            <option value="NB">🇨🇦 New Brunswick (NB - 15% HST)</option>
+                            <option value="NL">🇨🇦 Newfoundland and Labrador (NL - 15% HST)</option>
+                            <option value="NS">🇨🇦 Nova Scotia (NS - 14% HST)</option>
+                            <option value="NT">🇨🇦 Northwest Territories (NT - 5% GST)</option>
+                            <option value="NU">🇨🇦 Nunavut (NU - 5% GST)</option>
+                            <option value="ON">🇨🇦 Ontario (ON - 13% HST)</option>
+                            <option value="PE">🇨🇦 Prince Edward Island (PE - 15% HST)</option>
+                            <option value="QC">🇨🇦 Quebec (QC - 5% GST + 9.975% QST)</option>
+                            <option value="SK">🇨🇦 Saskatchewan (SK - 5% GST + 6% PST)</option>
+                            <option value="YT">🇨🇦 Yukon (YT - 5% GST)</option>
+                        </select>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            Sets the default provincial tax jurisdiction for your agency and local retail customers.
+                        </p>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Selected Province Tax Rate
+                            </label>
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-mono" x-text="currentProvinceInfo.taxName"></span>
+                        </div>
+                        <div class="relative">
+                            <input type="number" step="0.001" name="default_tax_rate" x-model="defaultTaxRate" readonly
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-mono font-bold text-slate-900 outline-none">
+                            <span class="absolute right-3.5 top-2.5 text-xs font-bold text-slate-400">%</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1 leading-relaxed" x-text="currentProvinceInfo.note"></p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Dynamic Canadian Place-of-Supply Informational Badge -->
             <div x-show="selectedCountry === 'CA'" x-cloak
                  class="mt-4 p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-3">
@@ -497,6 +609,7 @@
                     <label class="relative inline-flex items-center cursor-pointer shrink-0">
                         <input type="checkbox" name="small_supplier_exempt" value="1"
                                x-model="smallSupplierExempt"
+                               @change="onProvinceChange()"
                                class="sr-only peer">
                         <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                     </label>
@@ -541,7 +654,7 @@
                 <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Provincial Dual-Tax Engine Rules</h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                        <input type="checkbox" name="collect_qst" value="1" x-model="collectQst"
+                        <input type="checkbox" name="collect_qst" value="1" x-model="collectQst" @change="onProvinceChange()"
                                class="mt-0.5 w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500">
                         <div>
                             <span class="text-xs font-bold text-slate-800">Collect Quebec Sales Tax (9.975% QST)</span>
@@ -549,7 +662,7 @@
                         </div>
                     </label>
                     <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                        <input type="checkbox" name="collect_pst" value="1" x-model="collectPst"
+                        <input type="checkbox" name="collect_pst" value="1" x-model="collectPst" @change="onProvinceChange()"
                                class="mt-0.5 w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500">
                         <div>
                             <span class="text-xs font-bold text-slate-800">Collect Provincial Sales Tax (PST)</span>

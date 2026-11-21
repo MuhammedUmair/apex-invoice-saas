@@ -51,6 +51,8 @@ class SettingsController extends Controller
             'collect_qst' => 'nullable|boolean',
             'collect_pst' => 'nullable|boolean',
             'country_code' => 'required|string|size:2',
+            'province' => 'nullable|string|max:50',
+            'default_tax_rate' => 'nullable|numeric|min:0|max:100',
             'currency' => 'required|string|size:3',
             'language' => 'required|string|max:10',
             'address' => 'nullable|string',
@@ -90,13 +92,25 @@ class SettingsController extends Controller
 
         // Strict Regional Tax Isolation: Scoped to Canadian workspaces only
         if (strtoupper($validated['country_code']) === 'CA') {
-            $workspace->cra_bn_number = $request->input('cra_bn_number') ?: null;
-            $workspace->qst_number = $request->input('qst_number') ?: null;
+            $workspace->province = $request->input('province') ? strtoupper(trim($request->input('province'))) : 'ON';
             $workspace->small_supplier_exempt = (bool) $request->has('small_supplier_exempt');
             $workspace->collect_qst = (bool) $request->has('collect_qst');
             $workspace->collect_pst = (bool) $request->has('collect_pst');
+
+            $details = \App\Services\TaxCalculationService::getCanadianProvinceDetails(
+                $workspace->province,
+                $workspace->collect_qst,
+                $workspace->collect_pst
+            );
+            $workspace->default_tax_rate = $workspace->small_supplier_exempt
+                ? 0.000
+                : (float) ($request->input('default_tax_rate') ?? $details['total_rate']);
+            $workspace->cra_bn_number = $request->input('cra_bn_number') ?: null;
+            $workspace->qst_number = $request->input('qst_number') ?: null;
         } else {
             // Non-Canadian workspaces are strictly isolated from Canadian multi-tax logic
+            $workspace->province = null;
+            $workspace->default_tax_rate = (float) ($request->input('default_tax_rate') ?? 0.00);
             $workspace->cra_bn_number = null;
             $workspace->qst_number = null;
             $workspace->small_supplier_exempt = false;

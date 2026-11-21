@@ -81,8 +81,149 @@ class TaxCalculationService
     }
 
     /**
-     * Get tax information based on country code.
+     * Get official Canadian tax details and breakdown for a given province code.
      */
+    public static function getCanadianProvinceDetails(string $rawProvince, bool $collectQst = true, bool $collectPst = true): array
+    {
+        $code = self::normalizeCanadianProvince($rawProvince) ?: 'ON';
+
+        $federalTaxName = 'GST';
+        $federalTaxRate = 5.000;
+        $provincialTaxName = null;
+        $provincialTaxRate = 0.000;
+        $isDualTax = false;
+        $name = 'Ontario';
+        $label = 'HST (13.00%)';
+
+        switch ($code) {
+            case 'AB':
+                $name = 'Alberta';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                $label = '5.00% GST (Federal GST Only)';
+                break;
+            case 'NT':
+                $name = 'Northwest Territories';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                $label = '5.00% GST (Territorial GST Only)';
+                break;
+            case 'NU':
+                $name = 'Nunavut';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                $label = '5.00% GST (Territorial GST Only)';
+                break;
+            case 'YT':
+                $name = 'Yukon';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                $label = '5.00% GST (Territorial GST Only)';
+                break;
+
+            case 'ON':
+                $name = 'Ontario';
+                $federalTaxName = 'HST';
+                $federalTaxRate = 13.000;
+                $label = '13.00% HST (Harmonized Sales Tax)';
+                break;
+
+            case 'NS':
+                $name = 'Nova Scotia';
+                $federalTaxName = 'HST';
+                $federalTaxRate = 14.000;
+                $label = '14.00% HST (Harmonized Sales Tax)';
+                break;
+
+            case 'NB':
+                $name = 'New Brunswick';
+                $federalTaxName = 'HST';
+                $federalTaxRate = 15.000;
+                $label = '15.00% HST (Harmonized Sales Tax)';
+                break;
+            case 'NL':
+                $name = 'Newfoundland and Labrador';
+                $federalTaxName = 'HST';
+                $federalTaxRate = 15.000;
+                $label = '15.00% HST (Harmonized Sales Tax)';
+                break;
+            case 'PE':
+                $name = 'Prince Edward Island';
+                $federalTaxName = 'HST';
+                $federalTaxRate = 15.000;
+                $label = '15.00% HST (Harmonized Sales Tax)';
+                break;
+
+            case 'QC':
+                $name = 'Quebec';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                if ($collectQst) {
+                    $provincialTaxName = 'QST';
+                    $provincialTaxRate = 9.975;
+                    $isDualTax = true;
+                    $label = '14.975% (5% Federal GST + 9.975% Revenu Québec QST)';
+                } else {
+                    $label = '5.00% GST';
+                }
+                break;
+
+            case 'BC':
+                $name = 'British Columbia';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                if ($collectPst) {
+                    $provincialTaxName = 'PST';
+                    $provincialTaxRate = 7.000;
+                    $isDualTax = true;
+                    $label = '12.00% (5% Federal GST + 7% BC PST)';
+                } else {
+                    $label = '5.00% GST';
+                }
+                break;
+            case 'MB':
+                $name = 'Manitoba';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                if ($collectPst) {
+                    $provincialTaxName = 'PST';
+                    $provincialTaxRate = 7.000;
+                    $isDualTax = true;
+                    $label = '12.00% (5% Federal GST + 7% Manitoba PST)';
+                } else {
+                    $label = '5.00% GST';
+                }
+                break;
+
+            case 'SK':
+                $name = 'Saskatchewan';
+                $federalTaxName = 'GST';
+                $federalTaxRate = 5.000;
+                if ($collectPst) {
+                    $provincialTaxName = 'PST';
+                    $provincialTaxRate = 6.000;
+                    $isDualTax = true;
+                    $label = '11.00% (5% Federal GST + 6% Saskatchewan PST)';
+                } else {
+                    $label = '5.00% GST';
+                }
+                break;
+        }
+
+        $totalRate = $federalTaxRate + $provincialTaxRate;
+
+        return [
+            'code' => $code,
+            'name' => $name,
+            'federal_tax_name' => $federalTaxName,
+            'federal_tax_rate' => $federalTaxRate,
+            'provincial_tax_name' => $provincialTaxName,
+            'provincial_tax_rate' => $provincialTaxRate,
+            'total_rate' => $totalRate,
+            'is_dual_tax' => $isDualTax,
+            'label' => $label,
+        ];
+    }
     public function getPresetForCountry(string $countryCode): array
     {
         $code = strtoupper($countryCode);
@@ -161,8 +302,8 @@ class TaxCalculationService
                 );
             }
 
-            // Client resides in Canada: evaluate Place-of-Supply province
-            $rawProvince = $client->province ?? $client->state ?? null;
+            // Client resides in Canada: evaluate Place-of-Supply province (fallback to workspace province)
+            $rawProvince = $client?->province ?? $client?->state ?? $workspace->province ?? 'ON';
             $provinceCode = self::normalizeCanadianProvince($rawProvince) ?: 'ON';
 
             return $this->calculateCanadianPlaceOfSupply(
