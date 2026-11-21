@@ -124,7 +124,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                @elseif($this->selectedClient)
+                                @elseif($selectedClient)
                                     <!-- Selected CRM Client Preview Card -->
                                     <div class="border border-slate-200 rounded-xl p-3.5 bg-slate-50/50 flex items-start justify-between">
                                         <div class="flex items-start gap-3">
@@ -132,9 +132,9 @@
                                                 <i class="ph ph-buildings text-xl"></i>
                                             </div>
                                             <div class="text-xs">
-                                                <h4 class="font-bold text-slate-900">{{ $this->selectedClient->company_name ?: $this->selectedClient->name }}</h4>
-                                                <p class="text-slate-500 mt-0.5">{{ $this->selectedClient->email ?: 'No email on file' }}</p>
-                                                <p class="text-slate-500">{{ $this->selectedClient->phone ?: 'No phone number' }}</p>
+                                                <h4 class="font-bold text-slate-900">{{ $selectedClient->company_name ?: $selectedClient->name }}</h4>
+                                                <p class="text-slate-500 mt-0.5">{{ $selectedClient->email ?: 'No email on file' }}</p>
+                                                <p class="text-slate-500">{{ $selectedClient->phone ?: 'No phone number' }}</p>
                                             </div>
                                         </div>
                                         <a href="{{ route('clients.index') }}" target="_blank" class="text-xs font-semibold text-slate-600 hover:text-red-600 flex items-center gap-1 transition">
@@ -239,7 +239,7 @@
                                         @if($taxCalculationNote)
                                             {{ $taxCalculationNote }}
                                         @else
-                                            Place of Supply: {{ $isWalkin ? ($walkinProvince ?: ($workspace?->province ?? 'ON')) : ($this->selectedClient?->province ?: ($workspace?->province ?? 'ON')) }}
+                                            Place of Supply: {{ $isWalkin ? ($walkinProvince ?: ($workspace?->province ?? 'ON')) : ($selectedClient?->province ?: ($workspace?->province ?? 'ON')) }}
                                         @endif
                                     </span>
                                 </div>
@@ -257,7 +257,7 @@
                                             </span>
                                         @endif
                                         @php
-                                            $effectiveProv = $isWalkin ? ($walkinProvince ?: ($workspace?->province ?? 'ON')) : ($this->selectedClient?->province ?? $workspace?->province ?? 'ON');
+                                            $effectiveProv = $isWalkin ? ($walkinProvince ?: ($workspace?->province ?? 'ON')) : ($selectedClient?->province ?? $workspace?->province ?? 'ON');
                                             $normalizedEffectiveProv = \App\Services\TaxCalculationService::normalizeCanadianProvince($effectiveProv);
                                         @endphp
                                         @if($normalizedEffectiveProv === 'QC' && $workspace?->collect_qst && $workspace?->qst_number)
@@ -268,7 +268,7 @@
                                     @endif
                                 </div>
                             </div>
-                        @elseif($countryTaxCode === 'EXPORT' || ($isCanadianWorkspace && $this->selectedClient && ($this->selectedClient->country_code ?? 'CA') !== 'CA'))
+                        @elseif($countryTaxCode === 'EXPORT' || ($isCanadianWorkspace && $selectedClient && ($selectedClient->country_code ?? 'CA') !== 'CA'))
                             <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 space-y-2">
                                 <div class="flex items-center justify-between">
                                     <label class="block text-[11px] font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">

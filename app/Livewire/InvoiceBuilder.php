@@ -1444,6 +1444,7 @@ class InvoiceBuilder extends Component
         return view('livewire.invoice-builder', [
             'clients' => $clients,
             'services' => $services,
+            'selectedClient' => $this->selectedClient,
         ]);
     }
 }
