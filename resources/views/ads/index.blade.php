@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Advertisements Management', 'header' => 'Advertisements Management'])
+@extends('layouts.admin', ['title' => 'Advertisements Management', 'header' => 'Advertisements Management'])
 
 @section('content')
 <div class="space-y-8" x-data="{ 
@@ -16,21 +16,21 @@
     htmlSnippet: ''
 }">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
+                <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <i class="ph ph-megaphone text-xl"></i>
                 </span>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Advertisement Management</h1>
+                <h1 class="text-xl font-black text-white tracking-tight">Advertisement Management</h1>
             </div>
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-xs text-slate-400 mt-1">
                 Upload image banners, insert custom HTML / Adsense code, or design text-based sponsored promos for invoice and sidebar placements.
             </p>
         </div>
 
         <button @click="showCreateModal = true; editingAd = null; adType = 'text'" 
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-md shadow-red-500/20 transition">
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-sm transition">
             <i class="ph ph-plus-circle text-base"></i> Create New Advertisement
         </button>
     </div>

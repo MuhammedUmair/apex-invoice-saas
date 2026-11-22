@@ -486,6 +486,154 @@
                         <i class="ph ph-lock-key-open"></i> 2FA Secured
                     </div>
 
+                    <!-- Super Admin Alerts & Notifications Center (Bell) -->
+                    @php
+                        $adminAlerts = [];
+                        try {
+                            // 1. Pending subscription plan upgrade/downgrade requests
+                            $planAlerts = \App\Models\SubscriptionAlert::whereIn('type', ['upgrade_request', 'downgrade_request'])
+                                ->latest()
+                                ->take(5)
+                                ->get();
+                            foreach ($planAlerts as $pa) {
+                                if (($pa->metadata['status'] ?? 'pending') === 'pending') {
+                                    $wsName = $pa->workspace?->name ?? 'Workspace';
+                                    $reqType = ucfirst($pa->metadata['request_type'] ?? 'Plan');
+                                    $targetPlan = ucfirst($pa->metadata['target_plan'] ?? 'New Plan');
+                                    $adminAlerts[] = [
+                                        'id' => 'alert_' . $pa->id,
+                                        'title' => "Pending {$reqType} Request",
+                                        'desc' => "{$wsName} requested change to {$targetPlan}",
+                                        'time' => $pa->created_at?->diffForHumans() ?? 'Recently',
+                                        'url' => route('admin.subscriptions.index') . '?tab=alerts',
+                                        'icon' => 'ph ph-crown text-amber-400',
+                                        'badge' => 'Plan Request',
+                                        'badge_class' => 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                    ];
+                                }
+                            }
+
+                            // 2. Open / Pending support tickets from tenants
+                            $openTickets = \App\Models\SupportTicket::whereIn('status', ['open', 'in_progress'])
+                                ->latest()
+                                ->take(5)
+                                ->get();
+                            foreach ($openTickets as $ticket) {
+                                $ticketSubject = $ticket->subject ?: 'Support Request';
+                                $ticketWs = $ticket->workspace?->name ?? 'Tenant';
+                                $adminAlerts[] = [
+                                    'id' => 'ticket_' . $ticket->id,
+                                    'title' => "Support Ticket #" . ($ticket->ticket_number ?? $ticket->id),
+                                    'desc' => "{$ticketSubject} ({$ticketWs})",
+                                    'time' => $ticket->created_at?->diffForHumans() ?? 'Recently',
+                                    'url' => route('admin.support.tickets.show', $ticket->id),
+                                    'icon' => 'ph ph-lifebuoy text-rose-400',
+                                    'badge' => ucfirst($ticket->priority ?? 'normal'),
+                                    'badge_class' => 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                ];
+                            }
+
+                            // 3. Past Due / Delinquent Workspaces
+                            $overdueWorkspaces = \App\Models\Workspace::where('subscription_status', 'past_due')
+                                ->latest()
+                                ->take(3)
+                                ->get();
+                            foreach ($overdueWorkspaces as $ow) {
+                                $adminAlerts[] = [
+                                    'id' => 'ws_' . $ow->id,
+                                    'title' => 'Subscription Past Due',
+                                    'desc' => "{$ow->name} payment overdue",
+                                    'time' => $ow->updated_at?->diffForHumans() ?? 'Recently',
+                                    'url' => route('admin.workspaces.show', $ow->id),
+                                    'icon' => 'ph ph-warning-circle text-rose-400',
+                                    'badge' => 'Past Due',
+                                    'badge_class' => 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                ];
+                            }
+                        } catch (\Throwable $e) {}
+                        $totalAdminAlerts = count($adminAlerts);
+                    @endphp
+
+                    <div class="relative" x-data="{ alertOpen: false }">
+                        <button @click="alertOpen = !alertOpen" type="button"
+                                class="relative p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center cursor-pointer shadow-xs focus:outline-none"
+                                title="Platform Alerts & Notifications">
+                            <i class="ph ph-bell text-base"></i>
+                            @if($totalAdminAlerts > 0)
+                                <span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-xs animate-pulse">
+                                    {{ $totalAdminAlerts }}
+                                </span>
+                            @endif
+                        </button>
+
+                        <!-- Alerts Dropdown Tray -->
+                        <div x-show="alertOpen" @click.away="alertOpen = false" x-cloak
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95 translate-y-1"
+                             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 scale-95 translate-y-1"
+                             class="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl z-50 text-xs overflow-hidden">
+                            
+                            <!-- Tray Header -->
+                            <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+                                <div class="flex items-center gap-2">
+                                    <i class="ph ph-bell-ringing text-amber-400 text-base"></i>
+                                    <span class="font-bold text-white text-sm">Platform Notifications</span>
+                                </div>
+                                @if($totalAdminAlerts > 0)
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                        {{ $totalAdminAlerts }} Action Required
+                                    </span>
+                                @endif
+                            </div>
+
+                            <!-- Alert Items List -->
+                            <div class="max-h-80 overflow-y-auto divide-y divide-slate-800/60">
+                                @forelse($adminAlerts as $alert)
+                                    <a href="{{ $alert['url'] }}" @click="alertOpen = false"
+                                       class="p-3.5 flex items-start gap-3 hover:bg-slate-800/60 transition block group">
+                                        <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0 text-base mt-0.5 group-hover:border-amber-500/40 transition">
+                                            <i class="{{ $alert['icon'] }}"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between gap-1">
+                                                <h4 class="font-bold text-white truncate text-xs group-hover:text-amber-400 transition">{{ $alert['title'] }}</h4>
+                                                <span class="text-[10px] text-slate-500 shrink-0">{{ $alert['time'] }}</span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{{ $alert['desc'] }}</p>
+                                            <div class="mt-1.5 flex items-center gap-2">
+                                                <span class="px-2 py-0.5 rounded text-[9px] font-bold {{ $alert['badge_class'] }}">
+                                                    {{ $alert['badge'] }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="p-8 text-center text-slate-400">
+                                        <i class="ph ph-check-circle text-3xl text-emerald-400 mb-2 inline-block"></i>
+                                        <p class="text-xs font-bold text-white">All Caught Up!</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">No pending administrative alerts or tenant tickets.</p>
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <!-- Tray Footer Quick Links -->
+                            <div class="p-2.5 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between text-[11px]">
+                                <a href="{{ route('admin.subscriptions.index') }}" class="text-slate-400 hover:text-amber-400 transition flex items-center gap-1 font-semibold">
+                                    <i class="ph ph-crown"></i> Subscriptions
+                                </a>
+                                <a href="{{ route('admin.support.tickets') }}" class="text-slate-400 hover:text-rose-400 transition flex items-center gap-1 font-semibold">
+                                    <i class="ph ph-lifebuoy"></i> Tickets
+                                </a>
+                                <a href="{{ route('admin.monitoring.health') }}" class="text-slate-400 hover:text-emerald-400 transition flex items-center gap-1 font-semibold">
+                                    <i class="ph ph-heartbeat"></i> Health
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Theme Switcher (Light / Dark) -->
                     <button @click="toggleTheme()" type="button" 
                             class="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-amber-400 transition flex items-center justify-center cursor-pointer shadow-xs"

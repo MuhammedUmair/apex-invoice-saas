@@ -1,32 +1,32 @@
-@extends('layouts.app', ['title' => 'Website & Docs CMS', 'header' => 'Website & Documentation CMS'])
+@extends('layouts.admin', ['title' => 'Website & Docs CMS', 'header' => 'Website & Documentation CMS'])
 
 @section('content')
 <div class="space-y-8" x-data="{ currentTab: 'landing', editingArticleId: null }">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <span class="p-2 rounded-xl bg-red-50 text-red-600 border border-red-200">
+                <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <i class="ph ph-note-pencil text-xl"></i>
                 </span>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Content Management System (CMS)</h1>
+                <h1 class="text-xl font-black text-white tracking-tight">Content Management System (CMS)</h1>
             </div>
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-xs text-slate-400 mt-1">
                 Update marketing website copy, manage documentation in English, and review/edit auto-translated versions in Urdu, Arabic, Hindi, and Turkish.
             </p>
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <div class="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs font-bold">
             <button @click="currentTab = 'landing'" 
-                    :class="currentTab === 'landing' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                    :class="currentTab === 'landing' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
                     class="px-4 py-2 rounded-lg transition flex items-center gap-1.5">
                 <i class="ph ph-browsers text-base"></i> Landing Website Copy
             </button>
             <button @click="currentTab = 'docs'" 
-                    :class="currentTab === 'docs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                    :class="currentTab === 'docs' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
                     class="px-4 py-2 rounded-lg transition flex items-center gap-1.5">
-                <i class="ph ph-book-open text-base text-red-600"></i> Multilingual Docs Hub
+                <i class="ph ph-book-open text-base"></i> Multilingual Docs Hub
             </button>
         </div>
     </div>

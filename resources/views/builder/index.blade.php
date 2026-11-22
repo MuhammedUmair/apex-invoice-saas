@@ -1,42 +1,42 @@
-@extends('layouts.app', ['title' => 'Website Builder', 'header' => 'Website & Page Builder'])
+@extends('layouts.admin', ['title' => 'Website Builder', 'header' => 'Website & Page Builder'])
 
 @section('content')
 <div class="space-y-8" x-data="{ currentTab: 'branding', editingPage: null, newNavLabel: '', newNavUrl: '', newNavTarget: '_self' }">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <span class="p-2 rounded-xl bg-red-50 text-red-600 border border-red-200">
+                <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <i class="ph ph-paint-brush-broad text-xl"></i>
                 </span>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Website & Page Builder</h1>
+                <h1 class="text-xl font-black text-white tracking-tight">Website & Page Builder</h1>
             </div>
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-xs text-slate-400 mt-1">
                 Customize your website main logo, login screen logo, navigation menus, landing page copy, and custom website pages.
             </p>
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto">
+        <div class="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs font-bold overflow-x-auto">
             <button @click="currentTab = 'branding'" 
-                    :class="currentTab === 'branding' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                    :class="currentTab === 'branding' ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'"
                     class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0">
-                <i class="ph ph-image text-base text-red-600"></i> Logos & Branding
+                <i class="ph ph-image text-base"></i> Logos & Branding
             </button>
             <button @click="currentTab = 'navigation'" 
-                    :class="currentTab === 'navigation' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                    :class="currentTab === 'navigation' ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'"
                     class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0">
-                <i class="ph ph-list-dashes text-base text-blue-600"></i> Navigation Menu
+                <i class="ph ph-list-dashes text-base"></i> Navigation Menu
             </button>
             <button @click="currentTab = 'sections'" 
-                    :class="currentTab === 'sections' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                    :class="currentTab === 'sections' ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'"
                     class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0">
-                <i class="ph ph-layout text-base text-purple-600"></i> Landing Sections
+                <i class="ph ph-layout text-base"></i> Landing Sections
             </button>
             <button @click="currentTab = 'pages'" 
-                    :class="currentTab === 'pages' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                    :class="currentTab === 'pages' ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'"
                     class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0">
-                <i class="ph ph-files text-base text-emerald-600"></i> Custom Pages
+                <i class="ph ph-files text-base"></i> Custom Pages
             </button>
         </div>
     </div>

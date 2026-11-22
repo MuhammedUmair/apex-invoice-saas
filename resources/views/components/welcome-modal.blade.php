@@ -1,5 +1,5 @@
 @php
-    $tourEnabled = \App\Models\CmsContent::getVal('welcome_popup_enabled', '1') === '1';
+    $tourEnabled = (\App\Models\CmsContent::getVal('welcome_popup_enabled', \App\Models\CmsContent::getVal('enable_welcome_tour', '1'))) === '1';
     $step1Title = \App\Models\CmsContent::getVal('welcome_step1_title', '1. Create High-Precision Invoices in Seconds');
     $step1Text = \App\Models\CmsContent::getVal('welcome_step1_text', 'Click "+ New Invoice" in your sidebar or ask the AI Copilot. Enter client details or use Walk-in mode for instantaneous cash and retail billing without client signup.');
     

@@ -3,79 +3,79 @@
 @section('content')
 <div class="space-y-8" x-data="{ currentTab: '{{ old('tab', $currentTab ?? 'tenants') }}' }">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <span class="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <i class="ph ph-crown text-xl"></i>
                 </span>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Subscription & Plan Control Panel</h1>
+                <h1 class="text-2xl font-black text-white tracking-tight">Subscription & Plan Control Panel</h1>
             </div>
-            <p class="text-sm text-slate-500 mt-1">
+            <p class="text-xs text-slate-400 mt-1">
                 Configure SaaS pricing tiers, enforce subscription rules, manage tenants, and monitor live alerts.
             </p>
         </div>
 
         <div class="flex items-center gap-2">
-            <span class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-900 text-white flex items-center gap-1.5 shadow-sm">
+            <span class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-900 border border-slate-700 text-slate-200 flex items-center gap-1.5 shadow-sm">
                 <i class="ph ph-shield-check text-emerald-400 text-base"></i> Super Admin Authority
             </span>
         </div>
     </div>
 
     @if (session('success'))
-        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-            <i class="ph ph-check-circle text-base text-emerald-600"></i>
+        <div class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-check-circle text-base text-emerald-400"></i>
             {{ session('success') }}
         </div>
     @endif
     @if (session('error'))
-        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
-            <i class="ph ph-warning-circle text-base text-rose-600"></i>
+        <div class="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-warning-circle text-base text-rose-400"></i>
             {{ session('error') }}
         </div>
     @endif
 
     <!-- KPI Metric Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl shrink-0">
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-2xl shrink-0">
                 <i class="ph ph-check-circle"></i>
             </div>
             <div>
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Paid Subs</span>
-                <div class="text-2xl font-black text-slate-900">{{ $totalActiveSubs }}</div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Paid Subs</span>
+                <div class="text-2xl font-black text-white">{{ $totalActiveSubs }}</div>
             </div>
         </div>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shrink-0">
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-2xl shrink-0">
                 <i class="ph ph-hourglass-high"></i>
             </div>
             <div>
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Free Trials Active</span>
-                <div class="text-2xl font-black text-slate-900">{{ $totalTrials }}</div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Free Trials Active</span>
+                <div class="text-2xl font-black text-white">{{ $totalTrials }}</div>
             </div>
         </div>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl shrink-0">
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center text-2xl shrink-0">
                 <i class="ph ph-currency-dollar"></i>
             </div>
             <div>
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Monthly Run-Rate</span>
-                <div class="text-2xl font-black text-slate-900">${{ number_format($monthlyRevenueRunRate, 2) }}</div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Monthly Run-Rate</span>
+                <div class="text-2xl font-black text-emerald-400">${{ number_format($monthlyRevenueRunRate, 2) }}</div>
             </div>
         </div>
 
-        <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl shrink-0">
+        <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-2xl shrink-0">
                 <i class="ph ph-bell"></i>
             </div>
             <div>
-                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Unread Alerts</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Unread Alerts</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-2xl font-black text-slate-900">{{ $unreadAlertsCount }}</span>
+                    <span class="text-2xl font-black text-amber-400">{{ $unreadAlertsCount }}</span>
                     @if($unreadAlertsCount > 0)
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">NEW</span>
                     @endif
@@ -85,22 +85,22 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
         <button type="button" @click="currentTab = 'tenants'"
-                :class="currentTab === 'tenants' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                :class="currentTab === 'tenants' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 font-semibold'"
+                class="px-4 py-2 rounded-xl text-xs transition flex items-center gap-2">
             <i class="ph ph-users text-sm"></i> Tenant Workspaces ({{ $workspaces->total() }})
         </button>
 
         <button type="button" @click="currentTab = 'plans'"
-                :class="currentTab === 'plans' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                :class="currentTab === 'plans' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 font-semibold'"
+                class="px-4 py-2 rounded-xl text-xs transition flex items-center gap-2">
             <i class="ph ph-sliders text-sm"></i> Plan Configuration & Rules
         </button>
 
         <button type="button" @click="currentTab = 'alerts'"
-                :class="currentTab === 'alerts' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-                class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                :class="currentTab === 'alerts' ? 'bg-amber-500 text-slate-950 font-bold shadow-xs' : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800 font-semibold'"
+                class="px-4 py-2 rounded-xl text-xs transition flex items-center gap-2">
             <i class="ph ph-bell text-sm"></i> Subscription Alerts & Automation
             @if($unreadAlertsCount > 0)
                 <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500 text-white font-black">{{ $unreadAlertsCount }}</span>
@@ -129,29 +129,29 @@
          }">
 
         <!-- Bulk Action Floating Toolbar (Shows when 1+ selected) -->
-        <div x-show="selectedWorkspaces.length > 0" x-cloak class="p-3.5 bg-slate-900 text-white rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3 border border-slate-800 transition">
+        <div x-show="selectedWorkspaces.length > 0" x-cloak class="p-3.5 bg-slate-950 text-white rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 border border-slate-800 transition">
             <div class="flex items-center gap-3">
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-white text-xs font-bold" x-text="selectedWorkspaces.length"></span>
-                <span class="text-xs font-semibold">Workspace(s) Selected</span>
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-bold" x-text="selectedWorkspaces.length"></span>
+                <span class="text-xs font-semibold text-slate-200">Workspace(s) Selected</span>
                 <button type="button" @click="selectedWorkspaces = []" class="text-[11px] text-slate-400 hover:text-white underline ml-1">
                     Clear selection
                 </button>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 <button type="button" @click="submitWorkspaceBulk('activate', 'Activate subscription for ' + selectedWorkspaces.length + ' workspace(s)?')" 
-                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
                     <i class="ph ph-check-circle text-sm"></i> Activate
                 </button>
                 <button type="button" @click="submitWorkspaceBulk('suspend', 'Suspend ' + selectedWorkspaces.length + ' selected workspace(s)?')" 
-                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
                     <i class="ph ph-prohibit text-sm"></i> Suspend
                 </button>
                 <button type="button" @click="submitWorkspaceBulk('extend_trial_14', 'Grant +14 days Free Trial extension to ' + selectedWorkspaces.length + ' workspace(s)?')" 
-                        class="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
                     <i class="ph ph-clock text-sm"></i> +14 Days Trial
                 </button>
                 <button type="button" @click="submitWorkspaceBulk('renew_month', 'Renew subscriptions for ' + selectedWorkspaces.length + ' workspace(s) for 1 full month?')" 
-                        class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
                     <i class="ph ph-arrows-clockwise text-sm"></i> Renew (+1 Month)
                 </button>
             </div>
@@ -165,23 +165,23 @@
             </template>
         </form>
 
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Tenant Workspaces & Subscriptions</h3>
-                    <p class="text-xs text-slate-500">Live roster of subscribed agencies, subscription status, and renewals</p>
+                    <h3 class="font-bold text-white text-base">Tenant Workspaces & Subscriptions</h3>
+                    <p class="text-xs text-slate-400">Live roster of subscribed agencies, subscription status, and renewals</p>
                 </div>
-                <span class="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full">
+                <span class="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded-full border border-slate-700">
                     {{ $workspaces->total() }} Total Registered
                 </span>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                    <thead class="bg-slate-950/60 text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-800">
                         <tr>
                             <th class="px-4 py-3 w-10 text-center">
-                                <input type="checkbox" @click="toggleAllWorkspaces()" :checked="selectedWorkspaces.length === allWorkspaceIds.length && allWorkspaceIds.length > 0" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                                <input type="checkbox" @click="toggleAllWorkspaces()" :checked="selectedWorkspaces.length === allWorkspaceIds.length && allWorkspaceIds.length > 0" class="rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500 cursor-pointer">
                             </th>
                             <th class="px-6 py-3">Agency / Workspace</th>
                             <th class="px-6 py-3">Owner Contact</th>
@@ -191,7 +191,7 @@
                             <th class="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-slate-800/60 text-slate-300">
                         @foreach($workspaces as $ws)
                             @php
                                 $sub = $ws->currentSubscription ?? $ws->subscriptions->sortByDesc('created_at')->first();
@@ -199,22 +199,24 @@
                                 $owner = $ws->users->first();
                                 $status = $sub ? strtolower($sub->status) : 'none';
                             @endphp
-                            <tr class="hover:bg-slate-50/50" :class="selectedWorkspaces.includes({{ $ws->id }}) ? 'bg-amber-50/30' : ''" x-data="{ openRenew: false, openEditOwner: false }">
+                            <tr class="hover:bg-slate-800/40 transition" :class="selectedWorkspaces.includes({{ $ws->id }}) ? 'bg-amber-500/10' : ''" x-data="{ openRenew: false, openEditOwner: false }">
                                 <td class="px-4 py-4 text-center">
-                                    <input type="checkbox" value="{{ $ws->id }}" x-model.number="selectedWorkspaces" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer">
+                                    <input type="checkbox" value="{{ $ws->id }}" x-model.number="selectedWorkspaces" class="rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500 cursor-pointer">
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="font-bold text-slate-900">{{ $ws->name }}</span>
+                                    <a href="{{ route('admin.workspaces.show', $ws->id) }}" class="font-bold text-white hover:text-amber-400 transition">
+                                        {{ $ws->name }}
+                                    </a>
                                     <span class="block text-xs font-mono text-slate-400">/{{ $ws->slug }}</span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-start justify-between gap-2">
                                         <div>
-                                            <span class="font-medium text-slate-800">{{ $owner->name ?? 'N/A' }}</span>
+                                            <span class="font-medium text-slate-200">{{ $owner->name ?? 'N/A' }}</span>
                                             <span class="block text-xs text-slate-400">{{ $owner->email ?? 'N/A' }}</span>
                                         </div>
                                         @if($owner)
-                                            <button type="button" @click="openEditOwner = true" class="text-slate-400 hover:text-blue-600 transition p-1 rounded hover:bg-slate-100" title="Edit Owner Contact">
+                                            <button type="button" @click="openEditOwner = true" class="text-slate-400 hover:text-amber-400 transition p-1 rounded hover:bg-slate-800" title="Edit Owner Contact">
                                                 <i class="ph ph-pencil-simple text-sm"></i>
                                             </button>
                                         @endif
@@ -223,10 +225,10 @@
                                 <td class="px-6 py-4">
                                     @if($plan)
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
-                                            @if($plan->code === 'enterprise') bg-purple-50 text-purple-700 border border-purple-200
-                                            @elseif($plan->code === 'pro') bg-amber-50 text-amber-800 border border-amber-200
-                                            @elseif($plan->code === 'starter') bg-blue-50 text-blue-700 border border-blue-200
-                                            @else bg-slate-100 text-slate-700 border border-slate-200 @endif">
+                                            @if($plan->code === 'enterprise') bg-purple-500/15 text-purple-300 border border-purple-500/30
+                                            @elseif($plan->code === 'pro') bg-amber-500/15 text-amber-300 border border-amber-500/30
+                                            @elseif($plan->code === 'starter') bg-blue-500/15 text-blue-300 border border-blue-500/30
+                                            @else bg-slate-800 text-slate-300 border border-slate-700 @endif">
                                             <i class="ph ph-crown mr-1"></i> {{ $plan->name }}
                                         </span>
                                     @else
@@ -235,40 +237,40 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider
-                                        @if($status === 'active') bg-emerald-100 text-emerald-800
-                                        @elseif($status === 'trialing') bg-blue-100 text-blue-800
-                                        @elseif($status === 'expired') bg-rose-100 text-rose-800
-                                        @elseif($status === 'suspended') bg-amber-100 text-amber-800
-                                        @elseif($status === 'inactive') bg-slate-200 text-slate-700
-                                        @elseif($status === 'canceled') bg-rose-100 text-rose-800 border border-rose-200
-                                        @else bg-slate-100 text-slate-700 @endif">
+                                        @if($status === 'active') bg-emerald-500/15 text-emerald-400 border border-emerald-500/30
+                                        @elseif($status === 'trialing') bg-blue-500/15 text-blue-400 border border-blue-500/30
+                                        @elseif($status === 'expired') bg-rose-500/15 text-rose-400 border border-rose-500/30
+                                        @elseif($status === 'suspended') bg-amber-500/15 text-amber-400 border border-amber-500/30
+                                        @elseif($status === 'inactive') bg-slate-800 text-slate-400 border border-slate-700
+                                        @elseif($status === 'canceled') bg-rose-500/15 text-rose-400 border border-rose-500/30
+                                        @else bg-slate-800 text-slate-400 border border-slate-700 @endif">
                                         {{ $status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-600">
+                                <td class="px-6 py-4 text-xs text-slate-300">
                                     @if($sub && $sub->current_period_ends_at)
                                         {{ $sub->current_period_ends_at->format('M d, Y') }}
                                     @elseif($sub && $sub->trial_ends_at)
                                         @if($sub->trial_ends_at->isPast())
-                                            <span class="text-rose-600 font-bold">Expired ({{ $sub->trial_ends_at->format('M d, Y') }})</span>
+                                            <span class="text-rose-400 font-bold">Expired ({{ $sub->trial_ends_at->format('M d, Y') }})</span>
                                         @else
-                                            <span class="text-blue-700 font-bold">Trial ends {{ $sub->trial_ends_at->format('M d, Y') }} ({{ $sub->trialDaysRemaining() }}d left)</span>
+                                            <span class="text-blue-400 font-bold">Trial ends {{ $sub->trial_ends_at->format('M d, Y') }} ({{ $sub->trialDaysRemaining() }}d left)</span>
                                         @endif
                                     @else
-                                        N/A
+                                        <span class="text-slate-500">N/A</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-1.5 flex-wrap">
-                                        <button type="button" @click="openRenew = true" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                                            <i class="ph ph-arrow-clockwise text-sm text-blue-600"></i> Renew / Change
+                                        <button type="button" @click="openRenew = true" class="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                                            <i class="ph ph-arrow-clockwise text-sm text-amber-400"></i> Renew / Change
                                         </button>
 
                                         @if($status !== 'active')
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline">
                                                 @csrf
                                                 <input type="hidden" name="status" value="active">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition flex items-center gap-1 shadow-sm" title="Activate Workspace">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition flex items-center gap-1 shadow-sm" title="Activate Workspace">
                                                     <i class="ph ph-check-circle text-sm"></i> Activate
                                                 </button>
                                             </form>
@@ -278,7 +280,7 @@
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Suspend workspace {{ addslashes($ws->name) }}?')">
                                                 @csrf
                                                 <input type="hidden" name="status" value="suspended">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition flex items-center gap-1 shadow-sm" title="Suspend Workspace">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition flex items-center gap-1 shadow-sm" title="Suspend Workspace">
                                                     <i class="ph ph-pause-circle text-sm"></i> Suspend
                                                 </button>
                                             </form>
@@ -288,7 +290,7 @@
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Deactivate workspace {{ addslashes($ws->name) }}?')">
                                                 @csrf
                                                 <input type="hidden" name="status" value="inactive">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 transition flex items-center gap-1 shadow-sm" title="Deactivate Workspace">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition flex items-center gap-1 shadow-sm" title="Deactivate Workspace">
                                                     <i class="ph ph-x-circle text-sm"></i> Deactivate
                                                 </button>
                                             </form>
@@ -298,7 +300,7 @@
                                             <form action="{{ route('admin.workspaces.status', $ws->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to cancel the subscription for {{ addslashes($ws->name) }}?')">
                                                 @csrf
                                                 <input type="hidden" name="status" value="canceled">
-                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition flex items-center gap-1 shadow-sm" title="Cancel Subscription">
+                                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition flex items-center gap-1 shadow-sm" title="Cancel Subscription">
                                                     <i class="ph ph-prohibit text-sm"></i> Cancel
                                                 </button>
                                             </form>
@@ -310,14 +312,14 @@
                                          x-cloak 
                                          @click.self="openRenew = false" 
                                          @keydown.escape.window="openRenew = false" 
-                                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
-                                        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
-                                            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 text-left">
+                                        <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 text-white">
+                                            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
                                                 <div>
-                                                    <h3 class="font-bold text-slate-900 text-base">Renew / Upgrade {{ $ws->name }}</h3>
-                                                    <p class="text-xs text-slate-500">Assign a new plan tier or extend expiration date</p>
+                                                    <h3 class="font-bold text-white text-base">Renew / Upgrade {{ $ws->name }}</h3>
+                                                    <p class="text-xs text-slate-400">Assign a new plan tier or extend expiration date</p>
                                                 </div>
-                                                <button type="button" @click="openRenew = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="Close">
+                                                <button type="button" @click="openRenew = false" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Close">
                                                     <i class="ph ph-x text-lg"></i>
                                                 </button>
                                             </div>
@@ -325,8 +327,8 @@
                                             <form method="POST" action="{{ route('admin.workspaces.renew', $ws->id) }}" class="space-y-4">
                                                 @csrf
                                                 <div>
-                                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select Subscription Plan</label>
-                                                    <select name="plan_id" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white font-semibold">
+                                                    <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Select Subscription Plan</label>
+                                                    <select name="plan_id" class="w-full px-3 py-2 rounded-xl border border-slate-700 text-xs bg-slate-950 text-white font-semibold focus:ring-2 focus:ring-amber-500 outline-none">
                                                         @foreach($plans as $p)
                                                             <option value="{{ $p->id }}" {{ ($plan && $plan->id === $p->id) ? 'selected' : '' }}>
                                                                 {{ $p->name }} (${{ number_format($p->price_cents / 100, 2) }}/mo)
@@ -336,8 +338,8 @@
                                                 </div>
 
                                                 <div>
-                                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Extension Duration (Months)</label>
-                                                    <select name="duration_months" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white font-semibold">
+                                                    <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Extension Duration (Months)</label>
+                                                    <select name="duration_months" class="w-full px-3 py-2 rounded-xl border border-slate-700 text-xs bg-slate-950 text-white font-semibold focus:ring-2 focus:ring-amber-500 outline-none">
                                                         <option value="1">1 Month Extension</option>
                                                         <option value="3">3 Months Extension</option>
                                                         <option value="6">6 Months Extension</option>
@@ -345,11 +347,11 @@
                                                     </select>
                                                 </div>
 
-                                                <div class="flex items-center justify-end gap-2 pt-3 border-t">
-                                                    <button type="button" @click="openRenew = false" class="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition flex items-center gap-1">
+                                                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                                                    <button type="button" @click="openRenew = false" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition flex items-center gap-1">
                                                         <i class="ph ph-x text-sm"></i> Cancel
                                                     </button>
-                                                    <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                                                    <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
                                                         <i class="ph ph-check text-sm"></i> Confirm Renewal
                                                     </button>
                                                 </div>
@@ -363,14 +365,14 @@
                                          x-cloak 
                                          @click.self="openEditOwner = false" 
                                          @keydown.escape.window="openEditOwner = false" 
-                                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 text-left">
-                                        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
-                                            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                                         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 text-left">
+                                        <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 text-white">
+                                            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
                                                 <div>
-                                                    <h3 class="font-bold text-slate-900 text-base">Edit Owner Contact</h3>
-                                                    <p class="text-xs text-slate-500">{{ $ws->name }} account contact details</p>
+                                                    <h3 class="font-bold text-white text-base">Edit Owner Contact</h3>
+                                                    <p class="text-xs text-slate-400">{{ $ws->name }} account contact details</p>
                                                 </div>
-                                                <button type="button" @click="openEditOwner = false" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition" title="Close">
+                                                <button type="button" @click="openEditOwner = false" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition" title="Close">
                                                     <i class="ph ph-x text-lg"></i>
                                                 </button>
                                             </div>
@@ -378,22 +380,22 @@
                                             <form method="POST" action="{{ route('admin.workspaces.owner', $ws->id) }}" class="space-y-4">
                                                 @csrf
                                                 <div>
-                                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Owner Contact Full Name *</label>
+                                                    <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Owner Contact Full Name *</label>
                                                     <input type="text" name="owner_name" value="{{ $owner->name }}" required
-                                                           class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                                                           class="w-full px-3 py-2 rounded-xl border border-slate-700 text-xs font-semibold bg-slate-950 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                                                 </div>
 
                                                 <div>
-                                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Owner Contact Email Address *</label>
+                                                    <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Owner Contact Email Address *</label>
                                                     <input type="email" name="owner_email" value="{{ $owner->email }}" required
-                                                           class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
+                                                           class="w-full px-3 py-2 rounded-xl border border-slate-700 text-xs font-semibold bg-slate-950 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                                                 </div>
 
-                                                <div class="flex items-center justify-end gap-2 pt-3 border-t">
-                                                    <button type="button" @click="openEditOwner = false" class="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition flex items-center gap-1">
+                                                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                                                    <button type="button" @click="openEditOwner = false" class="px-4 py-2 text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition flex items-center gap-1">
                                                         <i class="ph ph-x text-sm"></i> Cancel
                                                     </button>
-                                                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                                                    <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
                                                         <i class="ph ph-floppy-disk text-sm"></i> Save Owner Contact
                                                     </button>
                                                 </div>
@@ -408,7 +410,7 @@
                 </table>
             </div>
 
-            <div class="p-4 border-t border-slate-100">
+            <div class="p-4 border-t border-slate-800">
                 {{ $workspaces->appends(['tab' => 'tenants'])->links() }}
             </div>
         </div>
@@ -416,31 +418,31 @@
 
     <!-- TAB 2: PLAN CONFIGURATION & BUSINESS RULES -->
     <div x-show="currentTab === 'plans'" class="space-y-6">
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-4">
-            <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 sm:p-8 shadow-sm space-y-4">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl shrink-0">
                     <i class="ph ph-sliders"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">SaaS Packages & Business Rules Customizer</h3>
-                    <p class="text-xs text-slate-500">Edit pricing, monthly invoice quotas, client allowances, team seats, and feature permissions for each tier.</p>
+                    <h3 class="font-bold text-white text-base">SaaS Packages & Business Rules Customizer</h3>
+                    <p class="text-xs text-slate-400">Edit pricing, monthly invoice quotas, client allowances, team seats, and feature permissions for each tier.</p>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
                 @foreach($plans as $p)
-                    <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between space-y-5">
-                        <div class="border-b border-slate-200/80 pb-3">
+                    <div class="p-5 rounded-2xl border border-slate-800 bg-slate-950/60 flex flex-col justify-between space-y-5">
+                        <div class="border-b border-slate-800 pb-3">
                             <div class="flex items-center justify-between">
                                 <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">{{ $p->code }}</span>
                                 @if($p->is_active)
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Active</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Active</span>
                                 @else
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">Inactive</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Inactive</span>
                                 @endif
                             </div>
-                            <h4 class="text-lg font-black text-slate-900 mt-1">{{ $p->name }}</h4>
-                            <div class="text-xs text-emerald-700 font-bold mt-0.5">
+                            <h4 class="text-lg font-black text-white mt-1">{{ $p->name }}</h4>
+                            <div class="text-xs text-emerald-400 font-bold mt-0.5">
                                 ${{ number_format($p->price_cents / 100, 2) }} / {{ $p->billing_interval }}
                             </div>
                         </div>
@@ -450,20 +452,20 @@
                             <input type="hidden" name="tab" value="plans">
 
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Package Name</label>
+                                <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Package Name</label>
                                 <input type="text" name="name" value="{{ $p->name }}" required
-                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white">
+                                       class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-bold bg-slate-900 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                             </div>
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Price ($)</label>
+                                    <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Price ($)</label>
                                     <input type="number" step="0.01" name="price_dollars" value="{{ number_format($p->price_cents / 100, 2, '.', '') }}" required
-                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white font-semibold">
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-xs bg-slate-900 text-white font-semibold focus:ring-2 focus:ring-amber-500 outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Interval</label>
-                                    <select name="billing_interval" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                                    <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Interval</label>
+                                    <select name="billing_interval" class="w-full px-2 py-1.5 rounded-lg border border-slate-700 text-xs bg-slate-900 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                                         <option value="month" {{ $p->billing_interval === 'month' ? 'selected' : '' }}>Monthly</option>
                                         <option value="year" {{ $p->billing_interval === 'year' ? 'selected' : '' }}>Yearly</option>
                                     </select>
@@ -472,65 +474,65 @@
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1" title="-1 = Unlimited">Invoices/Mo</label>
+                                    <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1" title="-1 = Unlimited">Invoices/Mo</label>
                                     <input type="number" name="invoice_limit" value="{{ $p->invoice_limit }}" required
                                            placeholder="-1 for Unlimited"
-                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-xs bg-slate-900 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1" title="-1 = Unlimited">Max Clients</label>
+                                    <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1" title="-1 = Unlimited">Max Clients</label>
                                     <input type="number" name="client_limit" value="{{ $p->client_limit }}" required
                                            placeholder="-1 for Unlimited"
-                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-xs bg-slate-900 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Team Seats</label>
+                                    <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Team Seats</label>
                                     <input type="number" name="team_seats" value="{{ $p->team_seats }}" min="1" required
-                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-xs bg-slate-900 text-white focus:ring-2 focus:ring-amber-500 outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Currency</label>
+                                    <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Currency</label>
                                     <input type="text" name="currency" value="{{ $p->currency }}" maxlength="3" required
-                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white uppercase">
+                                           class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-xs bg-slate-900 text-white uppercase focus:ring-2 focus:ring-amber-500 outline-none">
                                 </div>
                             </div>
 
                             <!-- Feature Toggles -->
-                            <div class="space-y-1.5 pt-1 border-t border-slate-200/70">
-                                <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                            <div class="space-y-1.5 pt-1 border-t border-slate-800">
+                                <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300">
                                     <input type="checkbox" name="has_whitelabel" value="1" {{ $p->has_whitelabel ? 'checked' : '' }}
-                                           class="w-3.5 h-3.5 text-red-600 rounded">
+                                           class="w-3.5 h-3.5 text-amber-500 rounded bg-slate-900 border-slate-700 focus:ring-amber-500">
                                     <span>White-Label Branding</span>
                                 </label>
-                                <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                                <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300">
                                     <input type="checkbox" name="has_recurring" value="1" {{ $p->has_recurring ? 'checked' : '' }}
-                                           class="w-3.5 h-3.5 text-red-600 rounded">
+                                           class="w-3.5 h-3.5 text-amber-500 rounded bg-slate-900 border-slate-700 focus:ring-amber-500">
                                     <span>Recurring Invoicing</span>
                                 </label>
-                                <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-700">
+                                <label class="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300">
                                     <input type="checkbox" name="has_client_portal" value="1" {{ $p->has_client_portal ? 'checked' : '' }}
-                                           class="w-3.5 h-3.5 text-red-600 rounded">
+                                           class="w-3.5 h-3.5 text-amber-500 rounded bg-slate-900 border-slate-700 focus:ring-amber-500">
                                     <span>Interactive Pay Portal</span>
                                 </label>
-                                <label class="flex items-center gap-2 cursor-pointer text-[11px] font-bold text-emerald-700">
+                                <label class="flex items-center gap-2 cursor-pointer text-[11px] font-bold text-emerald-400">
                                     <input type="checkbox" name="is_active" value="1" {{ $p->is_active ? 'checked' : '' }}
-                                           class="w-3.5 h-3.5 text-emerald-600 rounded">
+                                           class="w-3.5 h-3.5 text-emerald-500 rounded bg-slate-900 border-slate-700 focus:ring-emerald-500">
                                     <span>Package Active / Visible</span>
                                 </label>
                             </div>
 
                             <!-- Feature List Bullets -->
                             <div>
-                                <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Marketing Bullets (1 per line)</label>
+                                <label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Marketing Bullets (1 per line)</label>
                                 <textarea name="features_list" rows="3"
                                           placeholder="Bullet 1&#10;Bullet 2&#10;Bullet 3"
-                                          class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-[11px] font-mono bg-white">{{ $p->features_list_text }}</textarea>
+                                          class="w-full px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] font-mono bg-slate-900 text-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">{{ $p->features_list_text }}</textarea>
                             </div>
 
-                            <button type="submit" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                            <button type="submit" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
                                 <i class="ph ph-floppy-disk text-sm"></i> Save {{ $p->name }}
                             </button>
                         </form>
@@ -544,14 +546,14 @@
     <div x-show="currentTab === 'alerts'" class="space-y-6">
         <!-- Notification Settings & Trial Automation Configuration -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shrink-0">
+            <div class="lg:col-span-2 bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-sm space-y-4">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-envelope"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-900 text-base">Super Admin Subscription Alert Settings</h3>
-                        <p class="text-xs text-slate-500">Configure email destinations and triggers for tenant lifecycle alerts.</p>
+                        <h3 class="font-bold text-white text-base">Super Admin Subscription Alert Settings</h3>
+                        <p class="text-xs text-slate-400">Configure email destinations and triggers for tenant lifecycle alerts.</p>
                     </div>
                 </div>
 
@@ -561,56 +563,56 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Admin Notification Recipient Email *</label>
+                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Admin Notification Recipient Email *</label>
                             <input type="email" name="admin_alert_email" value="{{ $alertSettings['admin_alert_email'] }}" required
                                    placeholder="billing@redmapleagency.com"
-                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
-                            <p class="text-[10px] text-slate-400 mt-1">Super admin alerts will be delivered immediately to this address</p>
+                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-700 text-xs font-semibold bg-slate-950 text-white focus:ring-2 focus:ring-amber-500 outline-none">
+                            <p class="text-[10px] text-slate-500 mt-1">Super admin alerts will be delivered immediately to this address</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Free Trial Duration (Days) *</label>
+                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Free Trial Duration (Days) *</label>
                             <input type="number" name="trial_duration_days" value="{{ $alertSettings['trial_duration_days'] }}" min="1" max="90" required
-                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white">
-                            <p class="text-[10px] text-slate-400 mt-1">Default trial period for new user signups (standard: 14 days)</p>
+                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-700 text-xs font-semibold bg-slate-950 text-white focus:ring-2 focus:ring-amber-500 outline-none">
+                            <p class="text-[10px] text-slate-500 mt-1">Default trial period for new user signups (standard: 14 days)</p>
                         </div>
                     </div>
 
-                    <div class="pt-2 border-t border-slate-100">
-                        <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Automated Alert Triggers</label>
+                    <div class="pt-2 border-t border-slate-800">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Automated Alert Triggers</label>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer">
+                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-800 bg-slate-950/50 cursor-pointer hover:border-slate-700 transition">
                                 <input type="checkbox" name="alert_on_signup" value="1" {{ $alertSettings['alert_on_signup'] ? 'checked' : '' }}
-                                       class="w-4 h-4 text-blue-600 rounded">
+                                       class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-700 focus:ring-amber-500">
                                 <div>
-                                    <span class="block text-xs font-bold text-slate-800">New User Signup Alert</span>
+                                    <span class="block text-xs font-bold text-slate-200">New User Signup Alert</span>
                                     <span class="text-[10px] text-slate-500">Send alert when any new tenant registers a trial</span>
                                 </div>
                             </label>
 
-                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer">
+                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-800 bg-slate-950/50 cursor-pointer hover:border-slate-700 transition">
                                 <input type="checkbox" name="alert_on_upgrade" value="1" {{ $alertSettings['alert_on_upgrade'] ? 'checked' : '' }}
-                                       class="w-4 h-4 text-emerald-600 rounded">
+                                       class="w-4 h-4 text-emerald-500 rounded bg-slate-900 border-slate-700 focus:ring-emerald-500">
                                 <div>
-                                    <span class="block text-xs font-bold text-slate-800">Plan Upgrade Alert</span>
+                                    <span class="block text-xs font-bold text-slate-200">Plan Upgrade Alert</span>
                                     <span class="text-[10px] text-slate-500">Send alert when a customer upgrades their package</span>
                                 </div>
                             </label>
 
-                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer">
+                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-800 bg-slate-950/50 cursor-pointer hover:border-slate-700 transition">
                                 <input type="checkbox" name="alert_on_downgrade" value="1" {{ $alertSettings['alert_on_downgrade'] ? 'checked' : '' }}
-                                       class="w-4 h-4 text-amber-600 rounded">
+                                       class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-700 focus:ring-amber-500">
                                 <div>
-                                    <span class="block text-xs font-bold text-slate-800">Plan Downgrade Alert</span>
+                                    <span class="block text-xs font-bold text-slate-200">Plan Downgrade Alert</span>
                                     <span class="text-[10px] text-slate-500">Send alert when customer switches to a lower tier</span>
                                 </div>
                             </label>
 
-                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer">
+                            <label class="flex items-center gap-2 p-3 rounded-xl border border-slate-800 bg-slate-950/50 cursor-pointer hover:border-slate-700 transition">
                                 <input type="checkbox" name="alert_on_trial_expire" value="1" {{ $alertSettings['alert_on_trial_expire'] ? 'checked' : '' }}
-                                       class="w-4 h-4 text-rose-600 rounded">
+                                       class="w-4 h-4 text-rose-500 rounded bg-slate-900 border-slate-700 focus:ring-rose-500">
                                 <div>
-                                    <span class="block text-xs font-bold text-slate-800">Trial Expired Alert</span>
+                                    <span class="block text-xs font-bold text-slate-200">Trial Expired Alert</span>
                                     <span class="text-[10px] text-slate-500">Send alert when a 14-day free trial concludes</span>
                                 </div>
                             </label>
@@ -618,7 +620,7 @@
                     </div>
 
                     <div class="flex justify-end pt-2">
-                        <button type="submit" class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
+                        <button type="submit" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow transition flex items-center gap-2">
                             <i class="ph ph-floppy-disk text-base"></i> Save Alert Preferences
                         </button>
                     </div>
@@ -626,29 +628,29 @@
             </div>
 
             <!-- Manual Actions & Automated Scanner Trigger -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between space-y-4">
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-sm flex flex-col justify-between space-y-4">
                 <div class="space-y-2">
-                    <div class="flex items-center gap-2 text-rose-600 font-bold text-sm">
+                    <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
                         <i class="ph ph-hourglass-low text-xl"></i>
                         <span>Trial Expiration Scanner</span>
                     </div>
-                    <p class="text-xs text-slate-500 leading-relaxed">
+                    <p class="text-xs text-slate-400 leading-relaxed">
                         Trigger on-demand scan across all workspaces to detect concluded 14-day trials, update their status, and send admin alerts.
                     </p>
                 </div>
 
-                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs">
+                <div class="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-amber-300 text-xs">
                     <div class="font-bold flex items-center gap-1.5 mb-1">
                         <i class="ph ph-info"></i> Automated Cron
                     </div>
                     <span>Also executable via command:</span>
-                    <code class="block font-mono bg-white px-2 py-1 rounded text-[11px] mt-1 border border-amber-200">php artisan subscriptions:check-expirations</code>
+                    <code class="block font-mono bg-slate-950 px-2 py-1 rounded text-[11px] mt-1 border border-slate-800 text-amber-400">php artisan subscriptions:check-expirations</code>
                 </div>
 
                 <form method="POST" action="{{ route('admin.subscriptions.check_expirations') }}">
                     @csrf
                     <input type="hidden" name="tab" value="alerts">
-                    <button type="submit" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2">
+                    <button type="submit" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 shadow transition flex items-center justify-center gap-2">
                         <i class="ph ph-arrows-clockwise text-base"></i> Run Expiration Check Now
                     </button>
                 </form>
@@ -656,11 +658,11 @@
         </div>
 
         <!-- Live Alerts Feed Table -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Live Subscription Activity & Alerts Feed</h3>
-                    <p class="text-xs text-slate-500">Real-time audit log of customer signups, upgrades, downgrades, and trial expirations</p>
+                    <h3 class="font-bold text-white text-base">Live Subscription Activity & Alerts Feed</h3>
+                    <p class="text-xs text-slate-400">Real-time audit log of customer signups, upgrades, downgrades, and trial expirations</p>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -668,7 +670,7 @@
                         <form method="POST" action="{{ route('admin.subscriptions.alerts.read_all') }}">
                             @csrf
                             <input type="hidden" name="tab" value="alerts">
-                            <button type="submit" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition flex items-center gap-1.5">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-bold transition flex items-center gap-1.5">
                                 <i class="ph ph-checks text-sm"></i> Mark All as Read
                             </button>
                         </form>
@@ -683,7 +685,7 @@
             @else
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
+                        <thead class="bg-slate-950/60 text-slate-400 text-[10px] uppercase font-bold tracking-wider border-b border-slate-800">
                             <tr>
                                 <th class="px-6 py-3">Event Type</th>
                                 <th class="px-6 py-3">Agency / Tenant</th>
@@ -692,9 +694,9 @@
                                 <th class="px-6 py-3 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
+                        <tbody class="divide-y divide-slate-800/60 text-slate-300">
                             @foreach($alerts as $alert)
-                                <tr class="hover:bg-slate-50/50 {{ !$alert->is_read ? 'bg-amber-50/30' : '' }}">
+                                <tr class="hover:bg-slate-800/40 transition {{ !$alert->is_read ? 'bg-amber-500/5' : '' }}">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border {{ $alert->type_badge_class }}">
                                             <i class="ph {{ $alert->type_icon }}"></i>
@@ -702,17 +704,17 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span class="font-bold text-slate-900">{{ $alert->workspace->name ?? ($alert->metadata['workspace_name'] ?? 'N/A') }}</span>
+                                        <span class="font-bold text-white">{{ $alert->workspace->name ?? ($alert->metadata['workspace_name'] ?? 'N/A') }}</span>
                                         <span class="block text-xs text-slate-400">{{ $alert->user->email ?? ($alert->metadata['owner_email'] ?? 'N/A') }}</span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <p class="font-bold text-slate-800 text-xs">{{ $alert->title }}</p>
-                                        <p class="text-xs text-slate-500 mt-0.5">{{ $alert->message }}</p>
+                                        <p class="font-bold text-slate-200 text-xs">{{ $alert->title }}</p>
+                                        <p class="text-xs text-slate-400 mt-0.5">{{ $alert->message }}</p>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
+                                    <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-400">
                                         <span>{{ $alert->created_at->format('M d, Y • h:i A') }}</span>
                                         @if($alert->email_sent)
-                                            <span class="block text-[10px] text-emerald-600 font-semibold"><i class="ph ph-check"></i> Emailed to Admin</span>
+                                            <span class="block text-[10px] text-emerald-400 font-semibold"><i class="ph ph-check"></i> Emailed to Admin</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-right">
@@ -730,7 +732,7 @@
                                                     <form method="POST" action="{{ route('admin.subscriptions.requests.approve', $alert->id) }}" class="inline" onsubmit="return confirm('Approve and activate {{ $actionTitle }} to {{ $planName }} for {{ addslashes($alert->workspace->name) }}?')">
                                                         @csrf
                                                         <input type="hidden" name="duration_months" value="1">
-                                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition flex items-center gap-1 cursor-pointer">
+                                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition flex items-center gap-1 cursor-pointer">
                                                             <i class="ph ph-check text-xs"></i> Approve {{ $actionTitle }}
                                                         </button>
                                                     </form>
@@ -739,16 +741,16 @@
                                                     <form method="POST" action="{{ route('admin.subscriptions.requests.reject', $alert->id) }}" class="inline" onsubmit="var r = prompt('Enter rejection reason (optional):', 'Payment verification was unsuccessful or request declined.'); if (r === null) return false; this.querySelector('input[name=reason]').value = r; return true;">
                                                         @csrf
                                                         <input type="hidden" name="reason" value="">
-                                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition flex items-center gap-1 cursor-pointer">
+                                                        <button type="submit" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition flex items-center gap-1 cursor-pointer">
                                                             <i class="ph ph-x text-xs"></i> Reject
                                                         </button>
                                                     </form>
                                                 @elseif($reqStatus === 'approved')
-                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                                                         <i class="ph ph-check-circle"></i> {{ $actionTitle }} Approved
                                                     </span>
                                                 @elseif($reqStatus === 'rejected')
-                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200" title="{{ $alert->metadata['rejection_reason'] ?? '' }}">
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30" title="{{ $alert->metadata['rejection_reason'] ?? '' }}">
                                                         <i class="ph ph-x-circle"></i> {{ $actionTitle }} Rejected
                                                     </span>
                                                 @else
@@ -760,12 +762,12 @@
                                                 <form method="POST" action="{{ route('admin.subscriptions.alerts.read', $alert->id) }}" class="inline">
                                                     @csrf
                                                     <input type="hidden" name="tab" value="alerts">
-                                                    <button type="submit" class="text-xs font-bold text-slate-600 hover:text-slate-900 underline">
+                                                    <button type="submit" class="text-xs font-bold text-amber-400 hover:text-amber-300 underline">
                                                         Mark Read
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="text-xs text-slate-400">Read</span>
+                                                <span class="text-xs text-slate-500">Read</span>
                                             @endif
                                         </div>
                                     </td>
@@ -775,7 +777,7 @@
                     </table>
                 </div>
 
-                <div class="p-4 border-t border-slate-100">
+                <div class="p-4 border-t border-slate-800">
                     {{ $alerts->appends(['tab' => 'alerts'])->links() }}
                 </div>
             @endif
