@@ -490,64 +490,52 @@
                     @php
                         $adminAlerts = [];
                         try {
-                            // 1. Pending subscription plan upgrade/downgrade requests
-                            $planAlerts = \App\Models\SubscriptionAlert::whereIn('type', ['upgrade_request', 'downgrade_request'])
+                            // Query only truly UNREAD subscription alerts
+                            $unreadAlerts = \App\Models\SubscriptionAlert::unread()
                                 ->latest()
-                                ->take(5)
+                                ->take(15)
                                 ->get();
-                            foreach ($planAlerts as $pa) {
-                                if (($pa->metadata['status'] ?? 'pending') === 'pending') {
-                                    $wsName = $pa->workspace?->name ?? 'Workspace';
-                                    $reqType = ucfirst($pa->metadata['request_type'] ?? 'Plan');
-                                    $targetPlan = ucfirst($pa->metadata['target_plan'] ?? 'New Plan');
-                                    $adminAlerts[] = [
-                                        'id' => 'alert_' . $pa->id,
-                                        'title' => "Pending {$reqType} Request",
-                                        'desc' => "{$wsName} requested change to {$targetPlan}",
-                                        'time' => $pa->created_at?->diffForHumans() ?? 'Recently',
-                                        'url' => route('admin.subscriptions.index') . '?tab=alerts',
-                                        'icon' => 'ph ph-crown text-amber-400',
-                                        'badge' => 'Plan Request',
-                                        'badge_class' => 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                    ];
+
+                            foreach ($unreadAlerts as $pa) {
+                                $wsName = $pa->workspace?->name ?? ($pa->metadata['workspace_name'] ?? 'Workspace');
+                                
+                                if (in_array($pa->type, ['upgrade_request', 'downgrade_request'])) {
+                                    $reqType = ucfirst($pa->metadata['request_type'] ?? ($pa->type === 'downgrade_request' ? 'Downgrade' : 'Upgrade'));
+                                    $targetPlan = ucfirst($pa->metadata['target_plan'] ?? ($pa->metadata['requested_plan_name'] ?? 'New Plan'));
+                                    $title = "Pending {$reqType} Request";
+                                    $desc = "{$wsName} requested change to {$targetPlan}";
+                                    $icon = 'ph ph-crown text-amber-400';
+                                    $badge = 'Plan Request';
+                                    $badgeClass = 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+                                } elseif ($pa->type === 'signup') {
+                                    $title = "New Tenant Registration";
+                                    $desc = "{$wsName} created a new workspace trial";
+                                    $icon = 'ph ph-user-plus text-blue-400';
+                                    $badge = 'New Signup';
+                                    $badgeClass = 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+                                } elseif ($pa->type === 'trial_expired') {
+                                    $title = "Free Trial Concluded";
+                                    $desc = "{$wsName} evaluation window has expired";
+                                    $icon = 'ph ph-hourglass-low text-rose-400';
+                                    $badge = 'Trial Expired';
+                                    $badgeClass = 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+                                } else {
+                                    $title = $pa->title ?: 'Subscription Event';
+                                    $desc = $pa->message ?: "Activity recorded for {$wsName}";
+                                    $icon = 'ph ph-bell text-amber-400';
+                                    $badge = strtoupper(str_replace('_', ' ', $pa->type));
+                                    $badgeClass = 'bg-slate-800 text-slate-300 border border-slate-700';
                                 }
-                            }
 
-                            // 2. Open / Pending support tickets from tenants
-                            $openTickets = \App\Models\SupportTicket::whereIn('status', ['open', 'in_progress'])
-                                ->latest()
-                                ->take(5)
-                                ->get();
-                            foreach ($openTickets as $ticket) {
-                                $ticketSubject = $ticket->subject ?: 'Support Request';
-                                $ticketWs = $ticket->workspace?->name ?? 'Tenant';
                                 $adminAlerts[] = [
-                                    'id' => 'ticket_' . $ticket->id,
-                                    'title' => "Support Ticket #" . ($ticket->ticket_number ?? $ticket->id),
-                                    'desc' => "{$ticketSubject} ({$ticketWs})",
-                                    'time' => $ticket->created_at?->diffForHumans() ?? 'Recently',
-                                    'url' => route('admin.support.tickets.show', $ticket->id),
-                                    'icon' => 'ph ph-lifebuoy text-rose-400',
-                                    'badge' => ucfirst($ticket->priority ?? 'normal'),
-                                    'badge_class' => 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                ];
-                            }
-
-                            // 3. Past Due / Delinquent Workspaces
-                            $overdueWorkspaces = \App\Models\Workspace::where('subscription_status', 'past_due')
-                                ->latest()
-                                ->take(3)
-                                ->get();
-                            foreach ($overdueWorkspaces as $ow) {
-                                $adminAlerts[] = [
-                                    'id' => 'ws_' . $ow->id,
-                                    'title' => 'Subscription Past Due',
-                                    'desc' => "{$ow->name} payment overdue",
-                                    'time' => $ow->updated_at?->diffForHumans() ?? 'Recently',
-                                    'url' => route('admin.workspaces.show', $ow->id),
-                                    'icon' => 'ph ph-warning-circle text-rose-400',
-                                    'badge' => 'Past Due',
-                                    'badge_class' => 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                    'id' => $pa->id,
+                                    'title' => $title,
+                                    'desc' => $desc,
+                                    'time' => $pa->created_at?->diffForHumans() ?? 'Recently',
+                                    'url' => route('admin.subscriptions.index') . '?tab=alerts',
+                                    'icon' => $icon,
+                                    'badge' => $badge,
+                                    'badge_class' => $badgeClass
                                 ];
                             }
                         } catch (\Throwable $e) {}
@@ -582,47 +570,67 @@
                                     <i class="ph ph-bell-ringing text-amber-400 text-base"></i>
                                     <span class="font-bold text-white text-sm">Platform Notifications</span>
                                 </div>
-                                @if($totalAdminAlerts > 0)
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                        {{ $totalAdminAlerts }} Action Required
-                                    </span>
-                                @endif
+                                <div class="flex items-center gap-2">
+                                    @if($totalAdminAlerts > 0)
+                                        <form method="POST" action="{{ route('admin.subscriptions.alerts.read_all') }}" class="inline">
+                                            @csrf
+                                            <button type="submit" class="text-[10px] text-amber-400 hover:text-amber-300 font-bold underline cursor-pointer">
+                                                Mark All Read
+                                            </button>
+                                        </form>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                            {{ $totalAdminAlerts }} Unread
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
 
                             <!-- Alert Items List -->
                             <div class="max-h-80 overflow-y-auto divide-y divide-slate-800/60">
                                 @forelse($adminAlerts as $alert)
-                                    <a href="{{ $alert['url'] }}" @click="alertOpen = false"
-                                       class="p-3.5 flex items-start gap-3 hover:bg-slate-800/60 transition block group">
+                                    <div class="p-3.5 flex items-start gap-3 hover:bg-slate-800/60 transition block group">
                                         <div class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center shrink-0 text-base mt-0.5 group-hover:border-amber-500/40 transition">
                                             <i class="{{ $alert['icon'] }}"></i>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between gap-1">
-                                                <h4 class="font-bold text-white truncate text-xs group-hover:text-amber-400 transition">{{ $alert['title'] }}</h4>
+                                                <a href="{{ $alert['url'] }}" @click="alertOpen = false" class="font-bold text-white truncate text-xs hover:text-amber-400 transition">
+                                                    {{ $alert['title'] }}
+                                                </a>
                                                 <span class="text-[10px] text-slate-500 shrink-0">{{ $alert['time'] }}</span>
                                             </div>
                                             <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{{ $alert['desc'] }}</p>
-                                            <div class="mt-1.5 flex items-center gap-2">
+                                            <div class="mt-2 flex items-center justify-between gap-2">
                                                 <span class="px-2 py-0.5 rounded text-[9px] font-bold {{ $alert['badge_class'] }}">
                                                     {{ $alert['badge'] }}
                                                 </span>
+                                                <div class="flex items-center gap-2">
+                                                    <a href="{{ $alert['url'] }}" @click="alertOpen = false" class="text-[10px] text-amber-400 hover:underline font-semibold">
+                                                        Inspect
+                                                    </a>
+                                                    <form method="POST" action="{{ route('admin.subscriptions.alerts.read', $alert['id']) }}" class="inline">
+                                                        @csrf
+                                                        <button type="submit" class="text-[10px] text-slate-400 hover:text-white font-medium transition flex items-center gap-0.5 cursor-pointer" title="Mark as Read">
+                                                            <i class="ph ph-check text-xs text-emerald-400"></i> Mark Read
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </div>
                                         </div>
-                                    </a>
+                                    </div>
                                 @empty
                                     <div class="p-8 text-center text-slate-400">
                                         <i class="ph ph-check-circle text-3xl text-emerald-400 mb-2 inline-block"></i>
                                         <p class="text-xs font-bold text-white">All Caught Up!</p>
-                                        <p class="text-[11px] text-slate-400 mt-0.5">No pending administrative alerts or tenant tickets.</p>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">All notifications and subscription alerts are marked as read.</p>
                                     </div>
                                 @endforelse
                             </div>
 
                             <!-- Tray Footer Quick Links -->
                             <div class="p-2.5 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between text-[11px]">
-                                <a href="{{ route('admin.subscriptions.index') }}" class="text-slate-400 hover:text-amber-400 transition flex items-center gap-1 font-semibold">
-                                    <i class="ph ph-crown"></i> Subscriptions
+                                <a href="{{ route('admin.subscriptions.index') }}?tab=alerts" class="text-slate-400 hover:text-amber-400 transition flex items-center gap-1 font-semibold">
+                                    <i class="ph ph-bell"></i> All Alerts
                                 </a>
                                 <a href="{{ route('admin.support.tickets') }}" class="text-slate-400 hover:text-rose-400 transition flex items-center gap-1 font-semibold">
                                     <i class="ph ph-lifebuoy"></i> Tickets
@@ -641,9 +649,13 @@
                         <i class="ph text-base" :class="theme === 'dark' ? 'ph-sun' : 'ph-moon'"></i>
                     </button>
 
-                    <!-- Switch to Tenant Workspace Link -->
-                    <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5">
-                        <i class="ph ph-buildings"></i> Tenant App
+                    <!-- Switch to Tenant Workspace Link (Opens in New Tab) -->
+                    <a href="{{ route('dashboard') }}" target="_blank" rel="noopener noreferrer" 
+                       class="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5"
+                       title="Open Tenant App in New Tab">
+                        <i class="ph ph-buildings text-amber-400"></i>
+                        <span>Tenant App</span>
+                        <i class="ph ph-arrow-up-right text-[10px] text-slate-400"></i>
                     </a>
 
                     <!-- Operator Profile Menu -->
@@ -660,6 +672,10 @@
                                 <div class="font-bold text-white">{{ $adminUser?->name ?? 'Super Admin' }}</div>
                                 <div class="text-[11px] text-slate-400 truncate">{{ $adminUser?->email ?? 'superadmin@redmapleagency.com' }}</div>
                             </div>
+                            <a href="{{ route('dashboard') }}" target="_blank" rel="noopener noreferrer" class="block px-4 py-2 text-slate-300 hover:bg-slate-800 hover:text-white transition flex items-center justify-between">
+                                <span><i class="ph ph-buildings mr-2 text-amber-400"></i> Tenant App</span>
+                                <i class="ph ph-arrow-up-right text-[10px] text-slate-500"></i>
+                            </a>
                             <a href="{{ route('admin.security.admins') }}" class="block px-4 py-2 text-slate-300 hover:bg-slate-800 hover:text-white transition">
                                 <i class="ph ph-shield-star mr-2 text-amber-400"></i> Admin Roles & Access
                             </a>
