@@ -426,16 +426,10 @@
                         Configuration
                     </div>
                     <a href="{{ route('admin.config.general') }}" 
-                       class="flex items-center gap-3 px-3 py-2 rounded-xl font-medium transition {{ (request()->routeIs('admin.config.*') && !request()->routeIs('admin.config.tour*')) ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       class="flex items-center gap-3 px-3 py-2 rounded-xl font-medium transition {{ request()->routeIs('admin.config.*') ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? 'System Configuration' : ''">
-                        <i class="ph ph-gear text-lg shrink-0 {{ (request()->routeIs('admin.config.*') && !request()->routeIs('admin.config.tour*')) ? 'text-slate-950' : 'text-slate-400' }}"></i>
+                        <i class="ph ph-gear text-lg shrink-0 {{ request()->routeIs('admin.config.*') ? 'text-slate-950' : 'text-slate-400' }}"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">System Settings</span>
-                    </a>
-                    <a href="{{ route('admin.config.tour') }}" 
-                       class="flex items-center gap-3 px-3 py-2 rounded-xl font-medium transition {{ request()->routeIs('admin.config.tour*') ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                       :title="sidebarCollapsed ? 'Onboarding Tour' : ''">
-                        <i class="ph ph-compass text-lg shrink-0 {{ request()->routeIs('admin.config.tour*') ? 'text-slate-950' : 'text-amber-400' }}"></i>
-                        <span x-show="!sidebarCollapsed" class="truncate">Welcome Tour</span>
                     </a>
                 </div>
             </nav>
