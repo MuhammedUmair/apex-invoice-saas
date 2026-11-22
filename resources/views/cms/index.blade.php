@@ -20,20 +20,20 @@
         <div class="flex items-center bg-slate-900 border border-slate-800 p-1 rounded-xl text-xs font-bold">
             <button @click="currentTab = 'landing'" 
                     :class="currentTab === 'landing' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
-                    class="px-4 py-2 rounded-lg transition flex items-center gap-1.5">
+                    class="px-4 py-2 rounded-lg transition flex items-center gap-1.5 font-bold">
                 <i class="ph ph-browsers text-base"></i> Landing Website Copy
             </button>
             <button @click="currentTab = 'docs'" 
                     :class="currentTab === 'docs' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
-                    class="px-4 py-2 rounded-lg transition flex items-center gap-1.5">
+                    class="px-4 py-2 rounded-lg transition flex items-center gap-1.5 font-bold">
                 <i class="ph ph-book-open text-base"></i> Multilingual Docs Hub
             </button>
         </div>
     </div>
 
     @if (session('success'))
-        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
-            <i class="ph ph-check-circle text-base text-emerald-600"></i>
+        <div class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+            <i class="ph ph-check-circle text-base text-emerald-400"></i>
             {{ session('success') }}
         </div>
     @endif
@@ -44,85 +44,85 @@
             @csrf
 
             <!-- Hero Section Copy -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
-                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-                    <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-xl shrink-0">
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 sm:p-8 shadow-sm space-y-5">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-megaphone-simple"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-900 text-base">Hero Section Headline & Subtitle</h3>
-                        <p class="text-xs text-slate-500">The primary value proposition displayed above the fold on redmapleagency.com</p>
+                        <h3 class="font-bold text-white text-base">Hero Section Headline & Subtitle</h3>
+                        <p class="text-xs text-slate-400">The primary value proposition displayed above the fold on redmapleagency.com</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Top Announcement Badge</label>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Top Announcement Badge</label>
                         <input type="text" name="hero_badge" value="{{ $cms['hero_badge'] ?? 'Introducing Invoicy by RedMaple • Automated Payment Reminders & Multi-Currency GAAP Accounting' }}"
-                               class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">
+                               class="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Hero Main Title (Headline)</label>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Hero Main Title (Headline)</label>
                         <input type="text" name="hero_title" value="{{ $cms['hero_title'] ?? 'Get Paid Faster. Automate Reminders. Invoice Worldwide.' }}"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-red-500">
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Hero Subtitle Paragraph</label>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Hero Subtitle Paragraph</label>
                         <textarea name="hero_subtitle" rows="3"
-                                  class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">{{ $cms['hero_subtitle'] ?? 'Invoicy by RedMaple gives modern agencies, freelancers, and businesses real-time VAT calculations, automated milestone payment reminders (45, 30, 15, 7, 3, 2 days before due), password-protected client PDFs, and seamless one-click billing.' }}</textarea>
+                                  class="w-full px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $cms['hero_subtitle'] ?? 'Invoicy by RedMaple gives modern agencies, freelancers, and businesses real-time VAT calculations, automated milestone payment reminders (45, 30, 15, 7, 3, 2 days before due), password-protected client PDFs, and seamless one-click billing.' }}</textarea>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Primary CTA Button Text</label>
+                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Primary CTA Button Text</label>
                             <input type="text" name="hero_cta_primary" value="{{ $cms['hero_cta_primary'] ?? 'Start Free with Invoicy' }}"
-                                   class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">
+                                   class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Secondary CTA Button Text</label>
+                            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Secondary CTA Button Text</label>
                             <input type="text" name="hero_cta_secondary" value="{{ $cms['hero_cta_secondary'] ?? 'Launch App / Login' }}"
-                                   class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-red-500">
+                                   class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Future SaaS Products Copy -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
-                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
-                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shrink-0">
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 sm:p-8 shadow-sm space-y-5">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-sparkle"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-900 text-base">RedMaple SaaS Suite Roadmap Copy</h3>
-                        <p class="text-xs text-slate-500">Showcase your upcoming software products (CRM, HRMS, Project Desk, POS)</p>
+                        <h3 class="font-bold text-white text-base">RedMaple SaaS Suite Roadmap Copy</h3>
+                        <p class="text-xs text-slate-400">Showcase your upcoming software products (CRM, HRMS, Project Desk, POS)</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">RedMaple CRM Pro Description</label>
-                        <textarea name="crm_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs">{{ $cms['crm_desc'] ?? 'Visual Kanban pipelines, deal stages, client activity tracking, email sync, and automated proposal-to-invoice conversion.' }}</textarea>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">RedMaple CRM Pro Description</label>
+                        <textarea name="crm_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $cms['crm_desc'] ?? 'Visual Kanban pipelines, deal stages, client activity tracking, email sync, and automated proposal-to-invoice conversion.' }}</textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">RedMaple HRMS & Payroll Description</label>
-                        <textarea name="hrms_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs">{{ $cms['hrms_desc'] ?? 'Employee directories, attendance, vacation requests, digital payslips, and compliance withholding calculation.' }}</textarea>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">RedMaple HRMS & Payroll Description</label>
+                        <textarea name="hrms_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $cms['hrms_desc'] ?? 'Employee directories, attendance, vacation requests, digital payslips, and compliance withholding calculation.' }}</textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">RedMaple Project Desk Description</label>
-                        <textarea name="project_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs">{{ $cms['project_desc'] ?? 'Project milestones, billable hours tracking, client collaborative boards, and instant time-log conversion into Invoicy line items.' }}</textarea>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">RedMaple Project Desk Description</label>
+                        <textarea name="project_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $cms['project_desc'] ?? 'Project milestones, billable hours tracking, client collaborative boards, and instant time-log conversion into Invoicy line items.' }}</textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">RedMaple POS Description</label>
-                        <textarea name="pos_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs">{{ $cms['pos_desc'] ?? 'Barcode scanning, receipt printers, cash drawers, multi-location stock replenishment, and instant receipt dispatch.' }}</textarea>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">RedMaple POS Description</label>
+                        <textarea name="pos_desc" rows="2" class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $cms['pos_desc'] ?? 'Barcode scanning, receipt printers, cash drawers, multi-location stock replenishment, and instant receipt dispatch.' }}</textarea>
                     </div>
                 </div>
             </div>
 
             <div class="flex justify-end pb-8">
-                <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition text-sm">
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-sm transition text-sm">
                     <i class="ph ph-floppy-disk text-base"></i> Save Website Content
                 </button>
             </div>
@@ -132,15 +132,15 @@
     <!-- Tab 2: Multilingual Documentation CMS with Auto-Translate & Review -->
     <div x-show="currentTab === 'docs'" class="space-y-8">
         <!-- New Doc Article Creator -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 sm:p-8 shadow-sm space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl shrink-0">
                         <i class="ph ph-plus-circle"></i>
                     </div>
                     <div>
-                        <h3 class="font-bold text-slate-900 text-base">Publish New Documentation Article</h3>
-                        <p class="text-xs text-slate-500">Write in English; the built-in AI engine will automatically translate to Urdu, Arabic, Hindi, and Turkish</p>
+                        <h3 class="font-bold text-white text-base">Publish New Documentation Article</h3>
+                        <p class="text-xs text-slate-400">Write in English; the built-in AI engine will automatically translate to Urdu, Arabic, Hindi, and Turkish</p>
                     </div>
                 </div>
             </div>
@@ -149,13 +149,13 @@
                 @csrf
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Article Title (English) *</label>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Article Title (English) *</label>
                         <input type="text" name="title_en" required placeholder="e.g. How to Automate Payment Reminders"
-                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
+                               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:ring-2 focus:ring-amber-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Category *</label>
-                        <select name="category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Category *</label>
+                        <select name="category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:ring-2 focus:ring-amber-500 outline-none">
                             <option value="Getting Started">Getting Started</option>
                             <option value="Invoice Studio">Invoice Studio</option>
                             <option value="Payment Reminders">Payment Reminders</option>
@@ -167,13 +167,13 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Article Content (English) *</label>
+                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Article Content (English) *</label>
                     <textarea name="content_en" rows="5" required placeholder="Detailed guide, instructions, or documentation body..."
-                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500"></textarea>
+                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-sm focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
                 </div>
 
-                <div class="flex justify-end pt-2">
-                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow transition">
+                <div class="flex justify-end pt-2 border-t border-slate-800">
+                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-sm transition">
                         <i class="ph ph-magic-wand text-base"></i> Create & Auto-Translate to All Languages
                     </button>
                 </div>
@@ -181,13 +181,13 @@
         </div>
 
         <!-- Existing Doc Articles with Multi-Language Review & Edit -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-800 flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-900 text-base">Published Documentation Articles & Translations</h3>
-                    <p class="text-xs text-slate-500">Click on any article to review or modify translated versions in Urdu, Arabic, Hindi, or Turkish</p>
+                    <h3 class="font-bold text-white text-base">Published Documentation Articles & Translations</h3>
+                    <p class="text-xs text-slate-400">Click on any article to review or modify translated versions in Urdu, Arabic, Hindi, or Turkish</p>
                 </div>
-                <span class="text-xs bg-slate-100 text-slate-700 font-bold px-3 py-1 rounded-full">
+                <span class="text-xs bg-slate-800 text-slate-300 border border-slate-700 font-bold px-3 py-1 rounded-full">
                     {{ $docArticles->count() }} Articles
                 </span>
             </div>
@@ -197,52 +197,52 @@
                     No custom documentation articles published yet. Create your first article above!
                 </div>
             @else
-                <div class="divide-y divide-slate-100">
+                <div class="divide-y divide-slate-800/60">
                     @foreach($docArticles as $art)
-                        <div x-data="{ openReview: false, activeLang: 'ur' }" class="p-6 hover:bg-slate-50/50 transition">
+                        <div x-data="{ openReview: false, activeLang: 'ur' }" class="p-6 hover:bg-slate-800/40 transition">
                             <div class="flex items-center justify-between gap-4">
                                 <div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-red-600 bg-red-50 px-2 py-0.5 rounded">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
                                         {{ $art->category }}
                                     </span>
-                                    <h4 class="text-base font-bold text-slate-900 mt-1">{{ $art->title_en }}</h4>
-                                    <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">{{ Str::limit($art->content_en, 100) }}</p>
+                                    <h4 class="text-base font-bold text-white mt-1">{{ $art->title_en }}</h4>
+                                    <p class="text-xs text-slate-400 line-clamp-1 mt-0.5">{{ Str::limit($art->content_en, 100) }}</p>
                                 </div>
 
                                 <div class="flex items-center gap-2 shrink-0">
                                     <form action="{{ route('cms.docs.translate', $art->id) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1" title="Re-run machine translation">
-                                            <i class="ph ph-arrows-clockwise text-sm text-blue-600"></i> Auto-Translate
+                                        <button type="submit" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 text-xs font-semibold flex items-center gap-1 transition" title="Re-run machine translation">
+                                            <i class="ph ph-arrows-clockwise text-sm text-blue-400"></i> Auto-Translate
                                         </button>
                                     </form>
                                     <button @click="openReview = !openReview" 
-                                            class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold border border-red-200 flex items-center gap-1">
+                                            class="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/20 flex items-center gap-1 transition">
                                         <i class="ph ph-translate text-sm"></i> Review & Edit Translations ▾
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Expandable Review & Edit Modal Box -->
-                            <div x-show="openReview" x-cloak class="mt-6 pt-6 border-t border-slate-200 bg-slate-50/70 p-5 rounded-xl space-y-4">
+                            <div x-show="openReview" x-cloak class="mt-6 pt-6 border-t border-slate-800 bg-slate-950/80 p-5 rounded-xl space-y-4">
                                 <form method="POST" action="{{ route('cms.docs.update', $art->id) }}" class="space-y-4">
                                     @csrf
 
                                     <!-- Language Selector Tabs -->
-                                    <div class="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto text-xs font-bold">
-                                        <button type="button" @click="activeLang = 'en'" :class="activeLang === 'en' ? 'text-red-600 border-b-2 border-red-600 pb-1' : 'text-slate-500'">
+                                    <div class="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto text-xs font-bold">
+                                        <button type="button" @click="activeLang = 'en'" :class="activeLang === 'en' ? 'text-amber-400 border-b-2 border-amber-400 pb-1' : 'text-slate-400 hover:text-white'">
                                             🇺🇸 English (Source)
                                         </button>
-                                        <button type="button" @click="activeLang = 'ur'" :class="activeLang === 'ur' ? 'text-red-600 border-b-2 border-red-600 pb-1' : 'text-slate-500'">
+                                        <button type="button" @click="activeLang = 'ur'" :class="activeLang === 'ur' ? 'text-amber-400 border-b-2 border-amber-400 pb-1' : 'text-slate-400 hover:text-white'">
                                             🇵🇰 Urdu (اردو)
                                         </button>
-                                        <button type="button" @click="activeLang = 'ar'" :class="activeLang === 'ar' ? 'text-red-600 border-b-2 border-red-600 pb-1' : 'text-slate-500'">
+                                        <button type="button" @click="activeLang = 'ar'" :class="activeLang === 'ar' ? 'text-amber-400 border-b-2 border-amber-400 pb-1' : 'text-slate-400 hover:text-white'">
                                             🇦🇪 Arabic (العربية)
                                         </button>
-                                        <button type="button" @click="activeLang = 'hi'" :class="activeLang === 'hi' ? 'text-red-600 border-b-2 border-red-600 pb-1' : 'text-slate-500'">
+                                        <button type="button" @click="activeLang = 'hi'" :class="activeLang === 'hi' ? 'text-amber-400 border-b-2 border-amber-400 pb-1' : 'text-slate-400 hover:text-white'">
                                             🇮🇳 Hindi (हिन्दी)
                                         </button>
-                                        <button type="button" @click="activeLang = 'tr'" :class="activeLang === 'tr' ? 'text-red-600 border-b-2 border-red-600 pb-1' : 'text-slate-500'">
+                                        <button type="button" @click="activeLang = 'tr'" :class="activeLang === 'tr' ? 'text-amber-400 border-b-2 border-amber-400 pb-1' : 'text-slate-400 hover:text-white'">
                                             🇹🇷 Turkish (Türkçe)
                                         </button>
                                     </div>
@@ -252,70 +252,70 @@
                                     <!-- English Tab -->
                                     <div x-show="activeLang === 'en'" class="space-y-3">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Title (English)</label>
-                                            <input type="text" name="title_en" value="{{ $art->title_en }}" class="w-full px-3 py-2 rounded-lg border text-sm">
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Title (English)</label>
+                                            <input type="text" name="title_en" value="{{ $art->title_en }}" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm focus:ring-2 focus:ring-amber-500 outline-none">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Content (English)</label>
-                                            <textarea name="content_en" rows="4" class="w-full px-3 py-2 rounded-lg border text-xs">{{ $art->content_en }}</textarea>
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Content (English)</label>
+                                            <textarea name="content_en" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $art->content_en }}</textarea>
                                         </div>
                                     </div>
 
                                     <!-- Urdu Tab -->
                                     <div x-show="activeLang === 'ur'" class="space-y-3" dir="rtl">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1 text-right">عنوان (Urdu)</label>
-                                            <input type="text" name="title_ur" value="{{ $art->title_ur }}" class="w-full px-3 py-2 rounded-lg border text-sm text-right">
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1 text-right">عنوان (Urdu)</label>
+                                            <input type="text" name="title_ur" value="{{ $art->title_ur }}" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm text-right focus:ring-2 focus:ring-amber-500 outline-none">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1 text-right">مواد (Urdu Content)</label>
-                                            <textarea name="content_ur" rows="4" class="w-full px-3 py-2 rounded-lg border text-xs text-right">{{ $art->content_ur }}</textarea>
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1 text-right">مواد (Urdu Content)</label>
+                                            <textarea name="content_ur" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-xs text-right focus:ring-2 focus:ring-amber-500 outline-none">{{ $art->content_ur }}</textarea>
                                         </div>
                                     </div>
 
                                     <!-- Arabic Tab -->
                                     <div x-show="activeLang === 'ar'" class="space-y-3" dir="rtl">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1 text-right">العنوان (Arabic)</label>
-                                            <input type="text" name="title_ar" value="{{ $art->title_ar }}" class="w-full px-3 py-2 rounded-lg border text-sm text-right">
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1 text-right">العنوان (Arabic)</label>
+                                            <input type="text" name="title_ar" value="{{ $art->title_ar }}" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm text-right focus:ring-2 focus:ring-amber-500 outline-none">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1 text-right">المحتوى (Arabic Content)</label>
-                                            <textarea name="content_ar" rows="4" class="w-full px-3 py-2 rounded-lg border text-xs text-right">{{ $art->content_ar }}</textarea>
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1 text-right">المحتوى (Arabic Content)</label>
+                                            <textarea name="content_ar" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-xs text-right focus:ring-2 focus:ring-amber-500 outline-none">{{ $art->content_ar }}</textarea>
                                         </div>
                                     </div>
 
                                     <!-- Hindi Tab -->
                                     <div x-show="activeLang === 'hi'" class="space-y-3">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">शीर्षक (Hindi)</label>
-                                            <input type="text" name="title_hi" value="{{ $art->title_hi }}" class="w-full px-3 py-2 rounded-lg border text-sm">
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">शीर्षक (Hindi)</label>
+                                            <input type="text" name="title_hi" value="{{ $art->title_hi }}" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm focus:ring-2 focus:ring-amber-500 outline-none">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">विवरण (Hindi Content)</label>
-                                            <textarea name="content_hi" rows="4" class="w-full px-3 py-2 rounded-lg border text-xs">{{ $art->content_hi }}</textarea>
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">विवरण (Hindi Content)</label>
+                                            <textarea name="content_hi" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $art->content_hi }}</textarea>
                                         </div>
                                     </div>
 
                                     <!-- Turkish Tab -->
                                     <div x-show="activeLang === 'tr'" class="space-y-3">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Başlık (Turkish)</label>
-                                            <input type="text" name="title_tr" value="{{ $art->title_tr }}" class="w-full px-3 py-2 rounded-lg border text-sm">
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Başlık (Turkish)</label>
+                                            <input type="text" name="title_tr" value="{{ $art->title_tr }}" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm focus:ring-2 focus:ring-amber-500 outline-none">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">İçerik (Turkish Content)</label>
-                                            <textarea name="content_tr" rows="4" class="w-full px-3 py-2 rounded-lg border text-xs">{{ $art->content_tr }}</textarea>
+                                            <label class="block text-xs font-bold text-slate-300 uppercase mb-1">İçerik (Turkish Content)</label>
+                                            <textarea name="content_tr" rows="4" class="w-full px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-xs focus:ring-2 focus:ring-amber-500 outline-none">{{ $art->content_tr }}</textarea>
                                         </div>
                                     </div>
 
-                                    <div class="flex items-center justify-between pt-2">
-                                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                                            <input type="checkbox" name="is_published" value="1" {{ $art->is_published ? 'checked' : '' }} class="w-4 h-4 text-red-600 rounded">
-                                            Publish to Public Docs Hub
+                                    <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                                        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-300">
+                                            <input type="checkbox" name="is_published" value="1" {{ $art->is_published ? 'checked' : '' }} class="w-4 h-4 text-amber-500 rounded bg-slate-900 border-slate-700">
+                                            <span>Publish to Public Docs Hub</span>
                                         </label>
 
-                                        <button type="submit" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs shadow transition">
+                                        <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs shadow transition">
                                             Save Reviewed Translations
                                         </button>
                                     </div>
