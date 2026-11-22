@@ -334,6 +334,8 @@ Route::middleware([\App\Http\Middleware\EnsureSuperAdmin::class])->group(functio
 
     // GROUP 8: CONFIGURATION
     Route::get('/admin/config/general', [SuperAdminController::class, 'configGeneral'])->name('admin.config.general');
+    Route::get('/admin/config/tour', [SuperAdminController::class, 'configTour'])->name('admin.config.tour');
+    Route::post('/admin/config/tour', [SuperAdminController::class, 'updateTour'])->name('admin.config.tour.update');
     Route::get('/admin/config/gateways', [SuperAdminController::class, 'configGateways'])->name('admin.config.gateways');
     Route::get('/admin/config/smtp', [SuperAdminController::class, 'configSmtp'])->name('admin.config.smtp');
     Route::get('/admin/config/storage', [SuperAdminController::class, 'configStorage'])->name('admin.config.storage');

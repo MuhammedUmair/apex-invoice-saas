@@ -9,8 +9,11 @@
         </div>
     </div>
 
-    <div class="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs">
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs overflow-x-auto">
         <a href="{{ route('admin.config.general') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">General</a>
+        <a href="{{ route('admin.config.tour') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 font-bold">
+            <i class="ph ph-compass"></i> Welcome Tour
+        </a>
         <a href="{{ route('admin.config.gateways') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">Gateways</a>
         <a href="{{ route('admin.config.smtp') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">SMTP Server</a>
         <a href="{{ route('admin.config.storage') }}" class="px-3.5 py-1.5 rounded-xl font-bold bg-amber-500 text-slate-950">Storage</a>

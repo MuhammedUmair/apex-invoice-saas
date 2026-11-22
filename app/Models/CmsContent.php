@@ -213,4 +213,77 @@ class CmsContent extends Model
             ['label' => 'redmapleagency.com', 'url' => 'https://redmapleagency.com', 'target' => '_blank', 'active' => true],
         ];
     }
+
+    /**
+     * Get Welcome Tour Slides (dynamic array of sections with fallback to legacy steps 1-4)
+     */
+    public static function getWelcomeTourSlides(): array
+    {
+        $raw = static::getVal('welcome_tour_slides_json');
+        if (!empty($raw)) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && count($decoded) > 0) {
+                return array_values($decoded);
+            }
+        }
+
+        // Default legacy fallback slides
+        return [
+            [
+                'title' => static::getVal('welcome_step1_title', '1. Create High-Precision Invoices in Seconds'),
+                'text' => static::getVal('welcome_step1_text', 'Click "+ New Invoice" in your sidebar or ask the AI Copilot. Enter client details or use Walk-in mode for instantaneous cash and retail billing without client signup.'),
+                'badge' => 'Zero Friction',
+                'icon' => 'ph-receipt',
+                'color' => 'red',
+            ],
+            [
+                'title' => static::getVal('welcome_step2_title', '2. 1-Click Industry Service Presets & Custom Line Items'),
+                'text' => static::getVal('welcome_step2_text', 'Access 45+ tailored presets for your business category (Computer Shop, Transportation, Limousine Taxi, Industrial, Construction, Distributor, Marketing Agency). 1-click adds pre-priced line items with matching units.'),
+                'badge' => '45+ Presets',
+                'icon' => 'ph-lightning',
+                'color' => 'amber',
+            ],
+            [
+                'title' => static::getVal('welcome_step3_title', '3. Private Draft Invoices & Zero Accidental Dispatch'),
+                'text' => static::getVal('welcome_step3_text', 'Draft invoices are completely private. Emails are never dispatched, and PDF downloads, customer payment portals, and QR verification screens are disabled until you click "Issue & Publish".'),
+                'badge' => 'Draft Safeguard',
+                'icon' => 'ph-shield-check',
+                'color' => 'sky',
+            ],
+            [
+                'title' => static::getVal('welcome_step4_title', '4. Cryptographic QR Seals & Automated Reminders'),
+                'text' => static::getVal('welcome_step4_text', 'Published invoices feature authentic ISO 2D QR verification codes for fraud prevention and automated milestone payment reminder schedules (45, 30, 15, 7, 3, and 2 days before due date).'),
+                'badge' => 'Automated Reminders',
+                'icon' => 'ph-bell-ringing',
+                'color' => 'emerald',
+            ],
+        ];
+    }
+
+    /**
+     * Save dynamic welcome tour slides
+     */
+    public static function saveWelcomeTourSlides(array $slides): void
+    {
+        $cleanSlides = [];
+        foreach ($slides as $i => $s) {
+            $cleanSlides[] = [
+                'title' => trim($s['title'] ?? 'Tour Step ' . ($i + 1)),
+                'text' => trim($s['text'] ?? ''),
+                'badge' => trim($s['badge'] ?? 'Feature Spotlight'),
+                'icon' => trim($s['icon'] ?? 'ph-sparkle'),
+                'color' => trim($s['color'] ?? 'amber'),
+            ];
+        }
+
+        static::setVal('welcome_tour_slides_json', json_encode($cleanSlides), 'general');
+
+        // Also synchronize legacy keys for step 1 to 4 if present
+        for ($k = 1; $k <= 4; $k++) {
+            if (isset($cleanSlides[$k - 1])) {
+                static::setVal("welcome_step{$k}_title", $cleanSlides[$k - 1]['title'], 'general');
+                static::setVal("welcome_step{$k}_text", $cleanSlides[$k - 1]['text'], 'general');
+            }
+        }
+    }
 }

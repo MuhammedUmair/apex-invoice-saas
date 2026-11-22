@@ -1,23 +1,15 @@
 @php
     $tourEnabled = (\App\Models\CmsContent::getVal('welcome_popup_enabled', \App\Models\CmsContent::getVal('enable_welcome_tour', '1'))) === '1';
-    $step1Title = \App\Models\CmsContent::getVal('welcome_step1_title', '1. Create High-Precision Invoices in Seconds');
-    $step1Text = \App\Models\CmsContent::getVal('welcome_step1_text', 'Click "+ New Invoice" in your sidebar or ask the AI Copilot. Enter client details or use Walk-in mode for instantaneous cash and retail billing without client signup.');
-    
-    $step2Title = \App\Models\CmsContent::getVal('welcome_step2_title', '2. 1-Click Industry Service Presets & Custom Line Items');
-    $step2Text = \App\Models\CmsContent::getVal('welcome_step2_text', 'Access 45+ tailored presets for your business category (Computer Shop, Transportation, Limousine Taxi, Industrial, Construction, Distributor, Marketing Agency). 1-click adds pre-priced line items with matching units.');
-    
-    $step3Title = \App\Models\CmsContent::getVal('welcome_step3_title', '3. Private Draft Invoices & Zero Accidental Dispatch');
-    $step3Text = \App\Models\CmsContent::getVal('welcome_step3_text', 'Draft invoices are completely private. Emails are never dispatched, and PDF downloads, customer payment portals, and QR verification screens are disabled until you click "Issue & Publish".');
-    
-    $step4Title = \App\Models\CmsContent::getVal('welcome_step4_title', '4. Cryptographic QR Seals & Automated Reminders');
-    $step4Text = \App\Models\CmsContent::getVal('welcome_step4_text', 'Published invoices feature authentic ISO 2D QR verification codes for fraud prevention and automated milestone payment reminder schedules (45, 30, 15, 7, 3, and 2 days before due date).');
+    $tourSlides = \App\Models\CmsContent::getWelcomeTourSlides();
+    $totalSteps = max(1, count($tourSlides));
 @endphp
 
-@if($tourEnabled)
+@if($tourEnabled && count($tourSlides) > 0)
 <div x-data="{
         isOpen: false,
         step: 1,
-        totalSteps: 4,
+        totalSteps: {{ $totalSteps }},
+        slides: {{ json_encode($tourSlides) }},
         dontShowAgain: true,
         init() {
             const seen = localStorage.getItem('invoicy_welcome_tour_completed');
@@ -98,104 +90,44 @@
                     </button>
                 </div>
 
-                <!-- Slide 1: Create Invoice & Walk-in -->
-                <div x-show="step === 1" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" class="py-6 space-y-4">
-                    <div class="w-16 h-16 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
-                        <i class="ph ph-receipt"></i>
-                    </div>
-                    <div class="text-center space-y-2">
-                        <h4 class="text-lg font-black text-slate-900">{{ $step1Title }}</h4>
-                        <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">{{ $step1Text }}</p>
-                    </div>
-                    <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-2 text-slate-700">
-                        <div class="flex items-center justify-between font-bold text-[11px] text-slate-500 uppercase tracking-wider">
-                            <span>Key Highlights</span>
-                            <span class="text-emerald-600">Zero Customer Friction</span>
+                <!-- Dynamic Slide Content Loops -->
+                <template x-for="(slide, index) in slides" :key="index">
+                    <div x-show="step === (index + 1)" 
+                         x-transition:enter="transition ease-out duration-200" 
+                         x-transition:enter-start="opacity-0 translate-x-4" 
+                         x-transition:enter-end="opacity-100 translate-x-0" 
+                         class="py-6 space-y-4">
+                        
+                        <!-- Slide Icon Box -->
+                        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-inner"
+                             :class="{
+                                 'bg-amber-50 border border-amber-200 text-amber-600': (slide.color || 'amber') === 'amber',
+                                 'bg-red-50 border border-red-200 text-red-600': slide.color === 'red',
+                                 'bg-emerald-50 border border-emerald-200 text-emerald-600': slide.color === 'emerald',
+                                 'bg-blue-50 border border-blue-200 text-blue-600': slide.color === 'blue',
+                                 'bg-purple-50 border border-purple-200 text-purple-600': slide.color === 'purple',
+                                 'bg-sky-50 border border-sky-200 text-sky-600': slide.color === 'sky'
+                             }">
+                            <i class="ph" :class="slide.icon || 'ph-sparkle'"></i>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 text-[11px]">
-                            <div class="p-2 bg-white rounded-xl border border-slate-200 flex items-center gap-2">
-                                <i class="ph ph-user-circle text-base text-red-600"></i>
-                                <span>Registered Client CRM</span>
-                            </div>
-                            <div class="p-2 bg-white rounded-xl border border-slate-200 flex items-center gap-2">
-                                <i class="ph ph-shopping-bag text-base text-emerald-600"></i>
-                                <span>Walk-in / Cash Billing</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Slide 2: Industry Presets -->
-                <div x-show="step === 2" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" class="py-6 space-y-4">
-                    <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
-                        <i class="ph ph-lightning"></i>
-                    </div>
-                    <div class="text-center space-y-2">
-                        <h4 class="text-lg font-black text-slate-900">{{ $step2Title }}</h4>
-                        <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">{{ $step2Text }}</p>
-                    </div>
-                    <div class="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/80 text-xs space-y-2">
-                        <span class="block text-[10px] font-extrabold uppercase tracking-wider text-amber-800">Supported Industry Presets</span>
-                        <div class="flex flex-wrap gap-1.5 text-[10px] font-bold">
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">💻 Computer Shop</span>
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">🚚 Transportation</span>
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">🚖 Limo & Taxi</span>
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">⚙️ Industrial</span>
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">🏗️ Construction</span>
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">📦 Distributor</span>
-                            <span class="px-2 py-1 rounded-lg bg-white border border-amber-200 text-slate-700">🎨 Marketing</span>
+                        <!-- Titles & Description -->
+                        <div class="text-center space-y-2">
+                            <h4 class="text-lg font-black text-slate-900" x-text="slide.title"></h4>
+                            <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed" x-text="slide.text"></p>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Slide 3: Draft Safeguard -->
-                <div x-show="step === 3" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" class="py-6 space-y-4">
-                    <div class="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
-                        <i class="ph ph-shield-check"></i>
-                    </div>
-                    <div class="text-center space-y-2">
-                        <h4 class="text-lg font-black text-slate-900">{{ $step3Title }}</h4>
-                        <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">{{ $step3Text }}</p>
-                    </div>
-                    <div class="p-3.5 bg-sky-50/60 rounded-2xl border border-sky-200 text-xs space-y-2">
-                        <div class="grid grid-cols-2 gap-2 text-[11px]">
-                            <div class="p-2.5 bg-white rounded-xl border border-slate-200">
-                                <span class="font-bold text-amber-700 flex items-center gap-1 mb-1">
-                                    <i class="ph ph-lock text-sm"></i> Draft State
+                        <!-- Badge Pill -->
+                        <template x-if="slide.badge">
+                            <div class="flex items-center justify-center pt-1">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                    <i class="ph ph-check-circle text-emerald-600"></i>
+                                    <span x-text="slide.badge"></span>
                                 </span>
-                                <span class="text-slate-500 text-[10px] block">Only "Revise" & "Publish" active. Zero external access.</span>
                             </div>
-                            <div class="p-2.5 bg-white rounded-xl border border-slate-200">
-                                <span class="font-bold text-emerald-700 flex items-center gap-1 mb-1">
-                                    <i class="ph ph-check-circle text-sm"></i> Published State
-                                </span>
-                                <span class="text-slate-500 text-[10px] block">PDF, QR seal, customer portal & reminders active.</span>
-                            </div>
-                        </div>
+                        </template>
                     </div>
-                </div>
-
-                <!-- Slide 4: Verification & Automated Reminders -->
-                <div x-show="step === 4" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-x-4" x-transition:enter-end="opacity-100 translate-x-0" class="py-6 space-y-4">
-                    <div class="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
-                        <i class="ph ph-bell-ringing"></i>
-                    </div>
-                    <div class="text-center space-y-2">
-                        <h4 class="text-lg font-black text-slate-900">{{ $step4Title }}</h4>
-                        <p class="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">{{ $step4Text }}</p>
-                    </div>
-                    <div class="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-200 text-xs space-y-2">
-                        <span class="block text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">Automated Reminder Schedule</span>
-                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-700">
-                            <span class="px-2 py-0.5 rounded bg-white border border-emerald-200">45d</span>
-                            <span class="px-2 py-0.5 rounded bg-white border border-emerald-200">30d</span>
-                            <span class="px-2 py-0.5 rounded bg-white border border-emerald-200">15d</span>
-                            <span class="px-2 py-0.5 rounded bg-white border border-emerald-200">7d</span>
-                            <span class="px-2 py-0.5 rounded bg-white border border-emerald-200">3d</span>
-                            <span class="px-2 py-0.5 rounded bg-red-600 text-white font-black">2d Final</span>
-                        </div>
-                    </div>
-                </div>
+                </template>
 
                 <!-- Footer Navigation -->
                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between">

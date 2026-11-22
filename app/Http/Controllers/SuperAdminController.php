@@ -947,6 +947,41 @@ class SuperAdminController extends Controller
         return view('admin.config.branding');
     }
 
+    public function configTour()
+    {
+        $tourEnabled = (CmsContent::getVal('welcome_popup_enabled', '1')) === '1';
+        $tourSlides = CmsContent::getWelcomeTourSlides();
+
+        return view('admin.config.tour', compact('tourEnabled', 'tourSlides'));
+    }
+
+    public function updateTour(Request $request)
+    {
+        $validated = $request->validate([
+            'welcome_popup_enabled' => 'nullable|string|in:0,1',
+            'slides' => 'nullable|array',
+            'slides.*.title' => 'required|string',
+            'slides.*.text' => 'nullable|string',
+            'slides.*.badge' => 'nullable|string',
+            'slides.*.icon' => 'nullable|string',
+            'slides.*.color' => 'nullable|string',
+        ]);
+
+        $enabled = $request->input('welcome_popup_enabled', '0') === '1' ? '1' : '0';
+        CmsContent::setVal('welcome_popup_enabled', $enabled, 'general');
+
+        $slides = $request->input('slides', []);
+        CmsContent::saveWelcomeTourSlides($slides);
+
+        AuditService::log('admin.welcome_tour_updated', null, null, [
+            'enabled' => $enabled,
+            'slide_count' => count($slides),
+            'actor' => auth()->user()->email,
+        ]);
+
+        return back()->with('success', 'Welcome Walkthrough tour slides updated successfully.');
+    }
+
     public function updateConfig(Request $request)
     {
         $validated = $request->validate([

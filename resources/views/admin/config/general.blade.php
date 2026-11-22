@@ -10,8 +10,11 @@
     </div>
 
     <!-- Subnav Tabs for Configuration (Section 3) -->
-    <div class="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs">
+    <div class="flex items-center gap-2 border-b border-slate-800 pb-2 text-xs overflow-x-auto">
         <a href="{{ route('admin.config.general') }}" class="px-3.5 py-1.5 rounded-xl font-bold bg-amber-500 text-slate-950">General</a>
+        <a href="{{ route('admin.config.tour') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 font-bold">
+            <i class="ph ph-compass"></i> Welcome Tour
+        </a>
         <a href="{{ route('admin.config.gateways') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">Gateways</a>
         <a href="{{ route('admin.config.smtp') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">SMTP Server</a>
         <a href="{{ route('admin.config.storage') }}" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800">Storage</a>
@@ -54,58 +57,25 @@
             </div>
         </div>
 
-        <!-- Welcome Walkthrough & Onboarding Popup Settings (Request 2) -->
-        <div class="pt-6 mt-6 border-t border-slate-800 space-y-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                        <i class="ph ph-compass text-amber-400 text-base"></i>
-                        <span>Welcome Walkthrough & Onboarding Tour Popup</span>
-                    </h3>
-                    <p class="text-[11px] text-slate-400">Controls the multi-slide guide shown to tenants upon sign-in.</p>
+        <!-- Welcome Walkthrough & Onboarding Tour Link Card -->
+        <div class="pt-6 mt-6 border-t border-slate-800">
+            <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl shrink-0">
+                        <i class="ph ph-compass"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>Welcome Walkthrough & Onboarding Tour</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Dedicated Tab</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Manage slides, reorder, or add and remove walkthrough sections in its own dedicated tab.</p>
+                    </div>
                 </div>
-                <div>
-                    <select name="settings[welcome_popup_enabled]" class="px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs font-bold text-amber-400 focus:ring-2 focus:ring-amber-500 outline-none">
-                        <option value="1" {{ ($settings['welcome_popup_enabled'] ?? '1') == '1' ? 'selected' : '' }}>Enabled (Turned ON)</option>
-                        <option value="0" {{ ($settings['welcome_popup_enabled'] ?? '1') == '0' ? 'selected' : '' }}>Disabled (Turned OFF)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Slide 1 -->
-            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 1: Invoicing & Walk-in Mode</span>
-                <input type="text" name="settings[welcome_step1_title]" value="{{ $settings['welcome_step1_title'] }}" placeholder="Step 1 Title"
-                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
-                <textarea name="settings[welcome_step1_text]" rows="2" placeholder="Step 1 Guidance Text"
-                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step1_text'] }}</textarea>
-            </div>
-
-            <!-- Slide 2 -->
-            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 2: Industry Presets & Line Items</span>
-                <input type="text" name="settings[welcome_step2_title]" value="{{ $settings['welcome_step2_title'] }}" placeholder="Step 2 Title"
-                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
-                <textarea name="settings[welcome_step2_text]" rows="2" placeholder="Step 2 Guidance Text"
-                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step2_text'] }}</textarea>
-            </div>
-
-            <!-- Slide 3 -->
-            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 3: Draft Safeguard & Confidentiality</span>
-                <input type="text" name="settings[welcome_step3_title]" value="{{ $settings['welcome_step3_title'] }}" placeholder="Step 3 Title"
-                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
-                <textarea name="settings[welcome_step3_text]" rows="2" placeholder="Step 3 Guidance Text"
-                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step3_text'] }}</textarea>
-            </div>
-
-            <!-- Slide 4 -->
-            <div class="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-2">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">Slide 4: Verification QR & Automated Reminders</span>
-                <input type="text" name="settings[welcome_step4_title]" value="{{ $settings['welcome_step4_title'] }}" placeholder="Step 4 Title"
-                       class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200">
-                <textarea name="settings[welcome_step4_text]" rows="2" placeholder="Step 4 Guidance Text"
-                          class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300">{{ $settings['welcome_step4_text'] }}</textarea>
+                <a href="{{ route('admin.config.tour') }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-sm">
+                    <span>Configure Tour Slides</span>
+                    <i class="ph ph-arrow-right"></i>
+                </a>
             </div>
         </div>
 
