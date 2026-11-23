@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-8" x-data="{
-    activeTab: '{{ $activeTab }}',
+    activeTab: '{{ $activeTab ?? 'overview' }}',
     searchQuery: '',
     matchesSearch(title, text) {
         if (!this.searchQuery) return true;
@@ -15,17 +15,17 @@
         <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 max-w-2xl">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600/30 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider mb-3">
-                <i class="ph ph-book-open text-sm"></i> Help Center & System Manual
+                <i class="ph ph-book-open text-sm"></i> Help Center & Complete System Manual
             </div>
             <h1 class="text-3xl sm:text-4xl font-black tracking-tight mb-2">Invoicy Knowledge Base & Guide</h1>
             <p class="text-slate-300 text-sm leading-relaxed mb-6">
-                Master all 10 core modules of Invoicy by RedMaple. Explore detailed feature breakdowns, interactive visual walk-throughs, and best practices for commercial billing.
+                Master all 16 enterprise modules of Invoicy by RedMaple. Explore detailed feature breakdowns, business benefits, step-by-step usage guides, and interactive visual walkthroughs.
             </p>
 
             <!-- Search Filter Bar -->
             <div class="relative">
                 <i class="ph ph-magnifying-glass text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 text-lg"></i>
-                <input type="text" x-model="searchQuery" placeholder="Search guides, modules, or features (e.g., 'QR code', 'Recall', 'SMTP', 'Reminders')..."
+                <input type="text" x-model="searchQuery" placeholder="Search guides, modules, or features (e.g., 'QR code', 'Recall', 'Taxes', 'Payments', 'Credit Note')..."
                        class="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition">
             </div>
         </div>
@@ -37,7 +37,7 @@
         <!-- Left Sidebar Navigation -->
         <div class="lg:col-span-4 bg-white rounded-3xl border border-slate-200 p-4 shadow-xs sticky top-6 space-y-1">
             <div class="px-3 py-2 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                Platform Sections
+                Core Billing Modules
             </div>
 
             <button @click="activeTab = 'overview'" :class="activeTab === 'overview' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
@@ -53,7 +53,7 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-receipt text-base text-red-600"></i>
-                    <span>2. Invoices & Pre-Dispatch Review</span>
+                    <span>2. Invoices & Live Builder</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -62,7 +62,7 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-qr-code text-base text-red-600"></i>
-                    <span>3. QR Code & Authentic Verification</span>
+                    <span>3. QR Code & Verification</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -80,7 +80,16 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-eye text-base text-sky-600"></i>
-                    <span>5. Live View Alerts & Engagement</span>
+                    <span>5. Live View Alerts & Portal</span>
+                </span>
+                <i class="ph ph-caret-right text-xs opacity-50"></i>
+            </button>
+
+            <button @click="activeTab = 'payments'" :class="activeTab === 'payments' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
+                <span class="flex items-center gap-2.5">
+                    <i class="ph ph-hand-coins text-base text-emerald-600"></i>
+                    <span>6. Payments & Receipts</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -89,7 +98,47 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-arrows-clockwise text-base text-emerald-600"></i>
-                    <span>6. Recurring Retainers</span>
+                    <span>7. Recurring Retainers</span>
+                </span>
+                <i class="ph ph-caret-right text-xs opacity-50"></i>
+            </button>
+
+            <button @click="activeTab = 'credit_notes'" :class="activeTab === 'credit_notes' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
+                <span class="flex items-center gap-2.5">
+                    <i class="ph ph-credit-card text-base text-rose-600"></i>
+                    <span>8. Credit Notes & Refunds</span>
+                </span>
+                <i class="ph ph-caret-right text-xs opacity-50"></i>
+            </button>
+
+            <div class="px-3 pt-3 pb-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                Management & Operations
+            </div>
+
+            <button @click="activeTab = 'clients'" :class="activeTab === 'clients' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
+                <span class="flex items-center gap-2.5">
+                    <i class="ph ph-users text-base text-indigo-600"></i>
+                    <span>9. Client Directory & CRM</span>
+                </span>
+                <i class="ph ph-caret-right text-xs opacity-50"></i>
+            </button>
+
+            <button @click="activeTab = 'services'" :class="activeTab === 'services' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
+                <span class="flex items-center gap-2.5">
+                    <i class="ph ph-package text-base text-amber-600"></i>
+                    <span>10. Services & Price Books</span>
+                </span>
+                <i class="ph ph-caret-right text-xs opacity-50"></i>
+            </button>
+
+            <button @click="activeTab = 'taxes'" :class="activeTab === 'taxes' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
+                <span class="flex items-center gap-2.5">
+                    <i class="ph ph-calculator text-base text-emerald-600"></i>
+                    <span>11. Canadian & Global Taxes</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -98,7 +147,7 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-bell text-base text-amber-600"></i>
-                    <span>7. Automated Reminders</span>
+                    <span>12. Automated Reminders</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -107,7 +156,7 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-paper-plane text-base text-blue-600"></i>
-                    <span>8. Custom SMTP & Live Testing</span>
+                    <span>13. Custom SMTP & Email</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -116,7 +165,7 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-credit-card text-base text-purple-600"></i>
-                    <span>9. Plan, Billing & Coupons</span>
+                    <span>14. Plan, Billing & Coupons</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -125,7 +174,16 @@
                     class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
                 <span class="flex items-center gap-2.5">
                     <i class="ph ph-sparkle text-base text-red-600"></i>
-                    <span>10. AI Agent (Voice & Text)</span>
+                    <span>15. AI Agent Assistant</span>
+                </span>
+                <i class="ph ph-caret-right text-xs opacity-50"></i>
+            </button>
+
+            <button @click="activeTab = 'support'" :class="activeTab === 'support' ? 'bg-red-50 text-red-700 font-bold' : 'text-slate-600 hover:bg-slate-50 font-semibold'"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between transition">
+                <span class="flex items-center gap-2.5">
+                    <i class="ph ph-lifebuoy text-base text-rose-600"></i>
+                    <span>16. Support Desk (24h SLA)</span>
                 </span>
                 <i class="ph ph-caret-right text-xs opacity-50"></i>
             </button>
@@ -134,12 +192,12 @@
             <div class="pt-4 border-t border-slate-100 px-2">
                 <div class="p-3 bg-red-50/70 rounded-2xl border border-red-100 text-xs">
                     <div class="font-bold text-red-900 flex items-center gap-1.5 mb-1">
-                        <i class="ph ph-microphone text-sm text-red-600"></i> Need instant help?
+                        <i class="ph ph-headset text-sm text-red-600"></i> Dedicated Support Desk
                     </div>
-                    <p class="text-slate-600 text-[11px] mb-2">Click the AI Agent icon at the bottom right to ask any question via voice or text!</p>
-                    <button @click="$dispatch('open-ai-copilot')" type="button" class="w-full py-1.5 bg-red-600 text-white font-bold rounded-lg text-[11px] hover:bg-red-700 transition">
-                        Launch AI Agent
-                    </button>
+                    <p class="text-slate-600 text-[11px] mb-2">Need direct engineering assistance? Submit a ticket under our 24h SLA guarantee.</p>
+                    <a href="{{ route('support.create') }}" class="block text-center w-full py-1.5 bg-red-600 text-white font-bold rounded-lg text-[11px] hover:bg-red-700 transition">
+                        Open Support Ticket
+                    </a>
                 </div>
             </div>
         </div>
@@ -154,7 +212,7 @@
                         <i class="ph ph-squares-four"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Dashboard & Workspace Overview</h2>
+                        <h2 class="text-xl font-black text-slate-900">1. Dashboard & Workspace Overview</h2>
                         <p class="text-xs text-slate-500">Your commercial central command for billing intelligence and cash flow.</p>
                     </div>
                 </div>
@@ -164,61 +222,74 @@
                         The Invoicy Dashboard provides real-time financial tracking, overdue monitoring, and quick action shortcuts designed to give agency operators complete clarity over accounts receivable.
                     </p>
 
-                    <!-- Interactive Animated Metric Preview -->
-                    <div class="p-5 rounded-2xl bg-slate-900 text-white space-y-3">
-                        <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Live Metrics Simulation</div>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-                                <div class="text-slate-400 text-[10px]">Total Revenue</div>
-                                <div class="text-base font-black text-emerald-400">$128,450</div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-                                <div class="text-slate-400 text-[10px]">Outstanding Due</div>
-                                <div class="text-base font-black text-amber-400">$14,200</div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-                                <div class="text-slate-400 text-[10px]">Overdue Invoices</div>
-                                <div class="text-base font-black text-rose-400">2 Invoices</div>
-                            </div>
-                            <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-                                <div class="text-slate-400 text-[10px]">Active Retainers</div>
-                                <div class="text-base font-black text-blue-400">18 Monthly</div>
-                            </div>
+                    <!-- Real Screenshot Showcase -->
+                    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                        <img src="{{ asset('images/docs/dashboard-overview.png') }}" alt="Invoicy Dashboard Overview Screenshot" class="w-full object-cover">
+                        <div class="p-3 bg-slate-50 text-[11px] text-slate-500 border-t border-slate-200 flex items-center gap-2">
+                            <i class="ph ph-image text-slate-400"></i>
+                            <span>Figure 1.1: Live Invoicy Workspace Dashboard displaying financial KPIs, recent transactions, and quick action shortcuts.</span>
                         </div>
                     </div>
 
-                    <h4 class="font-bold text-slate-900 text-sm mt-4">Key Dashboard Capabilities:</h4>
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">Business Benefits & Value:</h4>
                     <ul class="list-disc list-inside space-y-1.5 pl-2">
-                        <li><strong>Cash Flow Analytics:</strong> Visual revenue trends and payment velocity.</li>
-                        <li><strong>Live Activity Feed:</strong> Real-time alerts when clients view, open, or pay invoices.</li>
-                        <li><strong>Milestone Reminders:</strong> Direct notification of invoices reaching due date or grace period.</li>
+                        <li><strong>Instant Receivables Visibility:</strong> Know your total collected revenue, outstanding invoices, and overdue amounts at a glance.</li>
+                        <li><strong>Reduced Days Sales Outstanding (DSO):</strong> Track client payment velocity and take immediate action on aging accounts.</li>
+                        <li><strong>Multi-Tenant Isolation:</strong> Your business records, tax filings, and client databases are strictly partitioned and confidential.</li>
                     </ul>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">How to Use the Dashboard:</h4>
+                    <ol class="list-decimal list-inside space-y-1.5 pl-2">
+                        <li><strong>Review Top KPIs:</strong> Total Revenue, Outstanding Balance, Overdue Count, and Active Retainers.</li>
+                        <li><strong>Action Shortcuts:</strong> Use the primary buttons to instantly create an invoice, add a customer, or start a recurring retainer.</li>
+                        <li><strong>Monitor Activity Stream:</strong> Review live status badges showing when customers view, pay, or dispute invoices.</li>
+                    </ol>
                 </div>
             </div>
 
-            <!-- Section 2: Invoices & Pre-Dispatch Review -->
+            <!-- Section 2: Invoices & Live Builder -->
             <div x-show="activeTab === 'invoices'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-receipt"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Invoices Studio & Pre-Dispatch Review</h2>
+                        <h2 class="text-xl font-black text-slate-900">2. Invoices Studio & Live Builder</h2>
                         <p class="text-xs text-slate-500">Fast, compliant commercial invoice creation with automatic safeguards.</p>
                     </div>
                 </div>
 
                 <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
-                    <h4 class="font-bold text-slate-900 text-sm">How to Create and Issue an Invoice:</h4>
-                    <ol class="list-decimal list-inside space-y-2 pl-2">
-                        <li><strong>Select Customer:</strong> Choose an existing client or check <em>Walk-in Customer</em> for instant creation.</li>
-                        <li><strong>Configure Line Items:</strong> Add products, services, rates, and units. Taxes are automatically calculated according to the selected country.</li>
-                        <li><strong>Apply Promotional Code:</strong> Enter any agency discount or coupon code.</li>
-                        <li><strong>Click "Issue & Publish Invoice":</strong> Invoicy displays the <strong>Pre-Dispatch Review Screen</strong>.</li>
-                        <li><strong>Confirm Terms & Email Dispatch:</strong> Review client recipient, dates, amounts, and toggle direct email notification before confirming.</li>
+                    <p>
+                        The Invoicy Invoice Builder combines fluid Livewire reactivity with automated tax calculation, sequential numbering, and pre-dispatch quality verification.
+                    </p>
+
+                    <!-- Real Screenshot Showcase -->
+                    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                        <img src="{{ asset('images/docs/invoice-builder.png') }}" alt="Invoicy Invoice Builder Screenshot" class="w-full object-cover">
+                        <div class="p-3 bg-slate-50 text-[11px] text-slate-500 border-t border-slate-200 flex items-center gap-2">
+                            <i class="ph ph-image text-slate-400"></i>
+                            <span>Figure 2.1: Invoicy Livewire Invoice Builder featuring real-time tax breakdowns, line item rows, and pre-dispatch controls.</span>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">Business Benefits & Value:</h4>
+                    <ul class="list-disc list-inside space-y-1.5 pl-2">
+                        <li><strong>Zero Calculation Errors:</strong> Real-time automated math backed by integer-cent precision prevents rounding discrepancies.</li>
+                        <li><strong>Compliant Tax Filing:</strong> Automatically adjusts to regional taxes (Canadian HST/QST, European VAT, UAE/Saudi VAT).</li>
+                        <li><strong>Brand Excellence:</strong> Delivers clean, professional invoice designs customized with your logo, brand colors, and payment terms.</li>
+                    </ul>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">Step-by-Step Invoice Creation Guide:</h4>
+                    <ol class="list-decimal list-inside space-y-1.5 pl-2">
+                        <li><strong>Select Customer:</strong> Choose an existing client from your directory, or click <em>"+ Add New Client"</em> to create one inline.</li>
+                        <li><strong>Set Dates & Currency:</strong> Choose the issue date, payment due date (e.g. Net 14, Net 30), and billing currency.</li>
+                        <li><strong>Configure Line Items:</strong> Add products or consulting services. Specify quantities, rates, and unit types (hours, units, months).</li>
+                        <li><strong>Apply Discounts:</strong> Enter an item-specific discount or overall percentage promo code.</li>
+                        <li><strong>Review Taxes:</strong> Verify the automated tax rate or select tax exemption for qualified non-profit clients.</li>
+                        <li><strong>Click "Issue & Publish":</strong> Review the Pre-Dispatch summary, choose whether to notify the client via email, and confirm.</li>
                     </ol>
 
-                    <!-- Interactive Animated Step Mockup -->
                     <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                         <div class="text-[11px] font-bold text-slate-900 flex items-center gap-2">
                             <i class="ph ph-shield-check text-red-600 text-base"></i> Safeguard Notice: Draft & Empty Protection
@@ -230,14 +301,14 @@
                 </div>
             </div>
 
-            <!-- Section 3: QR Code & Authentic Verification -->
+            <!-- Section 3: QR Code & Verification -->
             <div x-show="activeTab === 'verification'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-qr-code"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">QR Code & Authentic Verification</h2>
+                        <h2 class="text-xl font-black text-slate-900">3. QR Code & Authentic Verification</h2>
                         <p class="text-xs text-slate-500">Cryptographically verifiable digital proof on every invoice.</p>
                     </div>
                 </div>
@@ -275,7 +346,7 @@
                         <i class="ph ph-arrow-counter-clockwise"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Invoice Recall & Pull Back Option</h2>
+                        <h2 class="text-xl font-black text-slate-900">4. Invoice Recall & Pull Back Option</h2>
                         <p class="text-xs text-slate-500">Instantly retract an issued invoice if mistakes or amendments are required.</p>
                     </div>
                 </div>
@@ -298,14 +369,14 @@
                 </div>
             </div>
 
-            <!-- Section 5: Live View Alerts & Tracking -->
+            <!-- Section 5: Live View Alerts & Portal -->
             <div x-show="activeTab === 'tracking'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-eye"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Live Client View & Open Notifications</h2>
+                        <h2 class="text-xl font-black text-slate-900">5. Live Client View Alerts & Portal Engagement</h2>
                         <p class="text-xs text-slate-500">Know the exact minute your client opens their invoice.</p>
                     </div>
                 </div>
@@ -314,6 +385,16 @@
                     <p>
                         Never wonder whether a client received your bill. Invoicy includes high-precision dual-channel engagement tracking:
                     </p>
+
+                    <!-- Real Screenshot Showcase -->
+                    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                        <img src="{{ asset('images/docs/invoice-portal.png') }}" alt="Customer Invoice Portal Screenshot" class="w-full object-cover">
+                        <div class="p-3 bg-slate-50 text-[11px] text-slate-500 border-t border-slate-200 flex items-center gap-2">
+                            <i class="ph ph-image text-slate-400"></i>
+                            <span>Figure 5.1: Customer Public Portal view allowing clients to view invoice line items, download official PDFs, and pay balances.</span>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50">
                             <div class="font-bold text-slate-900 text-xs mb-1 flex items-center gap-1.5">
@@ -335,14 +416,49 @@
                 </div>
             </div>
 
-            <!-- Section 6: Recurring Retainers -->
+            <!-- Section 6: Payments & Receipts -->
+            <div x-show="activeTab === 'payments'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                        <i class="ph ph-hand-coins"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">6. Payments, Partial Settlements & Receipts</h2>
+                        <p class="text-xs text-slate-500">Record settlements, track partial balances, and issue automated receipts.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                        The Invoicy payment ledger supports both online card settlements (via Stripe / PayPal) and manual offline settlements (Bank Transfer, Cash, Check, Wire).
+                    </p>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">Key Payment Features:</h4>
+                    <ul class="list-disc list-inside space-y-1.5 pl-2">
+                        <li><strong>Partial Payment Handling:</strong> Clients can pay installments or deposits. The invoice status automatically shifts to <code>Partially Paid</code>, and the remaining balance is tracked down to the exact cent.</li>
+                        <li><strong>Overpayment Protection:</strong> Built-in financial guards reject payment entries that exceed the outstanding balance.</li>
+                        <li><strong>Automated PDF Receipts:</strong> Every recorded payment automatically issues an official payment receipt with transaction reference.</li>
+                        <li><strong>Idempotent Webhook Processing:</strong> Online gateway webhooks are protected by cryptographic idempotency keys to eliminate double-charging.</li>
+                    </ul>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">How to Record a Payment:</h4>
+                    <ol class="list-decimal list-inside space-y-1.5 pl-2">
+                        <li>Open the target invoice from the Invoices directory.</li>
+                        <li>Click <strong>"Record Payment"</strong> in the action bar.</li>
+                        <li>Enter the received amount, payment method, date, and external transaction reference (e.g. Wire transfer number).</li>
+                        <li>Click <strong>"Confirm Payment"</strong>. Balance due and status badges update instantaneously.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Section 7: Recurring Retainers -->
             <div x-show="activeTab === 'retainers'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-arrows-clockwise"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Recurring Retainers & Subscriptions</h2>
+                        <h2 class="text-xl font-black text-slate-900">7. Recurring Retainers & Subscriptions</h2>
                         <p class="text-xs text-slate-500">Automate recurring client billings on monthly, quarterly, or annual schedules.</p>
                     </div>
                 </div>
@@ -359,14 +475,131 @@
                 </div>
             </div>
 
-            <!-- Section 7: Automated Reminders -->
+            <!-- Section 8: Credit Notes & Refunds -->
+            <div x-show="activeTab === 'credit_notes'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
+                        <i class="ph ph-credit-card"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">8. Credit Notes & Ledger Balancing</h2>
+                        <p class="text-xs text-slate-500">Issue commercial credit notes to offset invoices or record customer refunds.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                        When adjustments, project scope changes, or partial refunds occur, Invoicy allows you to issue compliant Credit Notes rather than altering paid accounting records.
+                    </p>
+                    <ul class="list-disc list-inside space-y-1.5 pl-2">
+                        <li><strong>Invoice-Linked Credit Notes:</strong> Issue credit directly against an issued invoice to immediately reduce its outstanding balance.</li>
+                        <li><strong>Standalone Credit Notes:</strong> Maintain open customer credit that can be applied to future invoices.</li>
+                        <li><strong>Audit Compliant:</strong> Maintains immutable historical records to satisfy accounting audits and tax authorities.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 9: Client Directory & CRM -->
+            <div x-show="activeTab === 'clients'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl font-bold">
+                        <i class="ph ph-users"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">9. Client CRM Directory & Financial Ledgers</h2>
+                        <p class="text-xs text-slate-500">Manage client contacts, billing preferences, tax exemption, and account balances.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                        The Client Directory is your agency customer database. Each client profile tracks contact information, preferred billing currency, tax status, and lifetime billing history.
+                    </p>
+                    <ul class="list-disc list-inside space-y-1.5 pl-2">
+                        <li><strong>Tax Exemption Toggle:</strong> Mark registered non-profits or international clients as tax-exempt to automatically suppress sales taxes.</li>
+                        <li><strong>Billing Currency Binding:</strong> Assign dedicated billing currencies (e.g. USD, EUR, CAD, GBP) per client.</li>
+                        <li><strong>Statement of Account:</strong> Generate comprehensive client statements summarizing billed, paid, and outstanding balances across any date range.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 10: Services Catalog & Price Books -->
+            <div x-show="activeTab === 'services'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold">
+                        <i class="ph ph-package"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">10. Services Catalog & Price Books</h2>
+                        <p class="text-xs text-slate-500">Standardize pricing and insert recurring consulting packages in one click.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                        Avoid re-typing item descriptions and consulting rates. Create catalog items for standard deliverables, consulting tiers, or hosting packages.
+                    </p>
+                    <ul class="list-disc list-inside space-y-1.5 pl-2">
+                        <li><strong>Single-Click Insertion:</strong> In the Invoice Builder, simply select the service from the dropdown; description, unit price, and default tax rate populate instantly.</li>
+                        <li><strong>Price Tiering:</strong> Set fixed rates, hourly rates, or monthly retainer package rates.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Section 11: Canadian & Global Taxes -->
+            <div x-show="activeTab === 'taxes'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                        <i class="ph ph-calculator"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">11. Canadian Place-of-Supply & Global Tax Engine</h2>
+                        <p class="text-xs text-slate-500">Automated multi-jurisdiction tax calculation for Canada, UK, Europe, and the Middle East.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                        Invoicy features an intelligent Place-of-Supply tax calculation service that automatically resolves statutory tax rates based on client location:
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                            <span class="font-bold text-slate-900 block">Ontario (ON): 13.00% HST</span>
+                            <span class="text-slate-500 text-[11px]">Harmonized Sales Tax single rate.</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                            <span class="font-bold text-slate-900 block">Quebec (QC): 14.975% Dual Tax</span>
+                            <span class="text-slate-500 text-[11px]">5.00% Federal GST + 9.975% Provincial QST.</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                            <span class="font-bold text-slate-900 block">British Columbia (BC): 12.00% Dual Tax</span>
+                            <span class="text-slate-500 text-[11px]">5.00% Federal GST + 7.00% Provincial PST.</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                            <span class="font-bold text-slate-900 block">Alberta & Territories: 5.00% GST</span>
+                            <span class="text-slate-500 text-[11px]">Federal GST only; 0% provincial tax.</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                            <span class="font-bold text-slate-900 block">United Kingdom: 20.00% VAT</span>
+                            <span class="text-slate-500 text-[11px]">Standard HMRC Value Added Tax.</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                            <span class="font-bold text-slate-900 block">Saudi Arabia: 15.00% ZATCA VAT</span>
+                            <span class="text-slate-500 text-[11px]">ZATCA compliant electronic invoicing.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 12: Automated Reminders -->
             <div x-show="activeTab === 'reminders'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-bell"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Automated Payment Reminders</h2>
+                        <h2 class="text-xl font-black text-slate-900">12. Automated Payment Reminders</h2>
                         <p class="text-xs text-slate-500">Prevent late payments with multi-stage automated email reminders.</p>
                     </div>
                 </div>
@@ -386,20 +619,20 @@
                         </div>
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
                             <span class="font-bold text-slate-900 block">3. Overdue</span>
-                            <span class="text-slate-500">Sent after grace period with late surcharge notice.</span>
+                            <span class="text-slate-500">Sent after grace period with late notice.</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Section 8: SMTP Configuration -->
+            <!-- Section 13: SMTP Configuration -->
             <div x-show="activeTab === 'smtp'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-paper-plane"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Custom Outgoing SMTP & Live Testing</h2>
+                        <h2 class="text-xl font-black text-slate-900">13. Custom Outgoing SMTP & Live Testing</h2>
                         <p class="text-xs text-slate-500">Send invoices from your own authenticated agency domain with 100% deliverability.</p>
                     </div>
                 </div>
@@ -417,14 +650,14 @@
                 </div>
             </div>
 
-            <!-- Section 9: Plan & Billing -->
+            <!-- Section 14: Plan & Billing -->
             <div x-show="activeTab === 'billing'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-credit-card"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">Plan, Billing & Promotional Coupons</h2>
+                        <h2 class="text-xl font-black text-slate-900">14. Plan, Billing & Promotional Coupons</h2>
                         <p class="text-xs text-slate-500">Manage agency subscription tiers, promo codes, and upgrade requests.</p>
                     </div>
                 </div>
@@ -433,20 +666,30 @@
                     <p>
                         Manage your agency plan inside <strong>Plan & Billing</strong>. You can submit upgrade or downgrade requests with real-time status banners:
                     </p>
+
+                    <!-- Real Screenshot Showcase -->
+                    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                        <img src="{{ asset('images/docs/subscriptions-billing.png') }}" alt="Subscriptions & Billing Management Screenshot" class="w-full object-cover">
+                        <div class="p-3 bg-slate-50 text-[11px] text-slate-500 border-t border-slate-200 flex items-center gap-2">
+                            <i class="ph ph-image text-slate-400"></i>
+                            <span>Figure 14.1: Subscription management screen showing plan features, upgrade requests, and promo coupon entry.</span>
+                        </div>
+                    </div>
+
                     <div class="p-4 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 text-xs">
                         <strong>Promotional Codes:</strong> Enter codes such as <code>FREE100</code> during checkout or registration to instantly unlock full service or discount perks.
                     </div>
                 </div>
             </div>
 
-            <!-- Section 10: AI Agent -->
+            <!-- Section 15: AI Agent -->
             <div x-show="activeTab === 'ai'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
                 <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
                     <div class="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center text-xl font-bold">
                         <i class="ph ph-sparkle"></i>
                     </div>
                     <div>
-                        <h2 class="text-xl font-black text-slate-900">AI Agent (Text & Voice Commands)</h2>
+                        <h2 class="text-xl font-black text-slate-900">15. AI Agent (Text & Voice Commands)</h2>
                         <p class="text-xs text-slate-500">Your intelligent financial assistant ready 24/7.</p>
                     </div>
                 </div>
@@ -466,6 +709,59 @@
                             <div class="p-2.5 rounded-xl bg-slate-800 border border-slate-700">"What is authentic QR verification?"</div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Section 16: Support Desk (24h SLA) -->
+            <div x-show="activeTab === 'support'" x-cloak class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div class="flex items-center gap-3 pb-4 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
+                        <i class="ph ph-lifebuoy"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">16. Support Desk & 24h SLA Guarantee</h2>
+                        <p class="text-xs text-slate-500">Direct engineering assistance with guaranteed 24-hour turnaround and zero data loss.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-600 leading-relaxed">
+                    <p>
+                        Need assistance with a complex tax configuration, payment gateway setup, or custom invoicing feature? Our dedicated engineering support team operates directly within the application.
+                    </p>
+
+                    <!-- Real Screenshot Showcase -->
+                    <div class="rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                        <img src="{{ asset('images/docs/support-desk.png') }}" alt="Support Desk Screenshot" class="w-full object-cover">
+                        <div class="p-3 bg-slate-50 text-[11px] text-slate-500 border-t border-slate-200 flex items-center gap-2">
+                            <i class="ph ph-image text-slate-400"></i>
+                            <span>Figure 16.1: Agency Support Desk showing active tickets, response threads, and 24-hour turnaround SLA tracking.</span>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">Our Service Level Commitments:</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950">
+                            <div class="font-bold text-xs flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-clock-countdown text-emerald-600 text-base"></i> 24-Hour Turnaround SLA
+                            </div>
+                            <p class="text-[11px] text-emerald-800">Every support ticket is logged, triaged, and answered by senior engineers within 24 business hours.</p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950">
+                            <div class="font-bold text-xs flex items-center gap-1.5 mb-1">
+                                <i class="ph ph-shield-check text-indigo-600 text-base"></i> Zero Data Loss Architecture
+                            </div>
+                            <p class="text-[11px] text-indigo-800">All updates, schema migrations, and bug resolutions preserve existing invoices, ledgers, and client records intact.</p>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-slate-900 text-sm mt-4">How to Open a Support Ticket:</h4>
+                    <ol class="list-decimal list-inside space-y-1.5 pl-2">
+                        <li>Navigate to <strong>Support Desk</strong> in the main navigation menu.</li>
+                        <li>Click <strong>"Create New Ticket"</strong>.</li>
+                        <li>Select the category (Billing, Gateway, Invoicing, Tax Configuration, Feature Request).</li>
+                        <li>Choose Priority (Low, Medium, High, Urgent).</li>
+                        <li>Provide detailed context or screenshots, and click <strong>"Submit Ticket"</strong>.</li>
+                    </ol>
                 </div>
             </div>
 
