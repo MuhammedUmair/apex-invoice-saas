@@ -57,6 +57,7 @@ $bridgeCode = @"
 <?php
 header('Content-Type: text/plain; charset=utf-8');
 `$stageCore = '$StagingCore';
+`$publicStaging = __DIR__ . '/staging';
 `$zipPath = __DIR__ . '/invoicy_staging_build.zip';
 
 if (!is_dir(`$stageCore)) {
@@ -84,6 +85,19 @@ if (`$zip->open(`$zipPath) === true) {
             if (`$stream) {
                 file_put_contents(`$targetFile, stream_get_contents(`$stream));
                 fclose(`$stream);
+            }
+
+            // Also mirror public web assets to public_html/staging document root
+            if (strpos(`$normalized, 'public/') === 0 && is_dir(`$publicStaging)) {
+                `$pubRel = substr(`$normalized, 7);
+                if (`$pubRel !== '' && `$pubRel !== 'index.php' && `$pubRel !== '.htaccess') {
+                    `$pubTarget = `$publicStaging . '/' . `$pubRel;
+                    `$pubDir = dirname(`$pubTarget);
+                    if (!is_dir(`$pubDir)) {
+                        mkdir(`$pubDir, 0755, true);
+                    }
+                    @copy(`$targetFile, `$pubTarget);
+                }
             }
         }
     }
