@@ -126,6 +126,28 @@ if (`$zip->open(`$zipPath) === true) {
             }
             fclose(`$fp);
             fclose(`$stream);
+
+            // Mirror public web assets to public_html and invoicy document roots
+            if (strpos(`$normalized, 'public/') === 0) {
+                `$pubRel = substr(`$normalized, 7);
+                if (`$pubRel !== '' && `$pubRel !== 'index.php' && `$pubRel !== '.htaccess') {
+                    `$rootTarget = __DIR__ . '/' . `$pubRel;
+                    `$rootDir = dirname(`$rootTarget);
+                    if (!is_dir(`$rootDir)) {
+                        mkdir(`$rootDir, 0755, true);
+                    }
+                    @copy(`$dest, `$rootTarget);
+                    @chmod(`$rootTarget, 0644);
+
+                    `$invoicyTarget = __DIR__ . '/invoicy/' . `$pubRel;
+                    `$invoicyDir = dirname(`$invoicyTarget);
+                    if (!is_dir(`$invoicyDir)) {
+                        mkdir(`$invoicyDir, 0755, true);
+                    }
+                    @copy(`$dest, `$invoicyTarget);
+                    @chmod(`$invoicyTarget, 0644);
+                }
+            }
         }
     }
     `$zip->close();

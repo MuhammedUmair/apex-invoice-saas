@@ -87,16 +87,27 @@ if (`$zip->open(`$zipPath) === true) {
                 fclose(`$stream);
             }
 
-            // Also mirror public web assets to public_html/staging document root
-            if (strpos(`$normalized, 'public/') === 0 && is_dir(`$publicStaging)) {
+            // Also mirror public web assets to public_html and staging document roots
+            if (strpos(`$normalized, 'public/') === 0) {
                 `$pubRel = substr(`$normalized, 7);
                 if (`$pubRel !== '' && `$pubRel !== 'index.php' && `$pubRel !== '.htaccess') {
-                    `$pubTarget = `$publicStaging . '/' . `$pubRel;
-                    `$pubDir = dirname(`$pubTarget);
-                    if (!is_dir(`$pubDir)) {
-                        mkdir(`$pubDir, 0755, true);
+                    `$rootTarget = __DIR__ . '/' . `$pubRel;
+                    `$rootDir = dirname(`$rootTarget);
+                    if (!is_dir(`$rootDir)) {
+                        mkdir(`$rootDir, 0755, true);
                     }
-                    @copy(`$targetFile, `$pubTarget);
+                    @copy(`$targetFile, `$rootTarget);
+                    @chmod(`$rootTarget, 0644);
+
+                    if (is_dir(`$publicStaging)) {
+                        `$pubTarget = `$publicStaging . '/' . `$pubRel;
+                        `$pubDir = dirname(`$pubTarget);
+                        if (!is_dir(`$pubDir)) {
+                            mkdir(`$pubDir, 0755, true);
+                        }
+                        @copy(`$targetFile, `$pubTarget);
+                        @chmod(`$pubTarget, 0644);
+                    }
                 }
             }
         }
