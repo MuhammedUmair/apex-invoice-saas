@@ -7,9 +7,13 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Client;
 use App\Models\SupportTicket;
+use App\Models\TicketMessage;
+use App\Models\AiConversation;
+use App\Models\AiMessage;
 use App\Models\Workspace;
 use App\Models\Payment;
 use App\Models\RecurringInvoice;
+use App\Services\InvoiceNumberService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -21,7 +25,7 @@ class AiAgentService
     /**
      * Process message from user and return structured AI response.
      */
-    public function handleUserMessage(string $query, ?string $selectedLang = null, ?Workspace $workspace = null, $user = null): array
+    public function handleUserMessage(string $query, ?string $selectedLang = null, ?Workspace $workspace = null, $user = null, array $context = []): array
     {
         $startTime = microtime(true);
         $rawQuery = trim($query);
@@ -59,12 +63,28 @@ class AiAgentService
         }
         session()->put('ai_copilot_history', $history);
 
+        // 2.5 Check Human Escalation Intent (Talk to human, open ticket, live agent)
+        if ($this->isEscalationIntent($q)) {
+            $escalateResponse = $this->handleSupportEscalation($rawQuery, $langCode, $voiceLang, $isRtl, $workspace, $user, $context);
+            $this->recordAssistantReply($escalateResponse['reply']);
+            $this->logInteraction($rawQuery, $langCode, 'human_escalation', $escalateResponse, microtime(true) - $startTime);
+            return $this->finalizeResponse($rawQuery, $escalateResponse, $workspace, $user, $context, $langCode);
+        }
+
+        // 2.8 Check Screen & Entity Context Diagnostics
+        $diagResponse = $this->handleScreenContextDiagnostics($q, $rawQuery, $langCode, $voiceLang, $isRtl, $workspace, $user, $context);
+        if ($diagResponse !== null) {
+            $this->recordAssistantReply($diagResponse['reply']);
+            $this->logInteraction($rawQuery, $langCode, 'screen_diagnostics', $diagResponse, microtime(true) - $startTime);
+            return $this->finalizeResponse($rawQuery, $diagResponse, $workspace, $user, $context, $langCode);
+        }
+
         // 3. Multi-Turn Dialogue Flow State Machine (e.g. Invoice Creation step-by-step)
         $flowResponse = $this->handleDialogueFlow($q, $rawQuery, $langCode, $voiceLang, $isRtl, $workspace, $user);
         if ($flowResponse !== null) {
             $this->recordAssistantReply($flowResponse['reply']);
             $this->logInteraction($rawQuery, $langCode, 'dialogue_flow', $flowResponse, microtime(true) - $startTime);
-            return $flowResponse;
+            return $this->finalizeResponse($rawQuery, $flowResponse, $workspace, $user, $context, $langCode);
         }
 
         // 3.5. Instant Warm Human Greeting (Zero latency, prevents slow robotic LLM feature dumps)
@@ -72,7 +92,7 @@ class AiAgentService
             $greetingResponse = $this->generateGreetingResponse($langCode, $voiceLang, $isRtl);
             $this->recordAssistantReply($greetingResponse['reply']);
             $this->logInteraction($rawQuery, $langCode, 'greeting', $greetingResponse, microtime(true) - $startTime);
-            return $greetingResponse;
+            return $this->finalizeResponse($rawQuery, $greetingResponse, $workspace, $user, $context, $langCode);
         }
 
         // 4. Attempt External LLM if Configured (OpenAI / Gemini)
@@ -80,14 +100,14 @@ class AiAgentService
         if ($externalResponse !== null) {
             $this->recordAssistantReply($externalResponse['reply']);
             $this->logInteraction($rawQuery, $langCode, 'external_llm', $externalResponse, microtime(true) - $startTime);
-            return $externalResponse;
+            return $this->finalizeResponse($rawQuery, $externalResponse, $workspace, $user, $context, $langCode);
         }
 
         // 5. Intelligent Local Conversational Engine & Tool Caller (Zero downtime fallback)
         $localResponse = $this->generateLocalIntelligenceResponse($q, $rawQuery, $langCode, $voiceLang, $isRtl, $workspace, $user);
         $this->recordAssistantReply($localResponse['reply']);
         $this->logInteraction($rawQuery, $langCode, 'local_engine', $localResponse, microtime(true) - $startTime);
-        return $localResponse;
+        return $this->finalizeResponse($rawQuery, $localResponse, $workspace, $user, $context, $langCode);
     }
 
     /**
@@ -1365,5 +1385,249 @@ CONVERSATIONAL RULES:
             'latency_ms' => round($latency * 1000, 2),
             'timestamp' => now()->toIso8601String()
         ]);
+    }
+
+    /**
+     * Finalize response by persisting to database and attaching conversation_id.
+     */
+    protected function finalizeResponse(string $rawQuery, array $response, ?Workspace $workspace, $user, array $context, string $langCode): array
+    {
+        $conversationId = $this->persistConversation($rawQuery, $response, $workspace, $user, $context, $langCode);
+        if ($conversationId) {
+            $response['conversation_id'] = $conversationId;
+        }
+        return $response;
+    }
+
+    /**
+     * Persist conversation and messages to database for auditing and session history.
+     */
+    protected function persistConversation(string $rawQuery, array $response, ?Workspace $workspace, $user, array $context, string $langCode): ?int
+    {
+        try {
+            $sessionId = $context['session_id'] ?? session()->getId();
+            $mode = $context['mode'] ?? 'text';
+
+            $conversation = AiConversation::firstOrCreate(
+                ['session_id' => $sessionId, 'status' => 'active'],
+                [
+                    'workspace_id' => $workspace?->id,
+                    'user_id' => $user?->id,
+                    'title' => Str::limit($rawQuery, 40) ?: 'Support Conversation',
+                    'channel' => $mode,
+                    'language' => $langCode,
+                    'context_metadata' => $context,
+                ]
+            );
+
+            // If mode changed (e.g. text to voice), mark as hybrid
+            if ($conversation->channel !== $mode && $conversation->channel !== 'hybrid') {
+                $conversation->update(['channel' => 'hybrid']);
+            }
+
+            // Save user message
+            AiMessage::create([
+                'conversation_id' => $conversation->id,
+                'workspace_id' => $workspace?->id,
+                'role' => 'user',
+                'content' => $rawQuery,
+                'mode' => $mode,
+            ]);
+
+            // Save assistant reply
+            AiMessage::create([
+                'conversation_id' => $conversation->id,
+                'workspace_id' => $workspace?->id,
+                'role' => 'assistant',
+                'content' => $response['reply'] ?? '',
+                'mode' => $mode,
+                'interrupted' => !empty($context['interrupted']),
+                'tool_calls' => isset($response['action']) ? [$response['action']] : null,
+            ]);
+
+            return $conversation->id;
+        } catch (\Throwable $e) {
+            Log::warning('[AI_PERSISTENCE_ERROR] ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Detect intent to speak with a human or escalate to support ticket.
+     */
+    protected function isEscalationIntent(string $q): bool
+    {
+        return (bool) preg_match('/\b(human|agent|support ticket|ticket bana|representative|insan|bande se|ticket open|insan se baat|madadgar|helpdesk|live agent|talk to person|contact support|customer support|support se baat|human support|open a ticket|raise a ticket)\b/iu', $q);
+    }
+
+    /**
+     * Escalate to human support by creating a high-priority 24h SLA SupportTicket.
+     */
+    protected function handleSupportEscalation(string $rawQuery, string $lang, string $voiceLang, bool $isRtl, ?Workspace $workspace, $user, array $context): array
+    {
+        $ticket = null;
+        if ($workspace && $user) {
+            try {
+                $ticket = SupportTicket::create([
+                    'ticket_number' => SupportTicket::generateTicketNumber(),
+                    'workspace_id' => $workspace->id,
+                    'user_id' => $user->id,
+                    'subject' => 'AI Support Escalation: ' . Str::limit($rawQuery, 50),
+                    'category' => 'Technical Support',
+                    'priority' => 'high',
+                    'status' => 'open',
+                    'sla_due_at' => now()->addHours(24),
+                ]);
+
+                TicketMessage::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id' => $user->id,
+                    'is_admin_reply' => false,
+                    'message' => "Customer inquiry escalated via AI Support Assistant:\n\n\"{$rawQuery}\"\n\nContext: " . json_encode($context),
+                ]);
+
+                // Link to active conversation if exists
+                $sessionId = $context['session_id'] ?? session()->getId();
+                AiConversation::where('session_id', $sessionId)->update([
+                    'escalated_ticket_id' => $ticket->id,
+                    'status' => 'escalated',
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('[AI_ESCALATION_ERROR] ' . $e->getMessage());
+            }
+        }
+
+        $ticketNum = $ticket ? $ticket->ticket_number : 'TCK-' . strtoupper(Str::random(6));
+
+        $reply = match ($lang) {
+            'ur-roman' => "Maine aap ka case hamari senior human support team ko escalate kar diya hai. Aap ki support ticket **#{$ticketNum}** create ho chuki hai (24-hour turnaround SLA ke sath). Hamara support representative jald aap se rabta karega.",
+            'ur' => "میں نے آپ کا کیس ہماری سینئر ہیومن سپورٹ ٹیم کو فارورڈ کر دیا ہے۔ آپ کا سپورٹ ٹکٹ **#{$ticketNum}** 24 گھنٹے کے گارنٹی شدہ SLA کے ساتھ درج کر لیا گیا ہے۔ ہماری سپورٹ ٹیم جلد آپ کے مسئلے کا جائزہ لے گی۔",
+            'ar' => "لقد قمت بتحويل طلبك إلى فريق الدعم الفني البشري المتخصص. تم فتح تذكرة دعم برقم **#{$ticketNum}** مع ضمان استجابة خلال 24 ساعة كحد أقصى. سيتواصل معك ممثل الدعم قريباً.",
+            default => "I have escalated your request to our senior human support team. A high-priority support ticket **#{$ticketNum}** has been created with a **guaranteed 24-hour response SLA**. A dedicated specialist will review your workspace context and assist you shortly."
+        };
+
+        return [
+            'reply' => $reply,
+            'action' => [
+                'type' => 'navigate',
+                'url' => $ticket ? route('support.show', $ticket->id) : route('support.index'),
+                'label' => match ($lang) {
+                    'ur' => 'سپورٹ ٹکٹ دیکھیں ➔',
+                    'ur-roman' => 'Support Ticket Dekhein ➔',
+                    'ar' => 'عرض تذكرة الدعم ➔',
+                    default => 'View Support Ticket ➔'
+                }
+            ],
+            'lang' => $voiceLang,
+            'lang_code' => $lang,
+            'is_rtl' => $isRtl,
+            'suggestions' => match ($lang) {
+                'ur' => ['سپورٹ ڈیسک کھولیں', 'نیا انوائس بنائیں', 'میرے فنانشل اعدادوشمار'],
+                'ur-roman' => ['Support Desk Kholein', 'Naya Invoice Banayein', 'Mera Balance & Stats'],
+                'ar' => ['فتح مكتب الدعم', 'إنشاء فاتورة جديدة', 'إحصائيات حسابي'],
+                default => ['View Support Tickets', 'Create New Invoice', 'My Workspace Stats'],
+            }
+        ];
+    }
+
+    /**
+     * Screen & Entity Context Diagnostics (inspect current route, invoice state, draft status, SMTP).
+     */
+    protected function handleScreenContextDiagnostics(string $q, string $rawQuery, string $lang, string $voiceLang, bool $isRtl, ?Workspace $workspace, $user, array $context): ?array
+    {
+        $hasInvoiceContext = !empty($context['entity_type']) && $context['entity_type'] === 'invoice' && !empty($context['entity_id']);
+        $hasUrlContext = !empty($context['page_url']);
+
+        // Check if query is asking why invoice won't send / why didn't send / draft problem
+        $isWhySendQuery = (bool) preg_match('/(send kyu nahi|kyu nahi bheja|kyun nahi gaya|bhej nahi|nahi bhej|why (can\'t|cannot|didn\'t|won\'t) (i |this |it )?send|why invoice not send|can\'t send|unable to send|email nahi ja rahi|کیوں نہیں بھیج|کیوں نہیں جا رہا|لماذا لا ترسل|لم ترسل)/iu', $q);
+
+        if ($isWhySendQuery && $hasInvoiceContext) {
+            $invoice = Invoice::with('client')->find($context['entity_id']);
+            if ($invoice) {
+                $curr = $invoice->currency ?? ($workspace->currency ?? 'AED');
+
+                if ($invoice->status === 'draft') {
+                    $reply = match ($lang) {
+                        'ur-roman' => "Yeh invoice **{$invoice->invoice_number}** abhi **Draft (مسودہ)** status mein hai! Invoicy ke draft safeguards ki wajah se draft bills customer ko email nahi kiye ja sakte jab tak aap publish na karein.\n\nIse bhejne ke liye page ke ooper **'Issue & Publish'** button par click karein. Publish hote hi cryptographic QR seal lag jayega aur client email active ho jayegi.",
+                        'ur' => "یہ انوائس **{$invoice->invoice_number}** فی الحال **ڈرافٹ (Draft)** حالت میں ہے! انوائسی کے حفاظتی قواعد کے تحت ڈرافٹ انوائسز گاہک کو ای میل نہیں کی جا سکتیں۔\n\nاسے بھیجنے کے لیے اوپر دیے گئے **'Issue & Publish'** بٹن پر کلک کریں۔ پبلش ہوتے ہی تصدیقی کیو آر کوڈ لگ جائے گا اور ای میل روانہ کی جا سکے گی۔",
+                        'ar' => "هذه الفاتورة **{$invoice->invoice_number}** ما زالت في حالة **مسودة (Draft)**! لحماية خصوصيتك، تمنع منصة Invoicy إرسال المسودات للعملاء حتى يتم اعتمادها.\n\nلإرسالها للعميل، اضغط على زر **'اعتماد ونشر (Publish)'** أعلى الصفحة لتفعيل ختم QR وبوابات الدفع الإلكتروني.",
+                        default => "This invoice **{$invoice->invoice_number}** is currently in **Draft** status! Due to Invoicy's confidential draft safeguards, draft invoices cannot be dispatched via email until published.\n\nTo send it, click **'Issue & Publish'** in the top action bar. Publishing activates the cryptographic QR seal and unlocks one-click client email dispatch."
+                    };
+
+                    return [
+                        'reply' => $reply,
+                        'lang' => $voiceLang,
+                        'lang_code' => $lang,
+                        'is_rtl' => $isRtl,
+                        'suggestions' => match ($lang) {
+                            'ur' => ['ڈرافٹس کیسے کام کرتے ہیں؟', 'انوائس پبلش کیسے کریں؟'],
+                            'ur-roman' => ['Drafts kaise kaam karte hain?', 'Invoice publish kaise karein?'],
+                            default => ['How do drafts work?', 'How to publish an invoice?'],
+                        }
+                    ];
+                }
+
+                if ($invoice->client && empty($invoice->client->email)) {
+                    $reply = match ($lang) {
+                        'ur-roman' => "Is invoice ke client (**{$invoice->client->name}**) ka email address record mein darj nahi hai! Email bhejne ke liye pehle Client CRM mein ja kar client ka email add karein.",
+                        'ur' => "اس انوائس کے کلائنٹ (**{$invoice->client->name}**) کا ای میل ایڈریس موجود نہیں ہے۔ برائے مہربانی پہلے کلائنٹ پروفائل میں ای میل درج کریں۔",
+                        default => "The client for this invoice (**{$invoice->client->name}**) does not have an email address configured. Please add their email in Client CRM first."
+                    };
+
+                    return [
+                        'reply' => $reply,
+                        'action' => ['type' => 'navigate', 'url' => route('clients.index'), 'label' => 'Open Client CRM ➔'],
+                        'lang' => $voiceLang,
+                        'lang_code' => $lang,
+                        'is_rtl' => $isRtl,
+                        'suggestions' => ['Client CRM', 'Payment Settings']
+                    ];
+                }
+            }
+        }
+
+        // Check if user is asking about current page / screen guidance
+        $isPageQuery = (bool) preg_match('/(ye konsa page|kis screen par|what page|where am i|help with this page|guide me here|is screen par kya|kya karu yahan|ما هذه الصفحة|یہ کون سا پیج|یہاں کیا کروں)/iu', $q);
+
+        if ($isPageQuery && $hasUrlContext) {
+            $path = parse_url($context['page_url'], PHP_URL_PATH) ?? '';
+            $pageTitle = $context['page_title'] ?? 'Current Screen';
+
+            if (str_contains($path, '/invoices/create')) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap abhi **Invoice Builder** screen par hain! Yahan aap 3 steps mein invoice create kar sakte hain:\n1. Client select karein ya Walk-in counter sale mode chunein.\n2. Services add karein ya 1-click industry preset select karein.\n3. Publish karein ya private draft ke tor par save karein.",
+                    'ur' => "آپ فی الحال **انوائس بلڈر** اسکرین پر موجود ہیں! یہاں آپ 3 مراحل میں انوائس بنا سکتے ہیں:\n1. کلائنٹ چنیں یا واک اِن کاؤنٹر سیل منتخب کریں۔\n2. سروسز یا 1-کلک انڈسٹری پری سیٹس لگائیں۔\n3. شائع کریں یا نجی ڈرافٹ محفوظ کریں۔",
+                    default => "You are on the **Invoice Builder** screen! Here you can:\n1. Select a client or toggle Walk-in mode for instant counter sales.\n2. Add custom items or choose from 45+ 1-click industry presets.\n3. Issue & publish directly or save as a confidential draft."
+                };
+            } elseif (str_contains($path, '/invoices')) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap abhi **Invoices Dashboard** par hain! Yahan aap apne tamam draft, sent, paid aur overdue bills ka status dekh sakte hain aur batch actions perform kar sakte hain.",
+                    'ur' => "آپ **انوائسز ڈیش بورڈ** پر موجود ہیں! یہاں آپ اپنے تمام ڈرافٹس، ادا شدہ اور واجب الادا بلز دیکھ سکتے ہیں۔",
+                    default => "You are on the **Invoices Dashboard**! Here you can review all draft, sent, paid, and overdue invoices, download cryptographic PDFs, and track payment receipts."
+                };
+            } elseif (str_contains($path, '/clients')) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap **Client CRM Directory** par hain! Yahan aap naye clients register kar sakte hain aur unke outstanding balances track kar sakte hain.",
+                    default => "You are on the **Client CRM Directory**! Here you can manage client contact details, preferred currencies, and ledger statements."
+                };
+            } elseif (str_contains($path, '/help')) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap **Help & Support Guide** section mein hain! Yahan har feature ki step-by-step documentation, screenshots aur F1 shortcut ki madad mojood hai.",
+                    default => "You are in the **Help & Support Guide**! Here you can search our comprehensive knowledge base, view screenshot tutorials, or press F1 anywhere to return here."
+                };
+            } else {
+                $reply = "You are currently viewing **{$pageTitle}**. Let me know what you would like to accomplish on this screen!";
+            }
+
+            return [
+                'reply' => $reply,
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['Create new invoice', 'My Workspace Stats', 'Open Support Desk']
+            ];
+        }
+
+        return null;
     }
 }

@@ -375,6 +375,12 @@
                         <i class="ph ph-chat-centered-text text-lg shrink-0 {{ request()->routeIs('admin.support.feedback') ? 'text-slate-950' : 'text-amber-400' }}"></i>
                         <span x-show="!sidebarCollapsed" class="truncate">User Feedback</span>
                     </a>
+                    <a href="{{ route('admin.support.ai_conversations') }}" 
+                       class="flex items-center gap-3 px-3 py-2 rounded-xl font-medium transition {{ request()->routeIs('admin.support.ai_conversations*') ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                       :title="sidebarCollapsed ? 'AI Conversations' : ''">
+                        <i class="ph ph-microphone text-lg shrink-0 {{ request()->routeIs('admin.support.ai_conversations*') ? 'text-slate-950' : 'text-indigo-400' }}"></i>
+                        <span x-show="!sidebarCollapsed" class="truncate">AI Conversations</span>
+                    </a>
                     <a href="{{ route('admin.monitoring.health') }}" 
                        class="flex items-center gap-3 px-3 py-2 rounded-xl font-medium transition {{ request()->routeIs('admin.monitoring.health') ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                        :title="sidebarCollapsed ? 'System Health' : ''">

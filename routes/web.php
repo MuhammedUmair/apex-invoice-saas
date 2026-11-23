@@ -319,6 +319,8 @@ Route::middleware([\App\Http\Middleware\EnsureSuperAdmin::class])->group(functio
     Route::get('/admin/support/tickets/{ticket}', [SuperAdminController::class, 'ticketShow'])->name('admin.support.tickets.show');
     Route::post('/admin/support/tickets/{ticket}/reply', [SuperAdminController::class, 'ticketReply'])->name('admin.support.tickets.reply');
     Route::get('/admin/support/feedback', [SuperAdminController::class, 'userFeedback'])->name('admin.support.feedback');
+    Route::get('/admin/support/ai-conversations', [\App\Http\Controllers\AdminAiController::class, 'index'])->name('admin.support.ai_conversations');
+    Route::get('/admin/support/ai-conversations/{conversation}', [\App\Http\Controllers\AdminAiController::class, 'show'])->name('admin.support.ai_conversations.show');
     Route::get('/admin/monitoring/health', [SuperAdminController::class, 'systemHealth'])->name('admin.monitoring.health');
     Route::get('/admin/monitoring/errors', [SuperAdminController::class, 'errorLogs'])->name('admin.monitoring.errors');
     Route::get('/admin/monitoring/jobs', [SuperAdminController::class, 'backgroundJobs'])->name('admin.monitoring.jobs');
@@ -378,6 +380,15 @@ Route::match(['get', 'post'], '/api/ai/copilot', [App\Http\Controllers\AiAssista
 Route::post('/api/ai/copilot/clear', [App\Http\Controllers\AiAssistantController::class, 'clearHistory'])
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
     ->name('ai.copilot.clear');
+Route::post('/api/ai/copilot/voice/session', [App\Http\Controllers\AiAssistantController::class, 'createVoiceSession'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->name('ai.copilot.voice.session');
+Route::post('/api/ai/copilot/voice/end', [App\Http\Controllers\AiAssistantController::class, 'endVoiceSession'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->name('ai.copilot.voice.end');
+Route::post('/api/ai/copilot/feedback', [App\Http\Controllers\AiAssistantController::class, 'submitFeedback'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
+    ->name('ai.copilot.feedback');
 
 /*
 |--------------------------------------------------------------------------
