@@ -1,15 +1,15 @@
 <div class="max-w-5xl mx-auto space-y-8">
     <!-- Header -->
     <div class="text-center max-w-xl mx-auto">
-        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Membership Packages & Upgrades</h2>
-        <p class="text-sm text-slate-500 mt-2">Scale your invoicing capabilities, enable whitelabel branding, and unlock unlimited clients.</p>
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight">{{ __('Membership Packages & Upgrades') }}</h2>
+        <p class="text-sm text-slate-500 mt-2">{{ __('Scale your invoicing capabilities, enable whitelabel branding, and unlock unlimited clients.') }}</p>
         
         @if($currentPlan)
             <div class="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Current Plan: <strong class="text-slate-900">{{ $currentPlan->name }}</strong></span>
+                <span>{{ __('Current Plan:') }} <strong class="text-slate-900">{{ $currentPlan->name }}</strong></span>
                 @if($currentSub && $currentSub->current_period_ends_at)
-                    <span class="text-slate-400">&bull; Valid until {{ $currentSub->current_period_ends_at->format('M d, Y') }}</span>
+                    <span class="text-slate-400">&bull; {{ __('Valid until') }} {{ $currentSub->current_period_ends_at->format('M d, Y') }}</span>
                 @endif
             </div>
         @endif
@@ -34,20 +34,20 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h4 class="font-bold text-amber-950 text-sm">Pending {{ $reqAction }} Request: {{ $reqPlan }}</h4>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-200 text-amber-900 tracking-wider">Awaiting Admin Approval</span>
+                            <h4 class="font-bold text-amber-950 text-sm">{{ __('Pending Request:') }} {{ $reqPlan }}</h4>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-200 text-amber-900 tracking-wider">{{ __('Awaiting Admin Approval') }}</span>
                         </div>
                         <p class="text-xs text-amber-800 mt-1 leading-relaxed">
-                            You have submitted a {{ strtolower($reqAction) }} request to <strong>{{ $reqPlan }}</strong> ({{ $reqPrice }}) on {{ $submittedDate }}. Our billing team is currently verifying your payment / request. Your account will automatically update upon approval.
+                            {{ __('You have submitted a request for') }} <strong>{{ $reqPlan }}</strong> ({{ $reqPrice }}) {{ __('on') }} {{ $submittedDate }}. {{ __('Our billing team is currently verifying your payment / request. Your account will automatically update upon approval.') }}
                         </p>
                     </div>
                 </div>
                 <form action="{{ route('membership.cancel-request', $latestRequest->id) }}" method="POST" class="inline shrink-0"
-                      onsubmit="return confirm('Cancel this pending {{ strtolower($reqAction) }} request?');">
+                      onsubmit="return confirm('{{ __('Cancel this pending request?') }}');">
                     @csrf
                     <button type="submit" 
                             class="px-3.5 py-1.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-bold text-xs transition shrink-0 whitespace-nowrap shadow-2xs cursor-pointer">
-                        Cancel Request
+                        {{ __('Cancel Request') }}
                     </button>
                 </form>
             </div>
@@ -59,11 +59,11 @@
                 </div>
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
-                        <h4 class="font-bold text-emerald-950 text-sm">{{ $reqAction }} Request Approved!</h4>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 tracking-wider">Active</span>
+                        <h4 class="font-bold text-emerald-950 text-sm">{{ __('Plan Request Approved!') }}</h4>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 tracking-wider">{{ __('Active') }}</span>
                     </div>
                     <p class="text-xs text-emerald-800 mt-0.5">
-                        Your request to change to <strong>{{ $reqPlan }}</strong> was approved on {{ $latestRequest->updated_at->format('M d, Y') }}. Your workspace membership is now active!
+                        {{ __('Your request to change to') }} <strong>{{ $reqPlan }}</strong> {{ __('was approved on') }} {{ $latestRequest->updated_at->format('M d, Y') }}. {{ __('Your workspace membership is now active!') }}
                     </p>
                 </div>
             </div>
@@ -75,11 +75,11 @@
                 </div>
                 <div class="flex-1">
                     <div class="flex items-center gap-2">
-                        <h4 class="font-bold text-rose-950 text-sm">{{ $reqAction }} Request Declined</h4>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-200 text-rose-900 tracking-wider">Declined</span>
+                        <h4 class="font-bold text-rose-950 text-sm">{{ __('Plan Request Declined') }}</h4>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-200 text-rose-900 tracking-wider">{{ __('Declined') }}</span>
                     </div>
                     <p class="text-xs text-rose-800 mt-0.5">
-                        Your {{ strtolower($reqAction) }} request for <strong>{{ $reqPlan }}</strong> was declined by administration. Reason: <em>{{ $latestRequest->metadata['rejection_reason'] ?? 'Payment verification was unsuccessful. Please contact support.' }}</em>
+                        {{ __('Your request for') }} <strong>{{ $reqPlan }}</strong> {{ __('was declined by administration.') }} {{ __('Reason:') }} <em>{{ $latestRequest->metadata['rejection_reason'] ?? __('Payment verification was unsuccessful. Please contact support.') }}</em>
                     </p>
                 </div>
             </div>
@@ -98,22 +98,22 @@
                 <i class="ph ph-check-circle font-bold"></i>
             </div>
             <div>
-                <h3 class="text-xl font-black text-emerald-950">{{ $submittedActionTitle }} Request Submitted!</h3>
+                <h3 class="text-xl font-black text-emerald-950">{{ __('Request Submitted Successfully!') }}</h3>
                 <p class="text-sm text-emerald-800 mt-1 max-w-md mx-auto">
-                    Your request to {{ $submittedActionType }} to <strong class="text-emerald-950">{{ $submittedPlan }}</strong> has been dispatched to our billing department.
+                    {{ __('Your request for') }} <strong class="text-emerald-950">{{ $submittedPlan }}</strong> {{ __('has been dispatched to our billing department.') }}
                 </p>
             </div>
             <div class="bg-white/80 backdrop-blur rounded-2xl p-5 border border-emerald-100 text-left text-xs text-slate-600 space-y-2">
                 <div class="flex items-center gap-2 font-bold text-slate-800 text-sm pb-1 border-b border-emerald-50">
-                    <i class="ph ph-info text-emerald-600 text-base"></i> What happens next?
+                    <i class="ph ph-info text-emerald-600 text-base"></i> {{ __('What happens next?') }}
                 </div>
-                <p>1. Our accounts team will verify your wire transfer or confirm your billing request.</p>
-                <p>2. Once verified, your administrator will activate your package.</p>
-                <p>3. You can check the live status anytime right here in the Plan & Billing section.</p>
+                <p>1. {{ __('Our accounts team will verify your wire transfer or confirm your billing request.') }}</p>
+                <p>2. {{ __('Once verified, your administrator will activate your package.') }}</p>
+                <p>3. {{ __('You can check the live status anytime right here in the Plan & Billing section.') }}</p>
             </div>
             <div class="pt-2">
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow transition">
-                    <i class="ph ph-arrow-left"></i> Return to Dashboard
+                    <i class="ph ph-arrow-left"></i> {{ __('Return to Dashboard') }}
                 </a>
             </div>
         </div>
@@ -131,13 +131,13 @@
                     
                     @if($plan->code === 'pro')
                         <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-[10px] uppercase font-black px-3 py-0.5 rounded-full shadow-sm">
-                            Most Popular
+                            {{ __('Most Popular') }}
                         </span>
                     @endif
 
                     @if($isCurrent)
                         <span class="absolute top-3 right-3 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-200">
-                            Active Plan
+                            {{ __('Active Plan') }}
                         </span>
                     @endif
 
@@ -151,7 +151,7 @@
 
                         <div class="mt-3 mb-6">
                             <span class="text-3xl font-black text-slate-900">${{ number_format($plan->price_cents / 100, 2) }}</span>
-                            <span class="text-xs text-slate-400 font-medium">/ month</span>
+                            <span class="text-xs text-slate-400 font-medium">/ {{ __('month') }}</span>
                         </div>
 
                         <!-- Features -->
@@ -168,7 +168,7 @@
                     </div>
 
                     <button type="button" class="w-full py-2.5 rounded-xl font-bold text-xs transition {{ $isSelected ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
-                        {{ $isCurrent ? 'Current Plan' : ($isSelected ? 'Selected Package' : 'Select Plan') }}
+                        {{ $isCurrent ? __('Current Plan') : ($isSelected ? __('Selected Package') : __('Select Plan')) }}
                     </button>
                 </div>
             @endforeach
@@ -179,25 +179,25 @@
             <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-8 max-w-2xl mx-auto space-y-6">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
-                        <h3 class="font-bold text-slate-900 text-base">Upgrade Order Summary</h3>
-                        <p class="text-xs text-slate-500">Selected: <span class="font-semibold text-slate-800">{{ $selectedPlan->name }}</span></p>
+                        <h3 class="font-bold text-slate-900 text-base">{{ __('Upgrade Order Summary') }}</h3>
+                        <p class="text-xs text-slate-500">{{ __('Selected:') }} <span class="font-semibold text-slate-800">{{ $selectedPlan->name }}</span></p>
                     </div>
                     <div class="text-right">
                         @if($discountCents > 0)
                             <span class="text-xs text-slate-400 line-through block font-medium">${{ number_format($selectedPlan->price_cents / 100, 2) }}</span>
                         @endif
-                        <span class="text-xl font-black text-red-600">{{ $finalPriceFormatted }} <span class="text-xs font-normal text-slate-400">/ mo</span></span>
+                        <span class="text-xl font-black text-red-600">{{ $finalPriceFormatted }} <span class="text-xs font-normal text-slate-400">/ {{ __('mo') }}</span></span>
                     </div>
                 </div>
 
                 <!-- Coupon Code Section -->
                 <div class="space-y-2">
-                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">Have a Promotional Coupon?</label>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider">{{ __('Have a Promotional Coupon?') }}</label>
                     <div class="flex gap-2">
                         <input type="text" wire:model.live="couponCode" placeholder="e.g. LAUNCH2026 or PROMO50"
                                class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 uppercase font-mono">
                         <button type="button" wire:click="validateCoupon" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl transition">
-                            Apply Coupon
+                            {{ __('Apply Coupon') }}
                         </button>
                     </div>
                     @if($couponStatus)
@@ -214,16 +214,16 @@
                             <i class="ph ph-bank"></i>
                         </div>
                         <div>
-                            <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">Offline Wire Transfer & Commercial Invoicing</h4>
+                            <h4 class="font-bold text-slate-900 text-xs uppercase tracking-wider">{{ __('Offline Wire Transfer & Commercial Invoicing') }}</h4>
                             <p class="text-xs text-slate-500 mt-0.5">
-                                Plan upgrades and downgrades are verified through manual bank transfer or invoice settlement. Submitting this request will alert our finance administration to update your plan upon verification.
+                                {{ __('Plan upgrades and downgrades are verified through manual bank transfer or invoice settlement. Submitting this request will alert our finance administration to update your plan upon verification.') }}
                             </p>
                         </div>
                     </div>
 
                     <!-- Payment Reference / Notes Input -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Payment Reference or Request Notes (Optional)</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">{{ __('Payment Reference or Request Notes (Optional)') }}</label>
                         <input type="text" wire:model="paymentNotes" placeholder="e.g. Wire transfer ref #12345, or PO #98765"
                                class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold bg-white focus:ring-2 focus:ring-red-500">
                     </div>
@@ -235,18 +235,18 @@
                             class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
                         @if($discountCents >= $selectedPlan->price_cents)
                             <i class="ph ph-ticket text-base"></i>
-                            Activate Free via Promo Coupon ($0.00)
+                            {{ __('Activate Free via Promo Coupon ($0.00)') }}
                         @elseif($isDowngrade)
                             <i class="ph ph-trend-down text-base"></i>
-                            Submit Downgrade Request to {{ $selectedPlan->name }} ({{ $finalPriceFormatted }}/mo)
+                            {{ __('Submit Downgrade Request') }} ({{ $finalPriceFormatted }}/{{ __('mo') }})
                         @else
                             <i class="ph ph-trend-up text-base"></i>
-                            Submit Upgrade Request to {{ $selectedPlan->name }} ({{ $finalPriceFormatted }}/mo)
+                            {{ __('Submit Upgrade Request') }} ({{ $finalPriceFormatted }}/{{ __('mo') }})
                         @endif
                     </button>
 
                     <p class="text-center text-[11px] text-slate-400 mt-2">
-                        No immediate card charge is made. Our billing administration will review your {{ $isDowngrade ? 'downgrade' : 'upgrade' }} request before plan activation.
+                        {{ __('No immediate card charge is made. Our billing administration will review your request before plan activation.') }}
                     </p>
                 </div>
             </div>

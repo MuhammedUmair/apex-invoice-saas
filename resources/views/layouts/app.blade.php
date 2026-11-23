@@ -211,20 +211,15 @@
                 </a>
                 @endif
 
-                <a href="{{ route('docs.index') }}" target="_blank" 
-                   :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
-                   class="flex items-center rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
-                   :title="sidebarCollapsed ? '{{ __('Documentation') }}' : ''">
-                    <i class="ph ph-book-open text-lg text-sky-400 shrink-0"></i>
-                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('Documentation') }}</span>
-                </a>
-
                 <a href="{{ route('help.index') }}" 
                    :class="sidebarCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'"
                    class="flex items-center rounded-lg text-sm font-medium transition {{ request()->routeIs('help.*') ? 'bg-red-600 text-white shadow-sm [&>i]:!text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
                    :title="sidebarCollapsed ? '{{ __('Help & Guide') }}' : ''">
                     <i class="ph ph-question text-lg {{ request()->routeIs('help.*') ? '!text-white' : 'text-emerald-400' }} shrink-0"></i>
-                    <span x-show="!sidebarCollapsed" class="truncate">{{ __('Help & Guide') }}</span>
+                    <span x-show="!sidebarCollapsed" class="truncate flex items-center justify-between w-full">
+                        <span>{{ __('Help & Guide') }}</span>
+                        <kbd class="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">F1</kbd>
+                    </span>
                 </a>
 
                 <a href="{{ route('support.index') }}" 
@@ -588,21 +583,15 @@
                     <button @click="window.dispatchEvent(new CustomEvent('open-welcome-tour'))"
                             type="button"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-bold transition shadow-2xs"
-                            title="Replay Interactive Getting Started Walkthrough">
+                            title="{{ __('Replay Interactive Getting Started Walkthrough') }}">
                         <i class="ph ph-compass text-sm"></i>
-                        <span class="hidden sm:inline">Guide & Tour</span>
+                        <span class="hidden sm:inline">{{ __('Guide & Tour') }}</span>
                     </button>
 
                     <!-- Concurrency-Safe Ledger Lock Badge (Mockup) -->
                     <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        <i class="ph ph-shield-check text-emerald-600 text-sm"></i> Concurrency-Safe Ledger Lock
+                        <i class="ph ph-shield-check text-emerald-600 text-sm"></i> {{ __('Concurrency-Safe Ledger Lock') }}
                     </span>
-
-                    <!-- Documentation Quick Link -->
-                    <a href="{{ route('docs.index') }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition" title="{{ __('Documentation') }}">
-                        <i class="ph ph-book-open text-sky-600 text-sm"></i>
-                        <span class="hidden md:inline">{{ __('Documentation') }}</span>
-                    </a>
 
                     <!-- Create Invoice Action -->
                     <a href="{{ route('invoices.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition">
@@ -685,6 +674,16 @@
             </div>
         </main>
     </div>
+
+    <!-- Global F1 Keyboard Shortcut for Help & Guide -->
+    <script>
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'F1' || e.keyCode === 112) {
+                e.preventDefault();
+                window.open('{{ route("help.index") }}', '_blank');
+            }
+        });
+    </script>
 
     <!-- Auto-Signout on Browser / Tab Close (Security Policy) -->
     <script>

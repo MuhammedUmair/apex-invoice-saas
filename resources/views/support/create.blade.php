@@ -24,16 +24,16 @@
             <i class="ph ph-shield-check"></i>
         </div>
         <div class="space-y-1">
-            <p class="font-bold text-sm text-indigo-900">24-Hour Turnaround SLA Commitment</p>
+            <p class="font-bold text-sm text-indigo-900">{{ __('24-Hour Turnaround SLA Commitment') }}</p>
             <p class="text-indigo-800 leading-relaxed">
-                When you submit this ticket, our engineering response timer starts immediately. We guarantee an initial investigation, status update, or resolution within 24 hours. Your data and tenant ledger integrity are protected under our zero-data-loss architecture.
+                {{ __('When you submit this ticket, our engineering response timer starts immediately. We guarantee an initial investigation, status update, or resolution within 24 hours. Your data and tenant ledger integrity are protected under our zero-data-loss architecture.') }}
             </p>
         </div>
     </div>
 
     @if ($errors->any())
         <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
-            <p class="font-bold">Please correct the following errors:</p>
+            <p class="font-bold">{{ __('Please correct the following errors:') }}</p>
             <ul class="list-disc list-inside">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>

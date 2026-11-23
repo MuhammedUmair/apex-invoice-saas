@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div class="relative flex-1 max-w-md">
             <i class="ph ph-magnifying-glass absolute left-3 top-3 text-slate-400 text-lg"></i>
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search by name, company, email, language (Urdu, Hindi, Turkish)..."
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search by name, company, email, language (Urdu, Hindi, Turkish)...') }}"
                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-red-500 bg-white outline-none shadow-sm">
         </div>
         <div>
@@ -18,18 +18,18 @@
         @if($clients->isEmpty())
             <div class="p-12 text-center text-slate-400">
                 <i class="ph ph-users text-4xl mb-2 inline-block"></i>
-                <p class="text-sm font-medium">No clients found matching your search.</p>
+                <p class="text-sm font-medium">{{ __('No clients found matching your search.') }}</p>
             </div>
         @else
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 text-slate-500 text-[11px] uppercase tracking-wider border-b border-slate-200">
                     <tr>
-                        <th class="px-6 py-3.5 font-bold">Client / Company</th>
-                        <th class="px-4 py-3.5 font-bold">Contact Info</th>
-                        <th class="px-4 py-3.5 font-bold">Language & Currency</th>
-                        <th class="px-4 py-3.5 font-bold">Tax & Terms</th>
-                        <th class="px-4 py-3.5 font-bold text-center">Invoices</th>
-                        <th class="px-6 py-3.5 font-bold text-right">Actions</th>
+                        <th class="px-6 py-3.5 font-bold">{{ __('Client / Company') }}</th>
+                        <th class="px-4 py-3.5 font-bold">{{ __('Contact Info') }}</th>
+                        <th class="px-4 py-3.5 font-bold">{{ __('Language & Currency') }}</th>
+                        <th class="px-4 py-3.5 font-bold">{{ __('Tax & Terms') }}</th>
+                        <th class="px-4 py-3.5 font-bold text-center">{{ __('Invoices') }}</th>
+                        <th class="px-6 py-3.5 font-bold text-right">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -46,7 +46,7 @@
                                 @endif
                                 <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
                                     <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium text-[10px]">{{ $c->country_code }}</span>
-                                    <span>{{ $c->city ?: 'Location not set' }}</span>
+                                    <span>{{ $c->city ?: __('Location not set') }}</span>
                                 </div>
                             </td>
 
@@ -70,25 +70,25 @@
                                     </span>
                                 </div>
                                 <div class="text-xs font-medium text-slate-600 mt-1">
-                                    Billing: <span class="font-bold text-slate-800">{{ $c->preferred_currency }}</span>
+                                    {{ __('Billing') }}: <span class="font-bold text-slate-800">{{ $c->preferred_currency }}</span>
                                 </div>
                             </td>
 
                             <!-- Tax & Terms -->
                             <td class="px-4 py-4 text-xs">
-                                <div class="font-mono text-slate-700">{{ $c->tax_id ?: 'No Tax ID' }}</div>
+                                <div class="font-mono text-slate-700">{{ $c->tax_id ?: __('No Tax ID') }}</div>
                                 <div class="text-slate-500 capitalize mt-0.5">
                                     {{ str_replace('_', ' ', $c->default_payment_terms) }}
                                 </div>
                                 @if($c->is_tax_exempt)
-                                    <span class="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">Tax Exempt</span>
+                                    <span class="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">{{ __('Tax Exempt') }}</span>
                                 @endif
                             </td>
 
                             <!-- Invoices Count -->
                             <td class="px-4 py-4 text-center">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                                    {{ $c->invoices_count }} invoices
+                                    {{ $c->invoices_count }} {{ __('invoices') }}
                                 </span>
                             </td>
 
@@ -99,8 +99,8 @@
                                             class="text-slate-400 hover:text-blue-600 transition p-1.5 rounded-lg hover:bg-slate-100" title="{{ __('Edit Client') }}">
                                         <i class="ph ph-pencil-simple text-lg"></i>
                                     </button>
-                                    <button wire:click="deleteClient('{{ $c->id }}')" wire:confirm="Archive this client? All client invoices remain preserved."
-                                            class="text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-slate-100" title="Archive Client">
+                                    <button wire:click="deleteClient('{{ $c->id }}')" wire:confirm="{{ __('Archive this client? All client invoices remain preserved.') }}"
+                                            class="text-slate-400 hover:text-rose-600 transition p-1.5 rounded-lg hover:bg-slate-100" title="{{ __('Archive Client') }}">
                                         <i class="ph ph-trash text-lg"></i>
                                     </button>
                                 </div>
@@ -123,7 +123,7 @@
                 <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
                     <div>
                         <h3 class="font-bold text-slate-900 text-lg">{{ $showEditModal ? __('Edit Client') : __('Add New Client') }}</h3>
-                        <p class="text-xs text-slate-500">Multilingual invoice and regional currency preferences</p>
+                        <p class="text-xs text-slate-500">{{ __('Multilingual invoice and regional currency preferences') }}</p>
                     </div>
                     <button wire:click="$set('{{ $showEditModal ? 'showEditModal' : 'showCreateModal' }}', false)" class="text-slate-400 hover:text-slate-600">
                         <i class="ph ph-x text-xl"></i>
@@ -164,12 +164,12 @@
                       class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Company / Organization</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Company / Organization') }}</label>
                             <input type="text" wire:model.live="company_name" placeholder="Globex Corp"
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Contact Person Name *</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Contact Person Name *') }}</label>
                             <input type="text" wire:model.live="name" placeholder="Sarah Jenkins"
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
                             @error('name') <span class="text-rose-600 text-xs">{{ $message }}</span> @enderror
@@ -178,13 +178,13 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Email Address *</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Email Address *') }}</label>
                             <input type="email" wire:model.live="email" placeholder="billing@globex.com"
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
                             @error('email') <span class="text-rose-600 text-xs">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Phone Number</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Phone Number') }}</label>
                             <input type="text" wire:model.live="phone" placeholder="+1 (555) 019-2834"
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
                         </div>
@@ -194,7 +194,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Client Invoice Language *
+                                {{ __('Client Invoice Language *') }}
                             </label>
                             <select wire:model.live="preferred_language" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
                                 <option value="en">🇺🇸 English (Default)</option>
@@ -207,11 +207,11 @@
                                 <option value="de">🇩🇪 German (Deutsch)</option>
                                 <option value="zh">🇨🇳 Chinese (中文)</option>
                             </select>
-                            <p class="text-[10px] text-slate-500 mt-1">Invoices & customer portal render in this language</p>
+                            <p class="text-[10px] text-slate-500 mt-1">{{ __('Invoices & customer portal render in this language') }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Preferred Currency *
+                                {{ __('Preferred Currency *') }}
                             </label>
                             <select wire:model.live="preferred_currency" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
                                 <option value="USD">USD ($ - United States Dollar)</option>
@@ -225,18 +225,18 @@
                                 <option value="TRY">TRY (₺ - Turkish Lira)</option>
                                 <option value="PKR">PKR (Rs - Pakistani Rupee)</option>
                             </select>
-                            <p class="text-[10px] text-slate-500 mt-1">Used for automatic line items & payment gateways</p>
+                            <p class="text-[10px] text-slate-500 mt-1">{{ __('Used for automatic line items & payment gateways') }}</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Tax / VAT ID</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Tax / VAT ID') }}</label>
                             <input type="text" wire:model.live="tax_id" placeholder="GB987654321 / TR123..."
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Country</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Country') }}</label>
                             <select wire:model.live="country_code" 
                                     @change="onCountryChange($event.target.value)"
                                     class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
@@ -257,33 +257,33 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Payment Terms</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Payment Terms') }}</label>
                             <select wire:model.live="default_payment_terms" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white">
-                                <option value="net_14">Net 14 Days</option>
-                                <option value="due_on_receipt">Due on Receipt</option>
-                                <option value="net_7">Net 7 Days</option>
-                                <option value="net_30">Net 30 Days</option>
-                                <option value="net_60">Net 60 Days</option>
+                                <option value="net_14">{{ __('Net 14 Days') }}</option>
+                                <option value="due_on_receipt">{{ __('Due on Receipt') }}</option>
+                                <option value="net_7">{{ __('Net 7 Days') }}</option>
+                                <option value="net_30">{{ __('Net 30 Days') }}</option>
+                                <option value="net_60">{{ __('Net 60 Days') }}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">City</label>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('City') }}</label>
                             <input type="text" wire:model.live="city" placeholder="Toronto / New York / Dubai"
                                    class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Province / State
+                                {{ __('Province / State') }}
                                 @if($country_code === 'CA')
-                                    <span class="text-[10px] text-red-600 font-bold">(Place-of-Supply)</span>
+                                    <span class="text-[10px] text-red-600 font-bold">({{ __('Place-of-Supply') }})</span>
                                 @endif
                             </label>
                             @if($country_code === 'CA')
                                 <select wire:model.live="province" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500 bg-white font-medium">
-                                    <option value="">Select Province / Territory</option>
+                                    <option value="">{{ __('Select Province / Territory') }}</option>
                                     <option value="AB">AB - Alberta (5% GST)</option>
                                     <option value="BC">BC - British Columbia (5% GST + 7% PST)</option>
                                     <option value="MB">MB - Manitoba (5% GST + 7% PST)</option>
@@ -306,13 +306,13 @@
                         <div class="flex items-center pt-6">
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" wire:model.live="is_tax_exempt" id="tax_exempt_check" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500">
-                                <span class="text-xs font-medium text-slate-700">Client is Tax / VAT Exempt</span>
+                                <span class="text-xs font-medium text-slate-700">{{ __('Client is Tax / VAT Exempt') }}</span>
                             </label>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Full Billing Address</label>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">{{ __('Full Billing Address') }}</label>
                         <textarea wire:model.live="address" rows="2" placeholder="Suite 400, Financial District..."
                                   class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-red-500"></textarea>
                     </div>
@@ -320,11 +320,11 @@
                     <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                         <button type="button" wire:click="$set('{{ $showEditModal ? 'showEditModal' : 'showCreateModal' }}', false)"
                                 class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">
-                            Cancel
+                            {{ __('Cancel') }}
                         </button>
                         <button type="submit"
                                 class="px-5 py-2 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition">
-                            {{ $showEditModal ? 'Save Changes' : 'Save Client' }}
+                            {{ $showEditModal ? __('Save Changes') : __('Save Client') }}
                         </button>
                     </div>
                 </form>

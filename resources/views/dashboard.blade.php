@@ -10,14 +10,14 @@
                     <i class="ph ph-warning-octagon"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-lg">Subscription / Free Trial Expired</h3>
+                    <h3 class="font-bold text-lg">{{ __('Subscription / Free Trial Expired') }}</h3>
                     <p class="text-sm text-rose-200">
-                        Your trial period has concluded. Upgrade to Starter Agency, Pro Business, or Enterprise Scale to continue invoicing clients without interruption.
+                        {{ __('Your trial period has concluded. Upgrade to Starter Agency, Pro Business, or Enterprise Scale to continue invoicing clients without interruption.') }}
                     </p>
                 </div>
             </div>
             <a href="{{ route('membership.index') }}" class="px-5 py-2.5 bg-white hover:bg-slate-100 text-rose-900 font-bold text-sm rounded-xl shadow-md transition whitespace-nowrap">
-                Choose a Plan & Upgrade &rarr;
+                {{ __('Choose a Plan & Upgrade') }} &rarr;
             </a>
         </div>
     @elseif($subscription && $subscription->isTrialing())
@@ -27,14 +27,14 @@
                     <i class="ph ph-sparkle"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-lg">{{ $subscription->plan->name ?? 'Free Trial' }} Active</h3>
+                    <h3 class="font-bold text-lg">{{ $subscription->plan->name ?? __('Free Trial') }} {{ __('Active') }}</h3>
                     <p class="text-sm text-blue-200">
-                        Your free trial ends {{ $subscription->trial_ends_at ? $subscription->trial_ends_at->diffForHumans() : 'soon' }} ({{ $subscription->trialDaysRemaining() }} days left). Upgrade now to keep unlimited features & custom branding.
+                        {{ __('Your free trial ends') }} {{ $subscription->trial_ends_at ? $subscription->trial_ends_at->diffForHumans() : __('soon') }} ({{ $subscription->trialDaysRemaining() }} {{ __('days left') }}). {{ __('Upgrade now to keep unlimited features & custom branding.') }}
                     </p>
                 </div>
             </div>
             <a href="{{ route('membership.index') }}" class="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-sm rounded-xl shadow-md transition whitespace-nowrap">
-                Upgrade Membership
+                {{ __('Upgrade Membership') }}
             </a>
         </div>
     @endif
@@ -47,7 +47,7 @@
                 <i class="ph ph-money"></i>
             </div>
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Collected Revenue</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('Collected Revenue') }}</p>
                 <p class="text-2xl font-bold text-slate-900 mt-1">${{ number_format($totalRevenueCents / 100, 2) }}</p>
             </div>
         </div>
@@ -58,7 +58,7 @@
                 <i class="ph ph-hourglass-high"></i>
             </div>
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Outstanding Due</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('Outstanding Due') }}</p>
                 <p class="text-2xl font-bold text-slate-900 mt-1">${{ number_format($outstandingDueCents / 100, 2) }}</p>
             </div>
         </div>
@@ -69,7 +69,7 @@
                 <i class="ph ph-receipt"></i>
             </div>
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Invoices</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('Total Invoices') }}</p>
                 <p class="text-2xl font-bold text-slate-900 mt-1">{{ $invoicesCount }}</p>
             </div>
         </div>
@@ -80,7 +80,7 @@
                 <i class="ph ph-users-three"></i>
             </div>
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saved Clients</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('Saved Clients') }}</p>
                 <p class="text-2xl font-bold text-slate-900 mt-1">{{ $clientsCount }}</p>
             </div>
         </div>
@@ -91,14 +91,14 @@
         <!-- Recent Invoices -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 class="font-bold text-slate-900 text-sm">Recent Invoices</h3>
-                <a href="{{ route('invoices.index') }}" class="text-xs text-blue-600 font-semibold hover:underline">View All</a>
+                <h3 class="font-bold text-slate-900 text-sm">{{ __('Recent Invoices') }}</h3>
+                <a href="{{ route('invoices.index') }}" class="text-xs text-blue-600 font-semibold hover:underline">{{ __('View All') }}</a>
             </div>
 
             @if($recentInvoices->isEmpty())
                 <div class="p-8 text-center text-slate-400 text-sm">
                     <i class="ph ph-receipt text-3xl mb-2 inline-block"></i>
-                    <p>No invoices created yet.</p>
+                    <p>{{ __('No invoices created yet.') }}</p>
                 </div>
             @else
                 <div class="divide-y divide-slate-100">
@@ -117,7 +117,7 @@
                                     @elseif($inv->status === 'partially_paid') bg-amber-100 text-amber-800
                                     @elseif($inv->status === 'issued') bg-blue-100 text-blue-800
                                     @else bg-slate-100 text-slate-800 @endif">
-                                    {{ $inv->status }}
+                                    {{ __($inv->status) }}
                                 </span>
                             </div>
                         </div>
@@ -129,14 +129,14 @@
         <!-- Recent Payments -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 class="font-bold text-slate-900 text-sm">Recent Payments Received</h3>
-                <span class="text-xs text-slate-400">Live Gateway Feeds</span>
+                <h3 class="font-bold text-slate-900 text-sm">{{ __('Recent Payments Received') }}</h3>
+                <span class="text-xs text-slate-400">{{ __('Live Gateway Feeds') }}</span>
             </div>
 
             @if($recentPayments->isEmpty())
                 <div class="p-8 text-center text-slate-400 text-sm">
                     <i class="ph ph-credit-card text-3xl mb-2 inline-block"></i>
-                    <p>No customer payments recorded yet.</p>
+                    <p>{{ __('No customer payments recorded yet.') }}</p>
                 </div>
             @else
                 <div class="divide-y divide-slate-100">
@@ -145,12 +145,12 @@
                             <div>
                                 <p class="font-semibold text-sm text-slate-900">{{ $payment->payment_number }}</p>
                                 <p class="text-xs text-slate-500">
-                                    Via <span class="capitalize font-medium">{{ $payment->gateway }}</span> &bull; {{ $payment->payment_date->diffForHumans() }}
+                                    {{ __('Via') }} <span class="capitalize font-medium">{{ $payment->gateway }}</span> &bull; {{ $payment->payment_date->diffForHumans() }}
                                 </p>
                             </div>
                             <div class="text-right">
                                 <p class="text-sm font-bold text-emerald-600">+{{ $payment->formatted_amount }}</p>
-                                <span class="text-[10px] text-slate-400">{{ $payment->invoice->invoice_number ?? 'Invoice' }}</span>
+                                <span class="text-[10px] text-slate-400">{{ $payment->invoice->invoice_number ?? __('Invoice') }}</span>
                             </div>
                         </div>
                     @endforeach

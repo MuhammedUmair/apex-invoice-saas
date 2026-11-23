@@ -36,47 +36,47 @@
         <nav class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 text-xs font-bold">
             <a href="#profile" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-user text-sm text-slate-400"></i>
-                <span>Profile</span>
+                <span>{{ __('Profile') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#agency" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-buildings text-sm text-slate-400"></i>
-                <span>Agency</span>
+                <span>{{ __('Agency') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#regional" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-globe text-sm text-slate-400"></i>
-                <span>Regional</span>
+                <span>{{ __('Regional') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#wire" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-bank text-sm text-slate-400"></i>
-                <span>Wire Details</span>
+                <span>{{ __('Wire Details') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#brand" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-palette text-sm text-slate-400"></i>
-                <span>Brand & Logo</span>
+                <span>{{ __('Brand & Logo') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#payments" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-credit-card text-sm text-slate-400"></i>
-                <span>Payments</span>
+                <span>{{ __('Payments') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#smtp" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-envelope-simple text-sm text-slate-400"></i>
-                <span>SMTP</span>
+                <span>{{ __('SMTP') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#security" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-shield-check text-sm text-slate-400"></i>
-                <span>Security</span>
+                <span>{{ __('Security') }}</span>
             </a>
             <span class="text-slate-300 shrink-0">&bull;</span>
             <a href="#team" class="shrink-0 px-3 py-1.5 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition flex items-center gap-1.5">
                 <i class="ph ph-users-three text-sm text-slate-400"></i>
-                <span>Team Seats</span>
+                <span>{{ __('Team Seats') }}</span>
             </a>
         </nav>
     </div>

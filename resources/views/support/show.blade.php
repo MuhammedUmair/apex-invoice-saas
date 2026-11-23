@@ -48,9 +48,9 @@
                 <i class="ph ph-shield-check"></i>
             </div>
             <div>
-                <p class="font-bold text-xs uppercase tracking-wider text-indigo-300">24-Hour Turnaround SLA Guarantee</p>
+                <p class="font-bold text-xs uppercase tracking-wider text-indigo-300">{{ __('24-Hour Turnaround SLA Guarantee') }}</p>
                 <p class="text-xs text-slate-300">
-                    Target Resolution: <strong>{{ $ticket->sla_due_at ? $ticket->sla_due_at->format('M d, Y h:i A') : $ticket->created_at->addHours(24)->format('M d, Y h:i A') }}</strong>
+                    {{ __('Target Resolution') }}: <strong>{{ $ticket->sla_due_at ? $ticket->sla_due_at->format('M d, Y h:i A') : $ticket->created_at->addHours(24)->format('M d, Y h:i A') }}</strong>
                 </p>
             </div>
         </div>

@@ -10,13 +10,13 @@
             <div class="space-y-2 max-w-2xl">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold tracking-wide">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>24-Hour Turnaround SLA Guarantee Active</span>
+                    <span>{{ __('24-Hour Turnaround SLA Guarantee Active') }}</span>
                 </div>
                 <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                    Agency Consumer Support Desk
+                    {{ __('Agency Consumer Support Desk') }}
                 </h1>
                 <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                    Direct access to our dedicated engineering and billing support team. Every support ticket is tracked under our <strong>24-hour turnaround SLA guarantee</strong>. All system upgrades, enhancements, and migrations are safeguarded with strict <strong>zero-data-loss architecture</strong>.
+                    {{ __('Direct access to our dedicated engineering and billing support team. Every support ticket is tracked under our 24-hour turnaround SLA guarantee. All system upgrades, enhancements, and migrations are safeguarded with strict zero-data-loss architecture.') }}
                 </p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3 shrink-0">
@@ -141,7 +141,7 @@
                                         {{ $ticket->subject }}
                                     </a>
                                     <span class="block text-[11px] font-normal text-slate-400 mt-0.5">
-                                        {{ $ticket->messages->count() }} message(s)
+                                        {{ $ticket->messages->count() }} {{ __('messages') }}
                                     </span>
                                 </td>
                                 <td class="px-5 py-4 capitalize text-slate-600">
@@ -160,11 +160,11 @@
                                 <td class="px-5 py-4 text-center whitespace-nowrap">
                                     @if(in_array($ticket->status, ['resolved', 'closed']))
                                         <span class="inline-flex items-center gap-1 text-emerald-700 font-bold text-[11px]">
-                                            <i class="ph ph-check-circle"></i> Resolved
+                                            <i class="ph ph-check-circle"></i> {{ __('Resolved') }}
                                         </span>
                                     @elseif($ticket->isSlaBreached())
                                         <span class="inline-flex items-center gap-1 text-rose-600 font-bold text-[11px]" title="SLA breached">
-                                            <i class="ph ph-warning-circle"></i> SLA Overdue
+                                            <i class="ph ph-warning-circle"></i> {{ __('SLA Overdue') }}
                                         </span>
                                     @else
                                         <span class="inline-flex items-center gap-1 text-indigo-700 font-bold text-[11px]" title="Guaranteed response time">
