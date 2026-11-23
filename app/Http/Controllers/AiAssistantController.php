@@ -36,7 +36,7 @@ class AiAssistantController extends Controller
         if ($tenantAiConfig === '') {
             $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
         }
-        $isAiActive = ($tenantAiConfig === '1' || $tenantAiConfig === true || $tenantAiConfig === 1);
+        $isAiActive = ($tenantAiConfig !== '0' && $tenantAiConfig !== false && $tenantAiConfig !== 0);
         if (!$isAiActive && (!$user || !$user->isSuperAdmin())) {
             return response()->json([
                 'reply' => 'The AI Agent is currently disabled by system administration.',
@@ -79,7 +79,7 @@ class AiAssistantController extends Controller
         if ($tenantAiConfig === '') {
             $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
         }
-        $isAiActive = ($tenantAiConfig === '1' || $tenantAiConfig === true || $tenantAiConfig === 1);
+        $isAiActive = ($tenantAiConfig !== '0' && $tenantAiConfig !== false && $tenantAiConfig !== 0);
         if (!$isAiActive && (!$user || !$user->isSuperAdmin())) {
             return response()->json([
                 'success' => false,
