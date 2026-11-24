@@ -170,6 +170,21 @@ if (file_exists(`$prodCore . '/vendor/autoload.php')) {
         echo "Migration notice: " . `$ex->getMessage() . "\n";
     }
 
+    // Clean up any legacy ticket messages with raw JSON context
+    try {
+        `$msgs = \DB::table('ticket_messages')
+            ->where('message', 'like', '%Context: {%')
+            ->get();
+        foreach (`$msgs as `$m) {
+            `$cleaned = preg_replace('/\n\nContext:\s*\{.*?\}$/s', '', `$m->message);
+            `$cleaned = preg_replace('/Context:\s*\{.*?\}$/s', '', `$cleaned);
+            \DB::table('ticket_messages')->where('id', `$m->id)->update(['message' => trim(`$cleaned)]);
+        }
+        echo "Production ticket JSON cleanup complete.\n";
+    } catch (\Throwable `$dbEx) {
+        echo "DB Cleanup notice: " . `$dbEx->getMessage() . "\n";
+    }
+
     \Illuminate\Support\Facades\Artisan::call('view:clear');
     \Illuminate\Support\Facades\Artisan::call('route:clear');
     \Illuminate\Support\Facades\Artisan::call('config:clear');
