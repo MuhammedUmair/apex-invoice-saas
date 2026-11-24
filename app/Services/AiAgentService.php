@@ -661,7 +661,7 @@ How can I help you today? Would you like to create a new invoice, explore indust
             if ($draft) {
                 $invNum = $draft->invoice_number;
                 $custName = $draft->client ? $draft->client->name : ($draft->customer_name ?? 'Walk-in Customer');
-                $amtStr = number_format($draft->total_amount, 2) . ' ' . ($draft->currency ?? 'AED');
+                $amtStr = $draft->formatted_total ?: (number_format($draft->total_cents / 100, 2) . ' ' . ($draft->currency ?? 'AED'));
 
                 return [
                     'reply' => match ($lang) {
@@ -687,6 +687,33 @@ How can I help you today? Would you like to create a new invoice, explore indust
                         'ur' => ['تمام انوائسز دیکھیں', 'ایک اور انوائس بنائیں', 'سپورٹ ڈیسک'],
                         'ur-roman' => ['View All Invoices', 'Create New Invoice', 'Open Support Desk'],
                         default => ['View Invoices', 'Create New Invoice', 'Open Support Desk']
+                    }
+                ];
+            } else {
+                return [
+                    'reply' => match ($lang) {
+                        'ur' => "آپ کے ورک اسپیس میں اس وقت کوئی غیر شائع شدہ ڈرافٹ انوائس موجود نہیں ہے۔ کیا آپ نیا انوائس بنانا چاہتے ہیں؟",
+                        'ur-roman' => "Aap ke workspace mein is waqt koi pending draft invoice nahi hai. Kya aap naya invoice create karna chahte hain?",
+                        'ar' => "لا توجد أي مسودات فواتير معلقة حالياً في مساحة العمل الخاصة بك. هل ترغب في إنشاء مسودة جديدة الآن؟",
+                        default => "You currently do not have any pending draft invoices in your workspace. Would you like to create a new invoice?"
+                    },
+                    'action' => [
+                        'type' => 'navigate',
+                        'url' => route('invoices.create'),
+                        'label' => match ($lang) {
+                            'ur' => "نیا انوائس بنائیں ➔",
+                            'ur-roman' => "Naya Invoice Banayein ➔",
+                            'ar' => "إنشاء فاتورة جديدة ➔",
+                            default => "Create New Invoice ➔"
+                        }
+                    ],
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => match ($lang) {
+                        'ur' => ['نیا انوائس بنائیں', 'ڈرافٹس کیسے کام کرتے ہیں؟', 'سپورٹ ڈیسک'],
+                        'ur-roman' => ['Naya Invoice Banayein', 'Drafts kaise kaam karte hain?', 'Open Support Desk'],
+                        default => ['Create new invoice', 'How do drafts work?', 'Open Support Desk']
                     }
                 ];
             }
