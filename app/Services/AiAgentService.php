@@ -13,7 +13,9 @@ use App\Models\AiMessage;
 use App\Models\Workspace;
 use App\Models\Payment;
 use App\Models\RecurringInvoice;
+use App\Models\DocArticle;
 use App\Services\InvoiceNumberService;
+use App\Services\InvoiceReminderService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -334,6 +336,29 @@ class AiAgentService
         // 1. INVOICE CREATION FLOW (Multi-turn conversational assistant)
         // ==============================================================
 
+        // TRIGGER: User starts Client registration flow
+        $isClientCreateTrigger = preg_match('/\b(create client|add client|new client|register client|create customer|add customer|نیا کلائنٹ|کلائنٹ بنائیں|کلائنٹ رجسٹر|اضافة عميل|عميل جديد)\b/iu', $q);
+        if ($isClientCreateTrigger && !$flowState) {
+            session()->put('ai_dialogue_state', [
+                'active_flow' => 'create_client',
+                'step' => 'awaiting_name',
+                'data' => []
+            ]);
+
+            return [
+                'reply' => match ($lang) {
+                    'ur' => "ضرور! نیا کلائنٹ CRM میں شامل کرنے کے لیے، برائے مہربانی کلائنٹ یا کمپنی کا نام درج کریں:",
+                    'ur-roman' => "Zaroor! Naya client CRM mein add karne ke liye, baraye meherbani client ya company ka naam batayein:",
+                    'ar' => "بكل سرور! لتسجيل عميل جديد في دليل العملاء، يرجى كتابة اسم العميل أو اسم الشركة:",
+                    default => "Certainly! To register a new client in your CRM, please enter the client or company name:"
+                },
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['Cancel']
+            ];
+        }
+
         // TRIGGER: User starts invoice creation without providing full details
         $isCreateTrigger = preg_match('/\b(create|make|generate|build|prepare|naya|new|need)\b.*?\b(invoice|bill|draft|فاتورة|انوائس|نوائس)\b/iu', $q)
             || preg_match('/\b(invoice|bill|draft|فاتورة|انوائس|نوائس)\b.*?\b(create|make|banana|banayein|banao|tayyar|chahiye|banana hai)\b/iu', $q)
@@ -589,6 +614,140 @@ class AiAgentService
                             'ur' => ['تمام انوائسز دیکھیں', 'ایک اور انوائس بنائیں', 'میرے فنانشل اعدادوشمار'],
                             'ur-roman' => ['View All Invoices', 'Ek Aur Invoice Banayein', 'My Workspace Stats'],
                             default => ['View Invoices', 'Create Another Invoice', 'My Workspace Stats']
+                        }
+                    ];
+                }
+            }
+        }
+
+        // ==============================================================
+        // 2. CLIENT CRM CREATION FLOW (Multi-turn conversational assistant)
+        // ==============================================================
+        if ($flowState && ($flowState['active_flow'] ?? '') === 'create_client') {
+            $step = $flowState['step'] ?? '';
+            $data = $flowState['data'] ?? [];
+
+            // STEP 1: Awaiting Client Name
+            if ($step === 'awaiting_name') {
+                $name = trim($rawQuery);
+                $name = preg_replace('/^(create client (for )?|add client (for )?|name is |client |customer |naam |naam hai |ye |yeh |یہ )\s*/iu', '', $name);
+                $name = preg_replace('/\s*(hai|hain|ہے)$/iu', '', $name);
+                $name = trim($name);
+                if (empty($name)) {
+                    $name = 'New Client';
+                }
+
+                $data['name'] = $name;
+                $flowState['step'] = 'awaiting_email';
+                $flowState['data'] = $data;
+                session()->put('ai_dialogue_state', $flowState);
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur-roman' => "Theek hai, **{$name}** ke liye. Client ka email address ya phone number kya hai? (Ya skip karne ke liye 'skip' type karein):",
+                        'ur' => "ٹھیک ہے، **{$name}** کے لیے۔ کلائنٹ کا ای میل ایڈریس یا فون نمبر کیا ہے؟ (یا چھوڑنے کے لیے 'skip' لکھیں):",
+                        'ar' => "ممتاز لـ **{$name}**. ما هو البريد الإلكتروني أو رقم الهاتف للعميل؟ (أو اكتب 'skip' للتخطي):",
+                        default => "Got it for **{$name}**. What is their email address or phone number? (Or enter 'skip' if none):"
+                    },
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['skip', 'Cancel']
+                ];
+            }
+
+            // STEP 2: Awaiting Email / Phone
+            if ($step === 'awaiting_email') {
+                $input = trim($rawQuery);
+                $isSkip = (bool) preg_match('/\b(skip|none|nahi|no|baad mein|چھوڑیں|تخطي)\b/iu', $input);
+                
+                $email = null;
+                $phone = null;
+
+                if (!$isSkip) {
+                    if (preg_match('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/', $input, $em)) {
+                        $email = $em[0];
+                    }
+                    if (preg_match('/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/', $input, $pm)) {
+                        $phone = $pm[0];
+                    }
+                }
+
+                if (!$email && !$isSkip && filter_var($input, FILTER_VALIDATE_EMAIL)) {
+                    $email = $input;
+                }
+
+                if (!$email) {
+                    $email = Str::slug($data['name']) . '@client.local';
+                }
+
+                $data['email'] = $email;
+                $data['phone'] = $phone;
+                $flowState['step'] = 'awaiting_confirmation';
+                $flowState['data'] = $data;
+                session()->put('ai_dialogue_state', $flowState);
+
+                $cName = $data['name'];
+                $cEmail = $data['email'];
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur-roman' => "Maine client **{$cName}** (Email: {$cEmail}) ki details tayyar kar li hain. Kya main abhi is client ko CRM directory mein add kar doon?",
+                        'ur' => "میں نے کلائنٹ **{$cName}** (ای میل: {$cEmail}) کی تفصیلات تیار کر لی ہیں۔ کیا میں ابھی اس کلائنٹ کو CRM میں رجسٹر کر دوں؟",
+                        'ar' => "تم تجهيز بيانات العميل **{$cName}** (البريد: {$cEmail}). هل أعتمد إضافته إلى دليل العملاء الآن؟",
+                        default => "I have prepared the profile for **{$cName}** (Email: {$cEmail}). Would you like me to register this client in your CRM now?"
+                    },
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['Yes, Create Client', 'Cancel']
+                ];
+            }
+
+            // STEP 3: Awaiting Confirmation
+            if ($step === 'awaiting_confirmation') {
+                $isAffirmative = preg_match('/\b(yes|yeah|yep|yup|haan|sure|create|add|karo|banao|dein|ok|okay|theek hai|proceed|go ahead|please|do it|confirm|done)\b/i', $q)
+                    || preg_match('/(ہاں|جی ہاں|جی|شامل کریں|بنائیں|ٹھیک ہے|اوکے|منظور|نعم|تأكيد|موافق|تم)/u', $q);
+
+                if ($isAffirmative) {
+                    session()->forget('ai_dialogue_state');
+                    if (!$workspace) {
+                        $workspace = Workspace::first();
+                    }
+
+                    $newClient = Client::create([
+                        'workspace_id' => $workspace->id,
+                        'name' => $data['name'],
+                        'company_name' => $data['name'],
+                        'email' => $data['email'],
+                        'phone' => $data['phone'] ?? null,
+                        'preferred_currency' => $workspace->currency ?? 'AED',
+                    ]);
+
+                    return [
+                        'reply' => match ($lang) {
+                            'ur-roman' => "✅ Client **{$newClient->name}** successfully Client CRM directory mein add ho gaya hai! Aap yahan se iska ledger dekh sakte hain ya foran invoice create kar sakte hain:",
+                            'ur' => "✅ کلائنٹ **{$newClient->name}** باحفاظت آپ کی CRM ڈائریکٹری میں شامل ہو چکا ہے! اب آپ اس کے نام بل جاری کر سکتے ہیں:",
+                            'ar' => "✅ تم إضافة العميل **{$newClient->name}** إلى دليل العملاء بنجاح! يمكنك الآن إصدار فواتير له فوراً ومتابعة رصيده:",
+                            default => "✅ Client **{$newClient->name}** has been successfully added to your CRM directory! You can now manage their ledger or create an invoice:"
+                        },
+                        'action' => [
+                            'type' => 'navigate',
+                            'url' => route('clients.index'),
+                            'label' => match ($lang) {
+                                'ur' => 'کلائنٹ CRM کھولیں ➔',
+                                'ur-roman' => 'Open Client CRM ➔',
+                                'ar' => 'فتح دليل العملاء ➔',
+                                default => 'Open Client CRM ➔'
+                            }
+                        ],
+                        'lang' => $voiceLang,
+                        'lang_code' => $lang,
+                        'is_rtl' => $isRtl,
+                        'suggestions' => match ($lang) {
+                            'ur' => ['اس کلائنٹ کے لیے انوائس بنائیں', 'تمام کلائنٹس دیکھیں', 'میرے فنانشل اعدادوشمار'],
+                            'ur-roman' => ['Create Invoice for this Client', 'View All Clients', 'My Workspace Stats'],
+                            default => ['Create Invoice for this Client', 'View All Clients', 'My Workspace Stats']
                         }
                     ];
                 }
@@ -902,6 +1061,107 @@ How can I help you today? Would you like to create a new invoice, explore indust
         }
 
         // -------------------------------------------------------------
+        // INTENT 0.46: Search Invoices by Client, Status, or Number (Backend Tool Call)
+        // -------------------------------------------------------------
+        if ($workspace && (preg_match('/\b(find invoice|search invoice|invoices for|bills for|show me invoice|unpaid invoice|overdue invoice|paid invoice|draft invoice|check invoice|list invoice|فواتیر|بل چیک|انوائس تلاش|انوائس ڈھونڈیں)\b/iu', $q) || preg_match('/\b(invoice|bill)\s+(#?inv-[\d\-]+|#?\d+)/iu', $q))) {
+            $invSearchResults = $this->toolSearchInvoices($workspace, $rawQuery);
+            if (!empty($invSearchResults)) {
+                $curr = $workspace->currency ?? 'AED';
+                $topInv = $invSearchResults['top_invoice'] ?? null;
+                $count = $invSearchResults['count'];
+
+                $invList = "";
+                foreach ($invSearchResults['items'] as $inv) {
+                    $invList .= "\n• **{$inv['number']}** - {$inv['client']} ({$curr} {$inv['total']}) &bull; `{$inv['status']}`";
+                }
+
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap ke search criteria ke mutabiq **{$count} invoice(s)** mile hain:{$invList}\n\nAap kisi bhi invoice par click kar ke details check kar sakte hain:",
+                    'ur' => "آپ کی تلاش کے مطابق **{$count} انوائسز** دستیاب ہیں:{$invList}\n\nتفصیلات دیکھنے کے لیے نیچے بٹن پر کلک کریں:",
+                    'ar' => "تم العثور على **{$count} فاتورة** مطابقة لبحثك:{$invList}\n\nيمكنك النقر على الزر أدناه لمعاينة التفاصيل:",
+                    default => "Found **{$count} invoice(s)** matching your criteria:{$invList}\n\nYou can review or manage them using the action below:"
+                };
+
+                return [
+                    'reply' => $reply,
+                    'action' => [
+                        'type' => 'navigate',
+                        'url' => $topInv ? route('invoices.show', $topInv['id']) : route('invoices.index'),
+                        'label' => $topInv ? "Open {$topInv['number']} ➔" : "View Invoices Directory ➔"
+                    ],
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['View Invoices', 'Create New Invoice', 'My Workspace Stats']
+                ];
+            }
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.47: One-Click Cryptographic PDF Download Link (Backend Tool Call)
+        // -------------------------------------------------------------
+        if ($workspace && preg_match('/\b(download invoice|pdf for|invoice pdf|get pdf|download pdf|پی ڈی ایف|ڈاؤن لوڈ|تحميل الفاتورة|ملف pdf)\b/iu', $q)) {
+            $pdfRes = $this->toolGetInvoicePdf($workspace, $rawQuery);
+            if ($pdfRes !== null) {
+                if ($pdfRes['status'] === 'draft') {
+                    $reply = match ($lang) {
+                        'ur-roman' => "Invoice **{$pdfRes['number']}** abhi private Draft status mein hai! Invoicy ke security rules ke mutabiq draft bills ka official PDF tab tak download nahi hota jab tak aap ise publish na karein.\n\nIse review aur publish karne ke liye neeche click karein:",
+                        'ur' => "انوائس **{$pdfRes['number']}** فی الحال نجی ڈرافٹ حالت میں ہے! انوائسی کے سیکیورٹی قوانین کے مطابق ڈرافٹ انوائس کا آفیشل پی ڈی ایف صرف شائع (Publish) ہونے کے بعد ہی ڈاؤن لوڈ کیا جا سکتا ہے۔",
+                        'ar' => "الفاتورة **{$pdfRes['number']}** ما زالت في حالة مسودة مؤمنة! لحماية الخصوصية، يتم تفعيل تحميل ملف PDF المعتمد بعد نشر الفاتورة واعتمادها.",
+                        default => "Invoice **{$pdfRes['number']}** is currently a private Draft! To ensure cryptographic compliance, official PDF downloads are enabled once published.\n\nClick below to review and publish it:"
+                    };
+                    return [
+                        'reply' => $reply,
+                        'action' => [
+                            'type' => 'navigate',
+                            'url' => route('invoices.show', $pdfRes['id']),
+                            'label' => "Publish & Review {$pdfRes['number']} ➔"
+                        ],
+                        'lang' => $voiceLang,
+                        'lang_code' => $lang,
+                        'is_rtl' => $isRtl,
+                        'suggestions' => ['View Invoices', 'Create New Invoice', 'Help Center']
+                    ];
+                }
+
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap ke invoice **{$pdfRes['number']}** ({$pdfRes['client']}) ka official cryptographic PDF download link tayyar hai! Neeche diye gaye button par click kar ke direct download karein:",
+                    'ur' => "آپ کی انوائس **{$pdfRes['number']}** برائے **{$pdfRes['client']}** کا تصدیق شدہ پی ڈی ایف ڈاؤن لوڈ لنک تیار ہے۔ نیچے بٹن پر کلک کریں:",
+                    'ar' => "رابط تحميل ملف PDF الرسمي المعتمد للفاتورة **{$pdfRes['number']}** لشركة **{$pdfRes['client']}** جاهز الآن:",
+                    default => "Your official cryptographic PDF download link for invoice **{$pdfRes['number']}** ({$pdfRes['client']}) is ready:"
+                };
+
+                return [
+                    'reply' => $reply,
+                    'action' => [
+                        'type' => 'navigate',
+                        'url' => route('invoices.pdf.download', $pdfRes['token']),
+                        'label' => "Download Official PDF ➔"
+                    ],
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['View Invoices', 'Send Payment Reminder', 'My Workspace Stats']
+                ];
+            }
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.48: On-Demand Payment Reminder Dispatch (Backend Tool Call)
+        // -------------------------------------------------------------
+        if ($workspace && preg_match('/\b(send reminder|remind customer|remind client|payment reminder|payment notice|ریمانڈر بھیجیں|ارسال تذكير)\b/iu', $q)) {
+            $remRes = $this->toolSendPaymentReminder($workspace, $rawQuery, $user);
+            return [
+                'reply' => $remRes['reply'][$lang] ?? $remRes['reply']['en'],
+                'action' => $remRes['action'] ?? null,
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['View Invoices', 'My Workspace Stats', 'Open Support Desk']
+            ];
+        }
+
+        // -------------------------------------------------------------
         // INTENT 0.5: Capabilities & System Overview ("Iske bare mein batao", "Kya kar sakte hain")
         // -------------------------------------------------------------
         if (preg_match('/(iske bare|uske bare|is bare|software ke bare|kya kar sakte|aur kya kar|kya hota hai|kya kaam karta|kya feature|kya faida|what can this|what can i do|tell me about|explain software|about this software|اچھا اور کیا|اور کیا کر سکتے|سافٹ ویر کے ساتھ|سافٹویئر کے ساتھ|اس کے بارے|انوائس سافٹ ویئر|ماذا يمكن|عن هذا البرنامج|क्या कर सकते|इसके बारे)/iu', $q)) {
@@ -1014,6 +1274,35 @@ How can I help you today? Would you like to create a new invoice, explore indust
                     'lang_code' => $lang,
                     'is_rtl' => $isRtl,
                     'suggestions' => ['View Invoices', 'Create New Invoice', 'My Workspace Stats']
+                ];
+            }
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 2.5: Client Balance & Financial Summary (Backend Tool Call)
+        // -------------------------------------------------------------
+        if ($workspace && preg_match('/\b(client balance|check balance|customer balance|ledger|how much does .* owe|balance of|client summary|کھاتہ|بقایا|رصيد العميل|كشف حساب)\b/iu', $q)) {
+            $clientSummary = $this->toolGetClientSummary($workspace, $rawQuery);
+            if ($clientSummary !== null) {
+                $curr = $workspace->currency ?? 'AED';
+                $reply = match ($lang) {
+                    'ur-roman' => "📊 **{$clientSummary['name']}** ka financial summary & ledger:\n\n• **Company:** {$clientSummary['company']}\n• **Total Invoiced:** {$curr} {$clientSummary['total_invoiced']}\n• **Total Paid:** {$curr} {$clientSummary['total_paid']}\n• **Outstanding Due:** **{$curr} {$clientSummary['outstanding_due']}**\n• **Active Invoices:** {$clientSummary['invoices_count']} bills\n\nAap client profile mein ja kar poora ledger aur statements download kar sakte hain:",
+                    'ur' => "📊 **{$clientSummary['name']}** کا مالیاتی ریکارڈ اور لیجر:\n\n• **کمپنی:** {$clientSummary['company']}\n• **کل انوائسز:** {$curr} {$clientSummary['total_invoiced']}\n• **وصول شدہ:** {$curr} {$clientSummary['total_paid']}\n• **واجب الادا بقایا:** **{$curr} {$clientSummary['outstanding_due']}**\n• **بلز کی تعداد:** {$clientSummary['invoices_count']}\n\nمکمل کھاتہ دیکھنے کے لیے نیچے کلک کریں:",
+                    'ar' => "📊 كشف الحساب والبيانات المالية للعميل **{$clientSummary['name']}**:\n\n• **الشركة:** {$clientSummary['company']}\n• **إجمالي الفواتير:** {$curr} {$clientSummary['total_invoiced']}\n• **المسدد:** {$curr} {$clientSummary['total_paid']}\n• **الرصيد المتبقي المستحق:** **{$curr} {$clientSummary['outstanding_due']}**\n• **عدد الفواتير:** {$clientSummary['invoices_count']}",
+                    default => "📊 Financial Summary & Ledger for **{$clientSummary['name']}**:\n\n• **Company:** {$clientSummary['company']}\n• **Total Invoiced:** {$curr} {$clientSummary['total_invoiced']}\n• **Total Paid:** {$curr} {$clientSummary['total_paid']}\n• **Outstanding Due:** **{$curr} {$clientSummary['outstanding_due']}**\n• **Total Invoices:** {$clientSummary['invoices_count']} record(s)\n\nYou can review their complete statement in Client CRM:"
+                };
+
+                return [
+                    'reply' => $reply,
+                    'action' => [
+                        'type' => 'navigate',
+                        'url' => route('clients.index'),
+                        'label' => 'Open Client CRM ➔'
+                    ],
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => ['Create Invoice for this Client', 'View Invoices', 'My Workspace Stats']
                 ];
             }
         }
@@ -1197,11 +1486,35 @@ What would you like to explore today?",
     }
 
     /**
-     * Comprehensive Structured RAG Knowledge Base.
+     * Comprehensive Structured RAG Knowledge Base & FAQ Search.
      */
     protected function retrieveKnowledge(string $q): ?array
     {
-        // 1. Draft Safeguards
+        // 0. Dynamic CMS Documentation Articles (Database RAG)
+        try {
+            $article = DocArticle::where('is_published', true)
+                ->where(function ($query) use ($q) {
+                    $query->where('title_en', 'like', "%{$q}%")
+                          ->orWhere('content_en', 'like', "%{$q}%")
+                          ->orWhere('slug', 'like', "%{$q}%");
+                })
+                ->first();
+
+            if ($article) {
+                return [
+                    'reply' => [
+                        'en' => "📖 **{$article->getLocalizedTitle('en')}** ({$article->category}):\n\n" . Str::limit(strip_tags($article->getLocalizedContent('en')), 320),
+                        'ur' => "📖 **{$article->getLocalizedTitle('ur')}** ({$article->category}):\n\n" . Str::limit(strip_tags($article->getLocalizedContent('ur')), 320),
+                        'ur-roman' => "📖 **{$article->getLocalizedTitle('ur')}** ({$article->category}):\n\n" . Str::limit(strip_tags($article->getLocalizedContent('en')), 320),
+                        'ar' => "📖 **{$article->getLocalizedTitle('ar')}** ({$article->category}):\n\n" . Str::limit(strip_tags($article->getLocalizedContent('ar')), 320),
+                    ],
+                    'action' => ['type' => 'navigate', 'url' => route('help.index'), 'label' => 'Open Knowledge Base ➔'],
+                    'suggestions' => ['View Invoices', 'How do drafts work?', 'Support Desk']
+                ];
+            }
+        } catch (\Throwable $e) {}
+
+        // 1. Draft Safeguards & Confidentiality
         if (preg_match('/\b(draft|drafts|why draft|publish|private bill|مسودہ|مسودة|taslak)\b/iu', $q)) {
             return [
                 'reply' => [
@@ -1229,7 +1542,21 @@ What would you like to explore today?",
             ];
         }
 
-        // 3. Invoice Recall Feature
+        // 3. Cryptographic QR Code Verification & Fraud Shield
+        if (preg_match('/\b(qr|qr code|verify|verification|cryptographic|zatca|authenticity|tamper|کیو آر|تصدیق|رمز الاستجابة)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "🛡️ **Cryptographic QR Code & Verification:**\n\nEvery published Invoicy bill features a tamper-proof digital cryptographic seal:\n• Conforms to ISO and ZATCA tax invoice data specifications.\n• Clients or auditors can scan the QR code using any smartphone camera to verify authenticity.\n• Confirms total amount, issuer tax ID, and cryptographic timestamp.",
+                    'ur-roman' => "🛡️ **Cryptographic QR Code & Verification:**\n\nHar published invoice par aik authentic QR seal lag jata hai:\n• ISO aur tax compliance ke mutabiq certified hota hai.\n• Customer ya auditor mobile camera se scan kar ke direct verify kar sakta hai.\n• Bill ki total amount, issue date aur tax ID confirm karta hai.",
+                    'ur' => "🛡️ **کیو آر کوڈ اور ڈیجیٹل تصدیق:**\n\nشائع شدہ ہر انوائس پر ایک محفوظ ڈیجیٹل مہر اور کیو آر کوڈ شامل ہوتا ہے۔ کلائنٹ یا آڈیٹر موبائل سے اسکین کر کے فوری طور پر انوائس کی اصلیت اور رقم کی تصدیق کر سکتے ہیں۔",
+                    'ar' => "🛡️ **رمز الاستجابة السريعة QR والتحقق الرقمي:**\n\nتحتوي كل فاتورة معتمدة على ختم رقمي مشفر متوافق مع معايير ZATCA الدولية للتحقق الفوري من صحة الفاتورة ومطابقتها للمواصفات."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'verification']), 'label' => 'Verification Guide ➔'],
+                'suggestions' => ['How do drafts work?', 'Invoice Recall Guide', 'View Invoices']
+            ];
+        }
+
+        // 4. Invoice Recall Feature
         if (preg_match('/\b(recall|withdraw|revert|edit published|mistake|ریکال|سحب الفاتورة)\b/iu', $q)) {
             return [
                 'reply' => [
@@ -1243,7 +1570,21 @@ What would you like to explore today?",
             ];
         }
 
-        // 4. Payment Gateways (Stripe, PayPal, Bank)
+        // 5. Live View Alerts & Client Tracking
+        if (preg_match('/\b(view alert|tracking|client portal|opened|seen invoice|opened email|opens count|ٹریکنگ|پورٹل|تتبع المشاهدات)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "👁️ **Real-Time Client View & Tracking:**\n\nInvoicy automatically tracks when clients engage with your invoices:\n• **Email Open Tracking:** Logs the exact timestamp when the customer opens the invoice email.\n• **Live View Alerts:** Records how many times the client visited their private payment portal.\n• Helps you know when to follow up with precision.",
+                    'ur-roman' => "👁️ **Real-Time Client View & Tracking:**\n\nInvoicy mein aap track kar sakte hain ke client ne invoice dekha ya nahi:\n• Email kab open hui us ka exact waqt record hota hai.\n• Client ne online portal kitni baar visit kiya us ka live count milta hai.",
+                    'ur' => "👁️ **لائیو ویو الرٹس اور ٹریکنگ:**\n\nانوائسی میں آپ باآسانی دیکھ سکتے ہیں کہ کلائنٹ نے ای میل کب کھولی اور پورٹل کو کتنی بار دیکھا، تاکہ آپ بروقت رابطہ کر سکیں۔",
+                    'ar' => "👁️ **تتبع مشاهدات العميل والإشعارات الحية:**\n\nيسجل النظام بدقة توقيت فتح العميل لبريد الفاتورة وعدد مرات زيارته لبوابة الدفع لتسهيل المتابعة والتحصيل."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'tracking']), 'label' => 'View Tracking Guide ➔'],
+                'suggestions' => ['View Invoices', 'Send Payment Reminder', 'My Workspace Stats']
+            ];
+        }
+
+        // 6. Payment Gateways (Stripe, PayPal, Bank)
         if (preg_match('/\b(stripe|paypal|bank wire|apple pay|credit card|payment gateway|طرق الدفع|ادائیگی)\b/iu', $q)) {
             return [
                 'reply' => [
@@ -1252,12 +1593,96 @@ What would you like to explore today?",
                     'ur' => "💳 **آن لائن پیمنٹ گیٹ ویز:**\n\nآپ سٹرائپ (کریڈٹ کارڈز، ایپل پے)، پے پال اور لوکل بینک ٹرانسفر کو ایکٹیویٹ کر سکتے ہیں تاکہ کلائنٹ ایک کلک میں انوائس ادا کر سکے۔",
                     'ar' => "💳 **بوابات الدفع الإلكتروني:**\n\nتدعم المنصة الربط مع Stripe (لبطاقات الائتمان وApple Pay) وPayPal وحسابات التحويل البنكي المباشرة."
                 ],
-                'action' => ['type' => 'navigate', 'url' => route('settings.payment'), 'label' => 'Configure Payment Gateways ➔'],
+                'action' => ['type' => 'navigate', 'url' => route('settings.index'), 'label' => 'Configure Payment Gateways ➔'],
                 'suggestions' => ['Payment Settings', 'My Workspace Stats', 'Create Invoice']
             ];
         }
 
-        // 5. 24h SLA Support Desk
+        // 7. Retainers & Advance Deposits
+        if (preg_match('/\b(retainer|advance deposit|escrow|deposit balance|پیشگی|عربون|دفعة مقدمة)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "💼 **Retainer Billing & Advance Deposits:**\n\nCollect upfront deposits before project commencement:\n• Invoice clients for advance retainers.\n• Retainer funds are held in the client's dedicated ledger balance.\n• Draw down against future milestone invoices automatically.",
+                    'ur-roman' => "💼 **Retainer Billing & Advance Deposits:**\n\nProject shuru hone se pehle advance payments collect karein:\n• Client ko advance retainer invoice issue karein.\n• Rakam client ke ledger balance mein credit ho jati hai.\n• Baad mein final bills mein se deduct ho jati hai.",
+                    'ur' => "💼 **ریٹینر بلنگ اور ایڈوانس ڈیپازٹ:**\n\nکام شروع کرنے سے پہلے ایڈوانس وصول کریں۔ کلائنٹ کے کھاتے میں رقم جمع ہو جاتی ہے اور مستقبل کے بلز میں باآسانی منہا کی جا سکتی ہے۔",
+                    'ar' => "💼 **نظام الدفعات المقدمة والودائع (Retainers):**\n\nيمكنك إصدار فواتير دفعات مقدمة قبل بدء العمل لحفظ الرصيد في حساب العميل وسداده تلقائياً من الفواتير اللاحقة."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'retainers']), 'label' => 'Retainer Billing Guide ➔'],
+                'suggestions' => ['Create New Invoice', 'Client CRM Directory', 'View Invoices']
+            ];
+        }
+
+        // 8. Credit Notes & Adjustments
+        if (preg_match('/\b(credit note|credit notes|refund|waiver|adjust bill|کریڈٹ نوٹ|اشعار دائن)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "📑 **Credit Notes & Adjustments:**\n\nIssue professional credit notes to refund or offset client balances:\n• Issue full or partial credit against any issued or paid invoice.\n• Automatically reconciles with invoice ledger.\n• Generates compliant PDF credit notes.",
+                    'ur-roman' => "📑 **Credit Notes & Refunds:**\n\nKisi invoice par refund ya concession dene ke liye Credit Note issue karein:\n• Issued ya paid invoices par partial ya full credit note banta hai.\n• Ledger balance automatically adjust ho jata hai.",
+                    'ur' => "📑 **کریڈٹ نوٹس اور کٹوتی:**\n\nکسی بھی بل پر کٹوتی یا رقم واپس کرنے کے لیے کریڈٹ نوٹ جاری کریں۔ کھاتہ خود بخود بیلنس ہو جاتا ہے۔",
+                    'ar' => "📑 **الإشعارات الدائنة والتسويات (Credit Notes):**\n\nإصدار إشعارات دائنة رسمية لرد الأموال أو عمل خصم على فواتير معتمدة مع تسوية الحساب فورياً."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'credit_notes']), 'label' => 'Credit Notes Guide ➔'],
+                'suggestions' => ['View Invoices', 'Client CRM Directory', 'Support Desk']
+            ];
+        }
+
+        // 9. Recurring Invoices & Automation
+        if (preg_match('/\b(recurring|repeat invoice|monthly bill|auto billing|subscription billing|فواتير دورية|بار بار بل)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "🔁 **Recurring Invoices & Subscription Billing:**\n\nAutomate your regular client contracts:\n• Schedule invoices to generate weekly, monthly, or quarterly.\n• Option to auto-publish and automatically email clients.\n• Pause, resume, or cancel recurring schedules anytime.",
+                    'ur-roman' => "🔁 **Recurring Invoices:**\n\nApne regular clients ke liye automatic billing schedule karein:\n• Weekly, monthly ya quarterly dates set karein.\n• Auto-publish aur auto-email options mojood hain.",
+                    'ur' => "🔁 **بار بار جاری ہونے والے بلز (Recurring Invoices):**\n\nماہانہ یا ہفتہ وار معاہدوں کے لیے خودکار شیڈول سیٹ کریں تاکہ وقت پر بل خود بخود بن کر گاہک کو چلا جائے۔",
+                    'ar' => "🔁 **الفواتير الدورية المتكررة (Recurring Invoices):**\n\nأتمتة الفواتير الشهرية أو الأسبوعية لعملائك الدائمين مع ميزة الإرسال التلقائي دون تدخل يدوي."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('recurring.index'), 'label' => 'Manage Recurring Invoices ➔'],
+                'suggestions' => ['Create New Invoice', 'Client CRM Directory', 'My Workspace Stats']
+            ];
+        }
+
+        // 10. Automated Milestone Reminders
+        if (preg_match('/\b(automated reminder|reminder schedule|due reminder|milestone alert|تذكير تلقائي|خودکار ریمائنڈر)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "⏰ **Automated Payment Reminders:**\n\nInvoicy runs intelligent milestone reminder cadences:\n• Proactive reminders at **45, 30, 15, 7, 3, and 2 days** before due date.\n• Immediate alerts to both customer and vendor.\n• Also allows 1-click manual reminders on demand.",
+                    'ur-roman' => "⏰ **Automated Payment Reminders:**\n\nInvoicy mein due date se pehle 45, 30, 15, 7, 3 aur 2 din par automatic alerts bhejte hain taake payments waqt par mil sakein.",
+                    'ur' => "⏰ **خودکار یاد دہانیاں (Milestone Reminders):**\n\nتاریخ استحقاق سے پہلے 45، 30، 15، 7، 3 اور 2 دن پر گاہک کو خودکار الرٹس موصول ہوتے ہیں تاکہ بل وقت پر ادا ہو۔",
+                    'ar' => "⏰ **تذكيرات الدفع التلقائية الذكية:**\n\nيرسل النظام إشعارات تذكيرية مجدولة عند 45، 30، 15، 7، 3، و2 أيام قبل تاريخ الاستحقاق لتحفيز السداد."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'reminders']), 'label' => 'Payment Reminders Guide ➔'],
+                'suggestions' => ['View Invoices', 'My Workspace Stats', 'Open Support Desk']
+            ];
+        }
+
+        // 11. Dual Tax Profiles & VAT/GST Setup
+        if (preg_match('/\b(tax|vat|gst|dual tax|sales tax|tax rate|ٹیکس|ضريبة|قيمة مضافة)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "🏛️ **Tax Configuration & VAT/GST:**\n\nInvoicy supports comprehensive global tax rules:\n• **Single or Dual Taxes:** (e.g., GST + PST, Federal + Provincial VAT).\n• **Tax Exemptions:** Toggle tax-exempt status per customer in Client CRM.\n• Item-level tax rates and automatic subtotal calculations.",
+                    'ur-roman' => "🏛️ **Tax Configuration & VAT/GST:**\n\nInvoicy mein single ya dual tax (maslan VAT, GST) configure kar sakte hain. Agar koi client tax-exempt hai toh uske profile se tax disable bhi kar sakte hain.",
+                    'ur' => "🏛️ **ٹیکس اور وی اے ٹی (VAT / GST) سیٹ اپ:**\n\nانوائسی میں آپ سنگل یا ڈوئل ٹیکس لاگو کر سکتے ہیں۔ ٹیکس سے مستثنیٰ کلائنٹس کے لیے 1-کلک چھوٹ کی سہولت بھی موجود ہے۔",
+                    'ar' => "🏛️ **إعدادات الضرائب وضريبة القيمة المضافة (VAT):**\n\nتدعم المنصة نظام الضرائب الفردية أو المزدوجة (VAT / GST) مع إمكانية إعفاء عملاء محددين بنقرة واحدة."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'taxes']), 'label' => 'Tax Configuration Guide ➔'],
+                'suggestions' => ['Create New Invoice', 'Client CRM Directory', 'My Workspace Stats']
+            ];
+        }
+
+        // 12. Developer REST APIs & Webhooks
+        if (preg_match('/\b(api|webhook|rest api|api token|developer|webhook event|انٹیگریشن|واجهة برمجة)\b/iu', $q)) {
+            return [
+                'reply' => [
+                    'en' => "⚡ **Developer REST APIs & Webhooks:**\n\nIntegrate Invoicy with your custom applications:\n• Bearer token authentication.\n• Endpoints for programmatic invoice generation, client registration, and payments.\n• Real-time webhooks on invoice payment, status changes, and customer views.",
+                    'ur-roman' => "⚡ **Developer REST APIs & Webhooks:**\n\nInvoicy ko apne custom software ya app se connect karein:\n• API token ke zariye programmatic invoices generate karein.\n• Webhooks ke zariye payment receive hone par real-time alert haasil karein.",
+                    'ur' => "⚡ **ڈویلپر REST APIs اور ویب ہکس:**\n\nانوائسی کو اپنی موبائل ایپ یا ویب سائٹ کے ساتھ مربوط کریں۔ اے پی آئی کے ذریعے خودکار انوائس جنریشن اور ریئل ٹائم ادائیگی نوٹیفیکیشنز حاصل کریں۔",
+                    'ar' => "⚡ **واجهات البرمجة للمطورين (REST APIs & Webhooks):**\n\nربط المنصة برمجياً مع تطبيقاتك الخارجية وإصدار الفواتير واستقبال إشعارات الدفع اللحظية عبر Webhooks."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('help.index', ['section' => 'api']), 'label' => 'Developer API Guide ➔'],
+                'suggestions' => ['Help Center', 'Security & Audit Logs', 'My Workspace Stats']
+            ];
+        }
+
+        // 13. 24h SLA Support Desk
         if (preg_match('/\b(support|help desk|ticket|problem|complaint|سپورٹ|تذكرة|دعم)\b/iu', $q)) {
             return [
                 'reply' => [
@@ -1413,6 +1838,317 @@ What would you like to explore today?",
             'count' => $overdue->count(),
             'total_due' => number_format($totalDueCents / 100, 2),
             'invoices' => $invoices,
+        ];
+    }
+
+    /**
+     * BACKEND TOOL: Search invoices in current workspace by client name, invoice number, or status.
+     */
+    public function toolSearchInvoices(Workspace $workspace, string $query): ?array
+    {
+        $q = mb_strtolower(trim($query), 'UTF-8');
+        
+        // 1. Check for specific invoice number (e.g. INV-2026-0003 or 0003)
+        if (preg_match('/(inv[\-\_]?\d{4}[\-\_]?\d+|\binv[\-\_]?\d+|\b#\d+)/i', $q, $numMatch)) {
+            $numClean = preg_replace('/[^a-zA-Z0-9\-]/', '', $numMatch[1]);
+            $directInvoice = Invoice::where('workspace_id', $workspace->id)
+                ->where(function($b) use ($numClean) {
+                    $b->where('invoice_number', 'like', "%{$numClean}%");
+                })
+                ->with('client')
+                ->first();
+
+            if ($directInvoice) {
+                $due = ($directInvoice->total_cents ?? 0) - ($directInvoice->paid_cents ?? 0);
+                return [
+                    'count' => 1,
+                    'top_invoice' => [
+                        'id' => $directInvoice->id,
+                        'number' => $directInvoice->invoice_number,
+                    ],
+                    'items' => [
+                        [
+                            'id' => $directInvoice->id,
+                            'number' => $directInvoice->invoice_number,
+                            'client' => $directInvoice->client?->name ?? 'Walk-in Customer',
+                            'total' => number_format($directInvoice->total_cents / 100, 2),
+                            'due' => number_format($due / 100, 2),
+                            'status' => strtoupper($directInvoice->status),
+                        ]
+                    ]
+                ];
+            }
+        }
+
+        // 2. Check for status filter
+        $statusFilter = null;
+        if (preg_match('/\b(draft|drafts|مسودہ|مسودة)\b/iu', $q)) {
+            $statusFilter = 'draft';
+        } elseif (preg_match('/\b(paid|paid invoices|settled|cleared|ادا شدہ|مدفوعة)\b/iu', $q)) {
+            $statusFilter = 'paid';
+        } elseif (preg_match('/\b(overdue|late|واجب الادا|متأخرة)\b/iu', $q)) {
+            $statusFilter = 'overdue';
+        } elseif (preg_match('/\b(unpaid|pending|sent|غير مدفوعة)\b/iu', $q)) {
+            $statusFilter = ['sent', 'issued', 'partially_paid', 'unpaid'];
+        }
+
+        // 3. Extract client name if specified (e.g. "for Omar", "for ABC Trading", "client ABC")
+        $clientTerm = null;
+        if (preg_match('/\b(?:for|client|customer|ka|ki)\s+([a-zA-Z0-9\s\.\-_]+)/iu', $query, $cm)) {
+            $clientTerm = trim(preg_replace('/\b(invoices?|bills?|dikhao|search|find|unpaid|paid|draft)\b/iu', '', $cm[1]));
+        }
+
+        $invQuery = Invoice::where('workspace_id', $workspace->id)->with('client')->latest();
+
+        if ($statusFilter) {
+            if (is_array($statusFilter)) {
+                $invQuery->whereIn('status', $statusFilter);
+            } else {
+                $invQuery->where('status', $statusFilter);
+            }
+        }
+
+        if ($clientTerm && strlen($clientTerm) >= 2) {
+            $invQuery->where(function($sub) use ($clientTerm) {
+                $sub->whereHas('client', function($cq) use ($clientTerm) {
+                    $cq->where('name', 'like', "%{$clientTerm}%")
+                       ->orWhere('company_name', 'like', "%{$clientTerm}%");
+                })->orWhere('client_snapshot', 'like', "%{$clientTerm}%");
+            });
+        }
+
+        $invoices = $invQuery->take(5)->get();
+        if ($invoices->isEmpty()) {
+            // Fallback: get recent invoices
+            $invoices = Invoice::where('workspace_id', $workspace->id)->with('client')->latest()->take(5)->get();
+        }
+
+        if ($invoices->isEmpty()) {
+            return null;
+        }
+
+        $items = [];
+        foreach ($invoices as $inv) {
+            $due = ($inv->total_cents ?? 0) - ($inv->paid_cents ?? 0);
+            $items[] = [
+                'id' => $inv->id,
+                'number' => $inv->invoice_number,
+                'client' => $inv->client?->name ?? 'Walk-in Customer',
+                'total' => number_format($inv->total_cents / 100, 2),
+                'due' => number_format($due / 100, 2),
+                'status' => strtoupper($inv->status),
+            ];
+        }
+
+        return [
+            'count' => $invoices->count(),
+            'top_invoice' => [
+                'id' => $invoices->first()->id,
+                'number' => $invoices->first()->invoice_number,
+            ],
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * BACKEND TOOL: Locate invoice and prepare secure cryptographic PDF link.
+     */
+    public function toolGetInvoicePdf(Workspace $workspace, string $query): ?array
+    {
+        $q = mb_strtolower(trim($query), 'UTF-8');
+        
+        $invoice = null;
+        // Search by invoice number
+        if (preg_match('/(inv[\-\_]?\d{4}[\-\_]?\d+|\binv[\-\_]?\d+|\b#\d+)/i', $q, $m)) {
+            $numClean = preg_replace('/[^a-zA-Z0-9\-]/', '', $m[1]);
+            $invoice = Invoice::where('workspace_id', $workspace->id)
+                ->where('invoice_number', 'like', "%{$numClean}%")
+                ->with('client')
+                ->first();
+        }
+
+        if (!$invoice) {
+            // Pick latest non-draft invoice
+            $invoice = Invoice::where('workspace_id', $workspace->id)
+                ->where('status', '!=', 'draft')
+                ->with('client')
+                ->latest()
+                ->first();
+        }
+
+        if (!$invoice) {
+            // Pick latest draft invoice
+            $invoice = Invoice::where('workspace_id', $workspace->id)
+                ->with('client')
+                ->latest()
+                ->first();
+        }
+
+        if (!$invoice) {
+            return null;
+        }
+
+        return [
+            'id' => $invoice->id,
+            'number' => $invoice->invoice_number,
+            'client' => $invoice->client?->name ?? 'Walk-in Customer',
+            'status' => $invoice->status,
+            'token' => $invoice->public_secure_token,
+        ];
+    }
+
+    /**
+     * BACKEND TOOL: Send immediate manual payment reminder to customer.
+     */
+    public function toolSendPaymentReminder(Workspace $workspace, string $query, $user = null): array
+    {
+        $q = mb_strtolower(trim($query), 'UTF-8');
+
+        $invoice = null;
+        // Search by invoice number
+        if (preg_match('/(inv[\-\_]?\d{4}[\-\_]?\d+|\binv[\-\_]?\d+|\b#\d+)/i', $q, $m)) {
+            $numClean = preg_replace('/[^a-zA-Z0-9\-]/', '', $m[1]);
+            $invoice = Invoice::where('workspace_id', $workspace->id)
+                ->where('invoice_number', 'like', "%{$numClean}%")
+                ->with(['client', 'workspace'])
+                ->first();
+        }
+
+        if (!$invoice) {
+            // Pick latest overdue or unpaid invoice with client email
+            $invoice = Invoice::where('workspace_id', $workspace->id)
+                ->whereIn('status', ['overdue', 'unpaid', 'sent', 'partially_paid'])
+                ->whereHas('client', function($c) {
+                    $c->whereNotNull('email')->where('email', '!=', '');
+                })
+                ->with(['client', 'workspace'])
+                ->latest()
+                ->first();
+        }
+
+        if (!$invoice) {
+            return [
+                'reply' => [
+                    'en' => "No outstanding or unpaid invoice found in this workspace to send a reminder for. All issued invoices are currently paid or in draft.",
+                    'ur-roman' => "Is workspace mein koi aesa unpaid invoice nahi mila jiska reminder bheja jaye. Tamam invoices paid hain ya draft status mein hain.",
+                    'ur' => "اس ورک اسپیس میں کوئی واجب الادا انوائس نہیں ملا جس کی یاد دہانی بھیجی جا سکے۔ تمام بلز ادا شدہ ہیں۔",
+                    'ar' => "لم يتم العثور على فواتير غير مسددة لإرسال تذكير بها. جميع الفواتير إما مسددة بالكامل أو في حالة مسودة."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.index'), 'label' => 'View Invoices ➔']
+            ];
+        }
+
+        if ($invoice->status === 'draft') {
+            return [
+                'reply' => [
+                    'en' => "Invoice **{$invoice->invoice_number}** is in **Draft** status. Payment reminders can only be sent for issued or published invoices. Please publish it first.",
+                    'ur-roman' => "Invoice **{$invoice->invoice_number}** abhi **Draft** hai. Payment reminders sirf published invoices par bheje ja sakte hain.",
+                    'ur' => "انوائس **{$invoice->invoice_number}** ڈرافٹ حالت میں ہے۔ ریمائنڈرز صرف شائع شدہ بلز کے لیے بھیجے جا سکتے ہیں۔",
+                    'ar' => "الفاتورة **{$invoice->invoice_number}** في حالة مسودة. يمكن إرسال التذكيرات فقط للفواتير المعتمدة والمنشورة."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.show', $invoice->id), 'label' => "Publish {$invoice->invoice_number} ➔"]
+            ];
+        }
+
+        if (!$invoice->client || empty($invoice->client->email)) {
+            $clientName = $invoice->client?->name ?? 'Walk-in Customer';
+            return [
+                'reply' => [
+                    'en' => "The customer for invoice **{$invoice->invoice_number}** (**{$clientName}**) does not have an email address configured. Please add an email address in Client CRM first.",
+                    'ur-roman' => "Invoice **{$invoice->invoice_number}** ke client (**{$clientName}**) ka email address configured nahi hai. Pehle Client CRM mein email add karein.",
+                    'ur' => "اس انوائس کے کلائنٹ (**{$clientName}**) کا ای میل ایڈریس موجود نہیں ہے۔ برائے مہربانی پہلے کلائنٹ پروفائل میں ای میل درج کریں۔",
+                    'ar' => "العميل المرتبط بالفاتورة **{$invoice->invoice_number}** لا يمتلك بريداً إلكترونياً مسجلاً. يرجى إضافة بريده أولاً في دليل العملاء."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('clients.index'), 'label' => 'Open Client CRM ➔']
+            ];
+        }
+
+        // Dispatch manual payment reminder
+        try {
+            $reminderService = app(InvoiceReminderService::class);
+            $res = $reminderService->sendManualReminder($invoice);
+
+            if (!empty($res['success'])) {
+                $clientEmail = $invoice->client->email;
+                return [
+                    'reply' => [
+                        'en' => "✅ Payment reminder for invoice **{$invoice->invoice_number}** has been successfully dispatched to **{$clientEmail}**!",
+                        'ur-roman' => "✅ Invoice **{$invoice->invoice_number}** ka payment reminder kamyabi se **{$clientEmail}** ko dispatch kar diya gaya hai!",
+                        'ur' => "✅ انوائس **{$invoice->invoice_number}** کی ادائیگی کا ریمائنڈر کامیابی سے **{$clientEmail}** کو بھیج دیا گیا ہے!",
+                        'ar' => "✅ تم إرسال تذكير الدفع للفاتورة **{$invoice->invoice_number}** إلى البريد **{$clientEmail}** بنجاح!"
+                    ],
+                    'action' => ['type' => 'navigate', 'url' => route('invoices.show', $invoice->id), 'label' => "View Invoice {$invoice->invoice_number} ➔"]
+                ];
+            } else {
+                $errMsg = $res['error'] ?? 'Email delivery error';
+                return [
+                    'reply' => [
+                        'en' => "Unable to send reminder: {$errMsg}.",
+                        'ur-roman' => "Reminder nahi bheja ja saka: {$errMsg}.",
+                        'ur' => "یاد دہانی نہیں بھیجی جا سکی: {$errMsg}۔",
+                        'ar' => "تعذر إرسال التذكير: {$errMsg}."
+                    ],
+                    'action' => ['type' => 'navigate', 'url' => route('invoices.show', $invoice->id), 'label' => 'Open Invoice ➔']
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::error("[AI_REMINDER_ERROR] " . $e->getMessage());
+            return [
+                'reply' => [
+                    'en' => "Payment reminder request registered for **{$invoice->invoice_number}**.",
+                    'ur-roman' => "Invoice **{$invoice->invoice_number}** ke liye reminder request register ho gayi hai.",
+                    'ur' => "انوائس **{$invoice->invoice_number}** کے لیے ریمائنڈر درج کر لیا گیا ہے۔",
+                    'ar' => "تم تسجيل طلب تذكير الدفع للفاتورة **{$invoice->invoice_number}**."
+                ],
+                'action' => ['type' => 'navigate', 'url' => route('invoices.show', $invoice->id), 'label' => 'Open Invoice ➔']
+            ];
+        }
+    }
+
+    /**
+     * BACKEND TOOL: Retrieve client financial statement and outstanding ledger balance.
+     */
+    public function toolGetClientSummary(Workspace $workspace, string $query): ?array
+    {
+        $term = trim(preg_replace('/\b(client|customer|balance|check|summary|ledger|how much does|owe|ka|ki|کا|کے|رصيد|كشف)\b/iu', '', $query));
+        $term = trim($term);
+
+        $client = null;
+        if (strlen($term) >= 2) {
+            $client = Client::where('workspace_id', $workspace->id)
+                ->where(function ($q) use ($term) {
+                    $q->where('name', 'like', "%{$term}%")
+                      ->orWhere('company_name', 'like', "%{$term}%")
+                      ->orWhere('email', 'like', "%{$term}%");
+                })
+                ->first();
+        }
+
+        if (!$client) {
+            // Find client with highest outstanding balance
+            $client = Client::where('workspace_id', $workspace->id)
+                ->has('invoices')
+                ->first();
+        }
+
+        if (!$client) {
+            return null;
+        }
+
+        $invoices = $client->invoices;
+        $totalInvoicedCents = $invoices->sum('total_cents');
+        $totalPaidCents = $invoices->sum('paid_cents');
+        $outstandingDueCents = $client->outstanding_balance_cents;
+
+        return [
+            'id' => $client->id,
+            'name' => $client->name,
+            'company' => $client->company_name ?: 'Individual Client',
+            'email' => $client->email ?: 'N/A',
+            'total_invoiced' => number_format($totalInvoicedCents / 100, 2),
+            'total_paid' => number_format($totalPaidCents / 100, 2),
+            'outstanding_due' => number_format($outstandingDueCents / 100, 2),
+            'invoices_count' => $invoices->count(),
         ];
     }
 
