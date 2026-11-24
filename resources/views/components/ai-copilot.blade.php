@@ -6,6 +6,23 @@
     }
     $isTenantAiActive = ($tenantAiConfig !== '0' && $tenantAiConfig !== false && $tenantAiConfig !== 0);
     $isSuperAdminUser = $user && $user->isSuperAdmin();
+
+    $activeLocale = app()->getLocale();
+    if (!in_array($activeLocale, ['en', 'ur', 'ar', 'hi', 'tr', 'es', 'fr', 'de', 'zh'])) {
+        $activeLocale = session('locale', 'en');
+    }
+    $speechLangTag = match($activeLocale) {
+        'ur' => 'ur-PK',
+        'ar' => 'ar-SA',
+        'hi' => 'hi-IN',
+        'tr' => 'tr-TR',
+        'es' => 'es-ES',
+        'fr' => 'fr-FR',
+        'de' => 'de-DE',
+        'zh' => 'zh-CN',
+        default => 'en-US'
+    };
+    $isPortalRtl = in_array($activeLocale, ['ur', 'ar']);
 @endphp
 
 @if(!$user || (!$isTenantAiActive && !$isSuperAdminUser))
@@ -42,9 +59,10 @@
                 isSpeaking: false,
                 isMuted: false,
                 soundEnabled: true,
-                detectedLang: 'en',
-                isRtl: false,
-                speechLang: 'en-US',
+                detectedLang: '{{ $activeLocale }}',
+                selectedLang: '{{ $activeLocale }}',
+                isRtl: {{ $isPortalRtl ? 'true' : 'false' }},
+                speechLang: '{{ $speechLangTag }}',
                 inputMessage: '',
                 interimTranscript: '',
                 currentlySpeakingMsgId: null,
@@ -145,7 +163,8 @@
                 messages: [],
 
                 init() {
-                    const initialLang = this.languages.auto;
+                    const activeLoc = '{{ $activeLocale }}';
+                    const initialLang = this.languages[activeLoc] || this.languages.auto;
                     const initialId = 'msg-init-' + Date.now();
                     this.messages = [{
                         id: initialId,
@@ -153,6 +172,9 @@
                         text: initialLang.greeting,
                         suggestions: initialLang.suggestions
                     }];
+                    this.detectedLang = activeLoc;
+                    this.speechLang = initialLang.tag || '{{ $speechLangTag }}';
+                    this.isRtl = ['ur', 'ar'].includes(activeLoc);
 
                     this.loadVoices();
                     if (this.synth && this.synth.onvoiceschanged !== undefined) {
@@ -164,6 +186,10 @@
                     window.addEventListener('open-ai-copilot', () => {
                         this.isOpen = true;
                         this.scrollToBottom();
+                    });
+
+                    window.addEventListener('ai-agent-reset', () => {
+                        this.clearChat();
                     });
                 },
 
@@ -841,10 +867,35 @@
 
                 async clearChat() {
                     this.stopSpeech();
+                    if (this.isListening && this.recognition) {
+                        try { this.recognition.stop(); } catch(e) {}
+                        this.isListening = false;
+                    }
+                    this.voiceState = 'idle';
+                    this.interimTranscript = '';
+                    this._accumulatedTranscript = '';
+                    this.conversationId = null;
+
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const token = csrfMeta ? csrfMeta.getAttribute('content') : '{{ csrf_token() }}';
+
                     try {
-                        await fetch('{{ route('ai.copilot.clear') }}', { method: 'POST' });
+                        await fetch('{{ route('ai.copilot.clear') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': token
+                            }
+                        });
                     } catch (e) {}
-                    const langObj = this.currentLangObj;
+
+                    const activeLoc = '{{ $activeLocale }}';
+                    const langObj = this.languages[activeLoc] || this.currentLangObj;
+                    this.detectedLang = activeLoc;
+                    this.speechLang = langObj.tag || '{{ $speechLangTag }}';
+                    this.isRtl = ['ur', 'ar'].includes(activeLoc);
+
                     this.messages = [{
                         id: 'msg-clear-' + Date.now(),
                         sender: 'ai',

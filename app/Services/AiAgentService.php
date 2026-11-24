@@ -393,16 +393,45 @@ class AiAgentService
             if ($step === 'awaiting_amount') {
                 $parsed = $this->extractAmount($rawQuery);
                 if (!$parsed || $parsed['amount'] <= 0) {
+                    // Check if user is asking conversational voice / clarity questions
+                    if (preg_match('/(آواز آ رہی|آواز آ رہی ہے|اواز ارہی ہے|سن رہے ہو|میری آواز|can you hear me|are you listening|hear me|awaz aa rahi|sun rahe)/iu', $rawQuery)) {
+                        return [
+                            'reply' => match ($lang) {
+                                'ur' => "جی ہاں! مجھے آپ کی آواز بالکل صاف آ رہی ہے۔ آپ جو بھی رقم (مثلاً 1,000 یا 2,500 یا اپنی مرضی کی کوئی بھی رقم) بولیں گے، میں وہ درج کر لوں گا۔",
+                                'ur-roman' => "Jee haan! Mujhe aap ki awaaz bilkul saaf aa rahi hai. Aap jo bhi amount (maslan 1,000 ya 2,500 ya koi bhi custom rakam) bolenge, main note kar loon ga.",
+                                default => "Yes! I can hear you loud and clear. Please speak or enter the amount you would like to set (e.g. 1,000 or 2,500 AED or any custom number)."
+                            },
+                            'lang' => $voiceLang,
+                            'lang_code' => $lang,
+                            'is_rtl' => $isRtl,
+                            'suggestions' => ['1,000 AED', '1,100 AED', '2,500 AED', 'Cancel']
+                        ];
+                    }
+
+                    if (preg_match('/(سمجھ میں آئی|سمجھ ائی|اماؤنٹ سمجھ|کسٹم اماؤنٹ|فکس اماؤنٹ|ڈائریکٹ اماؤنٹ|لوور اماؤنٹ|did you understand|custom amount|fixed amount|direct amount|lower amount)/iu', $rawQuery)) {
+                        return [
+                            'reply' => match ($lang) {
+                                'ur' => "آپ بالکل اپنی مرضی کی کوئی بھی رقم بتا سکتے ہیں، ضروری نہیں کہ وہ 2500 ہی ہو۔ آپ 1,000، 1,100، یا کوئی بھی رقم بول سکتے ہیں۔ آپ اس انوائس کے لیے کتنی رقم درج کرنا چاہتے ہیں؟",
+                                'ur-roman' => "Aap bilkul apni marzi ki koi bhi amount bata sakte hain, maslan 1,000, 1,100, 2,500 ya koi bhi custom number. Aap kitni amount enter karna chahte hain?",
+                                default => "You can specify any custom amount you like, such as 1,000, 1,100, 2,500 AED, or any other value. What amount should I enter for this invoice?"
+                            },
+                            'lang' => $voiceLang,
+                            'lang_code' => $lang,
+                            'is_rtl' => $isRtl,
+                            'suggestions' => ['1,000 AED', '1,100 AED', '2,500 AED', '5,000 AED', 'Cancel']
+                        ];
+                    }
+
                     return [
                         'reply' => match ($lang) {
-                            'ur-roman' => "Meherbani kar ke sahi amount number mein batayein (maslan: 2500 AED ya 5000).",
-                            'ur' => "براہ کرم درست رقم درج کریں (مثلاً: 2500 AED یا 5000)۔",
-                            default => "Please specify a valid numeric amount (e.g. 2,500 AED or 5,000 USD)."
+                            'ur-roman' => "Meherbani kar ke sahi amount number mein batayein (maslan: 1000, 2500 AED ya koi bhi figure).",
+                            'ur' => "براہ کرم درست رقم درج کریں (مثلاً: 1000، 2500 AED یا اپنی مرضی کی کوئی بھی رقم)۔",
+                            default => "Please specify a valid numeric amount (e.g. 1,000, 2,500 AED or 5,000 USD)."
                         },
                         'lang' => $voiceLang,
                         'lang_code' => $lang,
                         'is_rtl' => $isRtl,
-                        'suggestions' => ['2,500 AED', '5,000 AED', 'Cancel']
+                        'suggestions' => ['1,000 AED', '1,100 AED', '2,500 AED', 'Cancel']
                     ];
                 }
 
@@ -428,7 +457,23 @@ class AiAgentService
 
             // STEP 3: Awaiting Due Date
             if ($step === 'awaiting_due_date') {
-                $data['due_date'] = trim($rawQuery);
+                $isProceedOnly = preg_match('/\b(generate|create|proceed|go ahead|banao|kar do|chalo|ok|okay|draft|theek hai)\b/i', $rawQuery)
+                    || preg_match('/(ٹھیک ہے|جنریٹ|ڈرافٹ|بناؤ|کرو|چلو|اوکے|منظور|تأكيد|إنشاء)/u', $rawQuery);
+
+                $hasDateKeywords = preg_match('/\b(day|days|month|year|receipt|tareekh|din|mahina|fori|today|tomorrow|week)\b/i', $rawQuery)
+                    || preg_match('/(دن|مہینہ|فوری|تاریخ|آج|کل|ہفتہ|يوم|شهر|تاريخ)/u', $rawQuery);
+
+                if ($isProceedOnly && !$hasDateKeywords) {
+                    $data['due_date'] = match ($lang) {
+                        'ur' => '15 دن بعد (معیاری)',
+                        'ur-roman' => '15 din baad (standard)',
+                        'ar' => 'بعد 15 يوماً (قياسي)',
+                        default => 'After 15 days'
+                    };
+                } else {
+                    $data['due_date'] = trim($rawQuery);
+                }
+
                 $flowState['step'] = 'awaiting_confirmation';
                 $flowState['data'] = $data;
                 session()->put('ai_dialogue_state', $flowState);
@@ -453,7 +498,10 @@ class AiAgentService
 
             // STEP 4: Awaiting Confirmation
             if ($step === 'awaiting_confirmation') {
-                if (preg_match('/\b(yes|yeah|yep|yup|haan|sure|create|banao|bana do|karo|bana dein|جی|نعم|ok|okay|theek hai|proceed|go ahead|please|do it|confirm|done|ahead)\b/iu', $q)) {
+                $isAffirmative = preg_match('/\b(yes|yeah|yep|yup|haan|sure|create|banao|bana do|karo|bana dein|ok|okay|theek hai|proceed|go ahead|please|do it|confirm|done|ahead)\b/i', $q)
+                    || preg_match('/(ہاں|جی ہاں|جی|کرو|کریٹ|کرییٹ|بنائیں|بناؤ|بنا دو|بنا دیں|ٹھیک ہے|اوکے|منظور|چلو|نعم|تأكيد|إنشاء|موافق|تم)/u', $q);
+
+                if ($isAffirmative) {
                     session()->forget('ai_dialogue_state');
 
                     if (!$workspace) {
@@ -569,9 +617,9 @@ How can I help you today? Would you like to create a new invoice, explore indust
         }
 
         // -------------------------------------------------------------
-        // INTENT 0.2: Language Capabilities ("Can you speak Urdu", "Urdu aati hai", etc.)
+        // INTENT 0.2: Language Capabilities ("Can you speak Urdu", "Urdu aati hai", "Nahin to aap Urdu mein samjha sakte")
         // -------------------------------------------------------------
-        if (preg_match('/(can you speak (urdu|arabic|hindi|english)|speak in (urdu|arabic|hindi)|urdu bol sakte|urdu aati|urdu mein|urdu me baat|kya urdu|urdu bolo|عربی بولتے|تتكلم عربي|اردو بول سکتے|اردو میں بات|اردو آتی ہے)/iu', $q)) {
+        if (preg_match('/(can you speak (urdu|arabic|hindi|english)|speak in (urdu|arabic|hindi)|urdu bol sakte|urdu aati|urdu mein|urdu me baat|urdu me|urdu mein nahin|kya urdu|urdu bolo|urdu me samjha|urdu mein samjha|samjha sakte|urdu samajh|عربی بولتے|تتكلم عربي|اردو بول سکتے|اردو میں بات|اردو آتی ہے|اردو میں سمجھا|اردو بولیں)/iu', $q)) {
             $reply = match ($lang) {
                 'ur' => "جی ہاں، بالکل! میں اردو، رومن اردو، انگریزی، عربی، ہندی اور دیگر 10 زبانوں میں مکمل روانی سے بات اور وائس چیٹ کر سکتا ہوں۔ آپ مجھ سے بلا جھجھک اردو میں کچھ بھی پوچھ سکتے ہیں یا مائیک سے بات کر سکتے ہیں!",
                 'ur-roman' => "Jee haan, bilkul! Main Urdu, Roman Urdu, English, Arabic, Hindi aur deegar 10 zabaano mein baat kar sakta hoon. Aap mujhse bol kar ya likh kar Urdu mein jo chahein pooch sakte hain!",
@@ -590,6 +638,58 @@ How can I help you today? Would you like to create a new invoice, explore indust
                     default => ['Create new invoice', 'How do I create invoices?', 'My Workspace Stats', 'View Support Tickets']
                 }
             ];
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.25: Inspect & Open Draft Invoice ("open this draft", "open draft invoice", "open this talk noise", "I want to check draft invoice", "I want to take the draught", "draft invoice kholo", "draft dikhao")
+        // -------------------------------------------------------------
+        if (preg_match('/\b(open|check|view|show|dekho|kholo|dikhao|dikhayein|take)\s+.*?\b(draft|drafts|talk noise|draught|dra)\b/iu', $q)
+            || preg_match('/\b(draft|drafts|draught|talk noise)\b.*?\b(kholo|dekho|open|show|view|check|dikhao)\b/iu', $q)
+            || preg_match('/(ڈرافٹ انوائس کھولیں|ڈرافٹ دکھائیں|ڈرافٹ چیک کریں|اوپن ڈرافٹ|ڈرافٹ انوائس|فتح المسودة|عرض المسودة)/u', $q)) {
+
+            $draft = null;
+            if ($workspace) {
+                $draft = $workspace->invoices()->where('status', 'draft')->latest()->first();
+            }
+            if (!$draft && $user) {
+                $draft = Invoice::where('user_id', $user->id)->where('status', 'draft')->latest()->first();
+            }
+            if (!$draft) {
+                $draft = Invoice::where('status', 'draft')->latest()->first();
+            }
+
+            if ($draft) {
+                $invNum = $draft->invoice_number;
+                $custName = $draft->client ? $draft->client->name : ($draft->customer_name ?? 'Walk-in Customer');
+                $amtStr = number_format($draft->total_amount, 2) . ' ' . ($draft->currency ?? 'AED');
+
+                return [
+                    'reply' => match ($lang) {
+                        'ur' => "آپ کا ڈرافٹ انوائس **{$invNum}** برائے **{$custName}** ({$amtStr}) تیار ہے۔ آپ نیچے بٹن پر کلک کر کے اسے ابھی دیکھ سکتے ہیں اور شائع کر سکتے ہیں:",
+                        'ur-roman' => "Aap ka draft invoice **{$invNum}** for **{$custName}** ({$amtStr}) ready hai. Aap neeche diye gaye button par click kar ke ise check aur publish kar sakte hain:",
+                        'ar' => "مسودة الفاتورة **{$invNum}** لشركة **{$custName}** بمبلغ ({$amtStr}) جاهزة للمراجعة. يمكنك النقر على الزر أدناه لمعاينتها ونشرها فوراً:",
+                        default => "Your draft invoice **{$invNum}** for **{$custName}** ({$amtStr}) is ready. Click the button below to review and publish it:"
+                    },
+                    'action' => [
+                        'type' => 'navigate',
+                        'url' => route('invoices.show', $draft->id),
+                        'label' => match ($lang) {
+                            'ur' => "ڈرافٹ انوائس {$invNum} کھولیں ➔",
+                            'ur-roman' => "Open Draft {$invNum} ➔",
+                            'ar' => "فتح المسودة {$invNum} ➔",
+                            default => "Open Draft {$invNum} ➔"
+                        }
+                    ],
+                    'lang' => $voiceLang,
+                    'lang_code' => $lang,
+                    'is_rtl' => $isRtl,
+                    'suggestions' => match ($lang) {
+                        'ur' => ['تمام انوائسز دیکھیں', 'ایک اور انوائس بنائیں', 'سپورٹ ڈیسک'],
+                        'ur-roman' => ['View All Invoices', 'Create New Invoice', 'Open Support Desk'],
+                        default => ['View Invoices', 'Create New Invoice', 'Open Support Desk']
+                    }
+                ];
+            }
         }
 
         // -------------------------------------------------------------
@@ -1298,17 +1398,64 @@ What would you like to explore today?",
     /**
      * Extract amount and currency from text.
      */
+    /**
+     * Extract numeric amount and currency from text, with full support for:
+     * - Arabic-Indic / Persian numerals (۰۱۲۳۴۵۶۷۸۹ / ٠١٢٣٤٥٦٧٨٩)
+     * - Standard ASCII digits (1000, 2500.50)
+     * - Spoken word numbers in Urdu, Hindi & English (e.g. ایک ہزار, 11 سو, dhai hazar, eleven hundred)
+     */
     protected function extractAmount(string $text): ?array
     {
-        if (preg_match('/([\d\.\,]+)\s*(aed|usd|eur|gbp|sar|pkr|inr|درهم|دولار|روپے)?/iu', $text, $m)) {
+        // 1. Normalize Arabic-Indic / Urdu / Persian numerals to ASCII
+        $eastern = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        $western = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        $normalized = str_replace($eastern, $western, $text);
+
+        // 2. Identify currency
+        $curr = 'AED';
+        if (preg_match('/(aed|usd|eur|gbp|sar|pkr|inr|درهم|دولار|روپے|rupees|dollar|dirham)/iu', $normalized, $currMatch)) {
+            $matchedCurr = strtolower($currMatch[1]);
+            $curr = match ($matchedCurr) {
+                'usd', 'دولار', 'dollar' => 'USD',
+                'eur' => 'EUR',
+                'gbp' => 'GBP',
+                'sar' => 'SAR',
+                'pkr', 'روپے', 'rupees' => 'PKR',
+                'inr' => 'INR',
+                default => 'AED'
+            };
+        }
+
+        // 3. Spoken word amounts in Urdu / Hindi / English
+        $wordMap = [
+            'ڈھائی ہزار' => 2500, 'dhai hazar' => 2500, 'dhayi hazar' => 2500,
+            'گیارہ سو' => 1100, '11 سو' => 1100, 'gyarah sau' => 1100, 'gyara sau' => 1100, 'eleven hundred' => 1100,
+            'بارہ سو' => 1200, '12 سو' => 1200, 'twelve hundred' => 1200,
+            'پندرہ سو' => 1500, '15 سو' => 1500, 'fifteen hundred' => 1500,
+            'ایک ہزار' => 1000, '1 ہزار' => 1000, 'ek hazar' => 1000, 'one thousand' => 1000,
+            'دو ہزار' => 2000, '2 ہزار' => 2000, 'do hazar' => 2000, 'two thousand' => 2000,
+            'تین ہزار' => 3000, '3 ہزار' => 3000, 'teen hazar' => 3000, 'three thousand' => 3000,
+            'چار ہزار' => 4000, '4 ہزار' => 4000, 'char hazar' => 4000, 'four thousand' => 4000,
+            'پانچ ہزار' => 5000, '5 ہزار' => 5000, 'panch hazar' => 5000, 'five thousand' => 5000,
+            'دس ہزار' => 10000, '10 ہزار' => 10000, 'das hazar' => 10000, 'ten thousand' => 10000,
+            'پانچ سو' => 500, '5 سو' => 500, 'panch sau' => 500, 'five hundred' => 500,
+            'ایک لاکھ' => 100000, '1 لاکھ' => 100000, 'one lakh' => 100000,
+        ];
+
+        foreach ($wordMap as $phrase => $val) {
+            if (mb_stripos($normalized, $phrase, 0, 'UTF-8') !== false) {
+                return ['amount' => (float) $val, 'currency' => $curr];
+            }
+        }
+
+        // 4. Standard digit matching
+        if (preg_match('/(?<!\w)([\d]+(?:[\,\.][\d]{1,2})?)(?!\w)/u', $normalized, $m)) {
             $rawNum = str_replace(',', '', $m[1]);
-            if (is_numeric($rawNum)) {
-                $curr = !empty($m[2]) ? strtoupper(trim($m[2])) : 'AED';
-                if ($curr === 'درهم') $curr = 'AED';
-                if ($curr === 'دولار') $curr = 'USD';
+            if (is_numeric($rawNum) && (float) $rawNum > 0) {
                 return ['amount' => (float) $rawNum, 'currency' => $curr];
             }
         }
+
         return null;
     }
 

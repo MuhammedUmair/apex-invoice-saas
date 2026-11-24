@@ -106,6 +106,10 @@ Route::get('/team/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
 Route::match(['get', 'post'], '/locale/{lang}', function ($lang) {
     if (in_array($lang, ['en', 'ur', 'hi', 'tr', 'ar', 'es', 'fr', 'de', 'zh'])) {
         session(['locale' => $lang]);
+        // Auto-reset AI Agent conversation context, dialogue flows, and active state on language switch
+        session()->forget('ai_dialogue_state');
+        session()->forget('ai_copilot_history');
+        session()->forget('ai_active_conversation_id');
     }
     return back();
 })->name('locale.switch');
