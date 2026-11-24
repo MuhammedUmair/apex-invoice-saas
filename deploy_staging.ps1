@@ -141,6 +141,31 @@ if (file_exists(`$stageCore . '/vendor/autoload.php')) {
     } catch (\Throwable `$ex) {
         echo "Migration notice: " . `$ex->getMessage() . "\n";
     }
+
+    // Clean up test draft invoices and legacy ticket messages with raw JSON context
+    try {
+        \DB::table('invoices')
+            ->where('client_snapshot', 'like', '%یہ سوکنگ کسٹم ہے%')
+            ->update([
+                'client_snapshot' => json_encode(['name' => 'Walk-in Customer', 'email' => null])
+            ]);
+        \DB::table('clients')
+            ->where('name', 'یہ سوکنگ کسٹم ہے')
+            ->update(['name' => 'Walk-in Customer']);
+
+        // Clean raw JSON context from existing ticket_messages
+        `$msgs = \DB::table('ticket_messages')
+            ->where('message', 'like', '%Context: {%')
+            ->get();
+        foreach (`$msgs as `$m) {
+            `$cleaned = preg_replace('/\n\nContext:\s*\{.*?\}$/s', '', `$m->message);
+            `$cleaned = preg_replace('/Context:\s*\{.*?\}$/s', '', `$cleaned);
+            \DB::table('ticket_messages')->where('id', `$m->id)->update(['message' => trim(`$cleaned)]);
+        }
+        echo "Database test draft & ticket JSON cleanup complete.\n";
+    } catch (\Throwable `$dbEx) {
+        echo "DB Cleanup notice: " . `$dbEx->getMessage() . "\n";
+    }
     \Illuminate\Support\Facades\Artisan::call('optimize:clear');
     echo "Staging caches cleared.\n";
 }
