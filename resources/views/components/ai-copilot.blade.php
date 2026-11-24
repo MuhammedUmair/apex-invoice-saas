@@ -1,14 +1,15 @@
 @php
+    $user = auth()->user() ?? auth()->guard('superadmin')->user();
     $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', '');
     if ($tenantAiConfig === '') {
         $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
     }
-    $isTenantAiActive = ($tenantAiConfig === '1' || $tenantAiConfig === true || $tenantAiConfig === 1);
-    $isSuperAdminUser = auth()->check() && auth()->user()->isSuperAdmin();
+    $isTenantAiActive = ($tenantAiConfig !== '0' && $tenantAiConfig !== false && $tenantAiConfig !== 0);
+    $isSuperAdminUser = $user && $user->isSuperAdmin();
 @endphp
 
-@if(!$isTenantAiActive && !$isSuperAdminUser)
-    {{-- Tenant AI Agent is hidden by Super Admin in Platform Settings --}}
+@if(!$user || (!$isTenantAiActive && !$isSuperAdminUser))
+    {{-- AI Assistant only available after login to customer / authorized user --}}
 @else
 <style>
 @keyframes ai-wave-bar {
@@ -49,7 +50,9 @@
                 currentlySpeakingMsgId: null,
                 currentUtterance: null,
                 _watchdogTimer: null,
-                _silenceTimer: null,
+                _vadSilenceTimer: null,
+                _vadSilenceThresholdMs: 1200, // 1.2s of silence commits utterance (Voice Activity Detection)
+                _accumulatedTranscript: '',
                 _voiceInterval: null,
                 voiceSessionToken: null,
                 voiceDurationSeconds: 0,
@@ -64,7 +67,7 @@
                         code: 'auto', 
                         tag: 'en-US', 
                         placeholder: 'Ask in any language or click mic to talk...', 
-                        greeting: 'Hello! I am your Invoicy AI Assistant. Ask me anything in English, Urdu, Roman Urdu, Arabic, Hindi, Turkish, French, Spanish, or start a voice conversation!', 
+                        greeting: 'Hello! I am your Invoicy AI Assistant. Ask me anything in English, Urdu, Roman Urdu, Arabic, Hindi, Turkish, French, Spanish, or click mic for voice support!', 
                         suggestions: ['Talk to AI (Voice)', 'Create new invoice', 'How do drafts work?', 'Open Support Desk'] 
                     },
                     ur: { 
@@ -106,7 +109,7 @@
                         code: 'hi', 
                         tag: 'hi-IN', 
                         placeholder: 'AI से पूछें या माइक पर बोलें...', 
-                        greeting: 'नमस्ते! मैं आपका Invoicy AI सहायक हूँ। इनवॉइस, ड्राफ्ट, सेटिंग्स या सपोर्ट के बारे में पूछें या हिंदी में वॉइस कमांड दें!', 
+                        greeting: 'नमस्ते! मैं आपका Invoicy AI सहायक हूँ। इनवॉइस, ड्राफ्ट, सेटिंग्स या सपोर्ट کے بارے میں پوچھیں یا हिंदी में वॉइस कमांड दें!', 
                         suggestions: ['वॉइस सपोर्ट शुरू करें 🎙️', 'नया इनवॉइस बनाएं', 'ड्राफ्ट कैसे काम करते हैं?', 'सपोर्ट डेस्क खोलें'] 
                     },
                     es: { 
@@ -162,6 +165,12 @@
                         this.isOpen = true;
                         this.scrollToBottom();
                     });
+                },
+
+                get isRtlLayout() {
+                    const docDir = (document.documentElement.getAttribute('dir') || document.body.getAttribute('dir') || '').toLowerCase();
+                    const docLang = (document.documentElement.getAttribute('lang') || '').toLowerCase();
+                    return docDir === 'rtl' || this.isRtl || ['ur', 'ar'].includes(this.detectedLang) || ['ur', 'ar'].includes(docLang);
                 },
 
                 get currentLangObj() {
@@ -311,7 +320,7 @@
                 },
 
                 /**
-                 * Initialize Speech Recognition with Instant Barge-In
+                 * Initialize Speech Recognition with Real-Time VAD (Voice Activity Detection)
                  */
                 initSpeech() {
                     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -330,7 +339,7 @@
                             };
 
                             // INSTANT BARGE-IN / INTERRUPTION:
-                            // The moment user starts speaking, stop AI speech synthesis immediately!
+                            // The moment user starts speaking, halt AI speech synthesis immediately!
                             this.recognition.onspeechstart = () => {
                                 if (this.isSpeaking) {
                                     this.stopSpeech(true); // interrupted = true
@@ -339,32 +348,57 @@
                                         if (this.activeMode === 'voice') {
                                             this.voiceState = 'listening';
                                         }
-                                    }, 400);
+                                    }, 350);
                                 }
                             };
 
+                            // VAD (Voice Activity Detection): Sliding silence detection window
                             this.recognition.onresult = (event) => {
+                                if (this.isSpeaking) {
+                                    this.stopSpeech(true);
+                                }
+
                                 let interim = '';
-                                let finalTranscript = '';
+                                let newFinal = '';
 
                                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                                     if (event.results[i].isFinal) {
-                                        finalTranscript += event.results[i][0].transcript;
+                                        newFinal += event.results[i][0].transcript;
                                     } else {
                                         interim += event.results[i][0].transcript;
                                     }
                                 }
 
-                                this.interimTranscript = interim;
+                                if (newFinal) {
+                                    this._accumulatedTranscript = (this._accumulatedTranscript + ' ' + newFinal).trim();
+                                }
 
-                                if (finalTranscript) {
-                                    this.interimTranscript = '';
-                                    if (this.activeMode === 'voice') {
-                                        this.handleVoiceUtterance(finalTranscript);
-                                    } else {
-                                        this.inputMessage = finalTranscript;
-                                        this.sendMessage();
-                                    }
+                                const currentSpeech = (this._accumulatedTranscript + ' ' + interim).trim();
+                                this.interimTranscript = currentSpeech;
+
+                                // Reset silence timer on ANY incoming speech chunk
+                                if (this._vadSilenceTimer) {
+                                    clearTimeout(this._vadSilenceTimer);
+                                    this._vadSilenceTimer = null;
+                                }
+
+                                // Arm VAD Silence Timer: Fires after 1200ms of silence
+                                if (currentSpeech.length > 0) {
+                                    this._vadSilenceTimer = setTimeout(() => {
+                                        const committedText = (this._accumulatedTranscript + ' ' + interim).trim();
+                                        this._accumulatedTranscript = '';
+                                        this.interimTranscript = '';
+                                        this._vadSilenceTimer = null;
+
+                                        if (committedText.length > 0) {
+                                            if (this.activeMode === 'voice') {
+                                                this.handleVoiceUtterance(committedText);
+                                            } else {
+                                                this.inputMessage = committedText;
+                                                this.sendMessage();
+                                            }
+                                        }
+                                    }, this._vadSilenceThresholdMs);
                                 }
                             };
 
@@ -376,11 +410,11 @@
                                     this.messages.push({
                                         id: 'err-' + Date.now(),
                                         sender: 'ai',
-                                        text: 'Microphone permission was not allowed. Please click the mic or lock icon in your browser address bar to allow microphone access.'
+                                        text: 'Microphone permission was not allowed. Please click the lock icon in your browser address bar to allow microphone access.'
                                     });
                                     this.scrollToBottom();
                                 } else if (event.error === 'no-speech' && this.activeMode === 'voice' && !this.isMuted) {
-                                    // Keep continuous loop alive
+                                    // Normal silence; keep duplex loop open
                                 }
                             };
 
@@ -388,9 +422,13 @@
                                 this.isListening = false;
                                 // Auto-restart in duplex voice mode if not processing/speaking and not muted
                                 if (this.activeMode === 'voice' && this.voiceState !== 'processing' && this.voiceState !== 'speaking' && !this.isMuted) {
-                                    try {
-                                        this.recognition.start();
-                                    } catch (e) {}
+                                    setTimeout(() => {
+                                        try {
+                                            if (this.activeMode === 'voice' && !this.isMuted && this.voiceState !== 'speaking' && this.voiceState !== 'processing') {
+                                                this.recognition.start();
+                                            }
+                                        } catch (e) {}
+                                    }, 250);
                                 }
                             };
                         } catch (e) {
@@ -408,6 +446,8 @@
                     this.voiceState = 'connecting';
                     this.isMuted = false;
                     this.voiceDurationSeconds = 0;
+                    this._accumulatedTranscript = '';
+                    this.interimTranscript = '';
 
                     try {
                         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
@@ -426,12 +466,25 @@
                             })
                         });
 
+                        if (res.status === 401) {
+                            this.voiceState = 'idle';
+                            this.activeMode = 'text';
+                            this.messages.push({
+                                id: 'err-unauth-' + Date.now(),
+                                sender: 'ai',
+                                text: 'The AI Support Assistant is only available to logged-in customers. Please log in to your account.',
+                                action: { type: 'navigate', url: '{{ route('login') }}', label: 'Log In ➔' }
+                            });
+                            this.scrollToBottom();
+                            return;
+                        }
+
                         const data = await res.json();
                         if (data.success) {
                             this.voiceSessionToken = data.session_token;
                             this.conversationId = data.conversation_id;
 
-                            // Start timer
+                            // Start duration timer
                             if (this._voiceInterval) clearInterval(this._voiceInterval);
                             this._voiceInterval = setInterval(() => {
                                 this.voiceDurationSeconds++;
@@ -467,11 +520,15 @@
                             try {
                                 this.recognition.abort();
                                 setTimeout(() => {
-                                    this.recognition.start();
-                                    this.voiceState = 'listening';
-                                    this.isListening = true;
-                                }, 200);
-                            } catch (e2) {
+                                    if (this.activeMode === 'voice' && !this.isMuted && this.voiceState !== 'speaking' && this.voiceState !== 'processing') {
+                                        try {
+                                            this.recognition.start();
+                                            this.voiceState = 'listening';
+                                            this.isListening = true;
+                                        } catch (e2) {}
+                                    }
+                                }, 250);
+                            } catch (e3) {
                                 this.voiceState = 'listening';
                             }
                         }
@@ -492,6 +549,13 @@
 
                 async endVoiceMode() {
                     this.stopSpeech();
+                    if (this._vadSilenceTimer) {
+                        clearTimeout(this._vadSilenceTimer);
+                        this._vadSilenceTimer = null;
+                    }
+                    this._accumulatedTranscript = '';
+                    this.interimTranscript = '';
+
                     if (this.recognition) {
                         try { this.recognition.stop(); } catch (e) {}
                     }
@@ -530,7 +594,7 @@
                     const cleanText = text.trim();
                     if (!cleanText) return;
 
-                    // Stop recognition while processing to avoid hearing itself
+                    // Stop recognition while processing to avoid self-echo
                     if (this.recognition) {
                         try { this.recognition.stop(); } catch (e) {}
                     }
@@ -567,12 +631,26 @@
                             })
                         });
 
+                        if (res.status === 401) {
+                            this.voiceState = 'idle';
+                            this.activeMode = 'text';
+                            this.messages.push({
+                                id: 'err-unauth-' + Date.now(),
+                                sender: 'ai',
+                                text: 'The AI Support Assistant is exclusively available to logged-in customers. Please log in to your account.',
+                                action: { type: 'navigate', url: '{{ route('login') }}', label: 'Log In ➔' }
+                            });
+                            this.scrollToBottom();
+                            return;
+                        }
+
                         const data = await res.json();
                         if (data.conversation_id) {
                             this.conversationId = data.conversation_id;
                         }
                         if (data.lang) {
                             this.speechLang = data.lang;
+                            if (this.recognition) this.recognition.lang = data.lang;
                         }
                         if (data.lang_code) {
                             this.detectedLang = data.lang_code;
@@ -595,7 +673,9 @@
                         this.speak(data.reply, aiMsgId, () => {
                             // On voice synthesis completion, auto-resume listening hands-free!
                             if (this.activeMode === 'voice' && !this.isMuted) {
-                                this.startListeningContinuous();
+                                setTimeout(() => {
+                                    this.startListeningContinuous();
+                                }, 350);
                             } else {
                                 this.voiceState = 'idle';
                             }
@@ -604,7 +684,7 @@
                         console.error('Voice utterance dispatch error:', e);
                         this.voiceState = 'error';
                         setTimeout(() => {
-                            if (this.activeMode === 'voice') this.startListeningContinuous();
+                            if (this.activeMode === 'voice' && !this.isMuted) this.startListeningContinuous();
                         }, 1200);
                     }
                 },
@@ -778,7 +858,7 @@
                     const text = customText || this.inputMessage.trim();
                     if (!text) return;
 
-                    // If user selects "Talk to AI (Voice)" pill
+                    // If user clicks a "Talk to AI" pill
                     if (text.includes('Talk to AI') || text.includes('وائس') || text.includes('صوتية') || text.includes('Sesli')) {
                         this.startVoiceMode();
                         return;
@@ -812,6 +892,17 @@
                             })
                         });
 
+                        if (res.status === 401) {
+                            this.messages.push({
+                                id: 'err-unauth-' + Date.now(),
+                                sender: 'ai',
+                                text: 'The AI Support Assistant is exclusively available to logged-in customers. Please log in to your account.',
+                                action: { type: 'navigate', url: '{{ route('login') }}', label: 'Log In ➔' }
+                            });
+                            this.scrollToBottom();
+                            return;
+                        }
+
                         if (!res.ok) throw new Error('HTTP ' + res.status);
 
                         const data = await res.json();
@@ -838,7 +929,7 @@
                         });
                         this.scrollToBottom();
 
-                        // Play response audio in text mode if sound enabled
+                        // Play audio in text mode if sound enabled
                         this.speak(data.reply, aiMsgId);
                     } catch (e) {
                         console.error('AI Agent error:', e);
@@ -896,9 +987,14 @@
 })();
 </script>
 
+<!-- DYNAMIC RTL / LTR ROOT CONTAINER -->
+<!-- When RTL (Urdu, Arabic), widget moves to LEFT side. When LTR (English), stays on RIGHT side. -->
 <div x-data="aiAgentComponent" 
-     dir="ltr" 
-     style="direction: ltr !important; position: fixed !important; bottom: 24px !important; right: 24px !important; left: auto !important; z-index: 9999;">
+     :dir="isRtlLayout ? 'rtl' : 'ltr'"
+     class="ai-agent-root-wrapper"
+     :style="isRtlLayout 
+        ? 'position: fixed !important; bottom: 24px !important; left: 24px !important; right: auto !important; z-index: 9999 !important; direction: rtl !important;' 
+        : 'position: fixed !important; bottom: 24px !important; right: 24px !important; left: auto !important; z-index: 9999 !important; direction: ltr !important;'">
 
     <!-- Floating Trigger Button -->
     <div x-show="!isOpen" x-cloak>
@@ -907,14 +1003,15 @@
                 class="group flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white rounded-full shadow-2xl transition duration-300 transform hover:scale-105 border-2 border-white/20">
             <span class="text-xs font-bold tracking-wider flex items-center gap-2">
                 <i class="ph ph-microphone text-base text-white"></i>
-                <span class="font-bold">AI Support & Voice</span>
+                <span class="font-bold" x-text="isRtlLayout ? 'AI سپورٹ اور وائس' : 'AI Support & Voice'"></span>
                 <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-ping"></span>
             </span>
         </button>
     </div>
 
-    <!-- Active Chat & Voice Modal -->
+    <!-- Active Chat & Voice Modal (Flipped layout for RTL/LTR) -->
     <div x-show="isOpen" x-cloak
+         :dir="isRtlLayout ? 'rtl' : 'ltr'"
          class="w-[360px] sm:w-[460px] h-[620px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
         
         <!-- Header (Clean, Zero Clutter with Duplex Mode Switcher) -->
@@ -925,11 +1022,11 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-white flex items-center gap-1.5" style="font-weight: 700;">
-                        <span>AI Support Assistant</span>
+                        <span x-text="isRtlLayout ? 'AI سپورٹ اسسٹنٹ' : 'AI Support Assistant'"></span>
                         <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
                     </h3>
                     <p class="text-[10px] text-slate-300 font-bold flex items-center gap-1.5" style="font-weight: 700;">
-                        <span x-text="activeMode === 'voice' ? 'Two-Way Duplex Voice' : 'Intelligent Support Agent'"></span>
+                        <span x-text="activeMode === 'voice' ? (isRtlLayout ? 'دو طرفہ وائس کال' : 'Two-Way Duplex Voice') : (isRtlLayout ? 'ذہین کسٹمر سپورٹ' : 'Intelligent Support Agent')"></span>
                         <span class="text-emerald-400">• Online</span>
                     </p>
                 </div>
@@ -942,7 +1039,7 @@
                         class="px-2.5 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1.5 transition"
                         :title="activeMode === 'voice' ? 'End Voice Mode' : 'Start Two-Way Voice Support'">
                     <i class="ph ph-microphone text-xs"></i>
-                    <span x-text="activeMode === 'voice' ? 'Voice Active' : 'Talk to AI'"></span>
+                    <span x-text="activeMode === 'voice' ? (isRtlLayout ? 'وائس جاری ہے' : 'Voice Active') : (isRtlLayout ? 'بات کریں' : 'Talk to AI')"></span>
                 </button>
 
                 <!-- Reset Chat Session -->
@@ -981,7 +1078,7 @@
                         
                         <!-- Animated Waveform for Listening & Speaking -->
                         <template x-if="voiceState === 'listening' || voiceState === 'speaking'">
-                            <div class="flex items-center gap-0.5 h-3 mr-1">
+                            <div class="flex items-center gap-0.5 h-3 mr-1 ml-1">
                                 <span class="w-0.5 bg-current rounded-full ai-wave-1"></span>
                                 <span class="w-0.5 bg-current rounded-full ai-wave-2"></span>
                                 <span class="w-0.5 bg-current rounded-full ai-wave-3"></span>
@@ -991,13 +1088,13 @@
                         </template>
 
                         <span x-text="
-                            voiceState === 'connecting' ? 'Connecting...' :
-                            voiceState === 'listening' ? 'Listening... Speak naturally' :
-                            voiceState === 'processing' ? 'Processing...' :
-                            voiceState === 'speaking' ? 'Speaking (barge-in ready)' :
-                            voiceState === 'interrupted' ? 'Interrupted' :
-                            voiceState === 'muted' ? 'Microphone Muted' :
-                            voiceState === 'error' ? 'Connection Error' : 'Ready'
+                            voiceState === 'connecting' ? (isRtlLayout ? 'رابطہ ہو رہا ہے...' : 'Connecting...') :
+                            voiceState === 'listening' ? (isRtlLayout ? 'سن رہا ہوں... بولیں' : 'Listening... Speak naturally') :
+                            voiceState === 'processing' ? (isRtlLayout ? 'پروسیسنگ...' : 'Processing...') :
+                            voiceState === 'speaking' ? (isRtlLayout ? 'بول رہا ہوں...' : 'Speaking (barge-in ready)') :
+                            voiceState === 'interrupted' ? (isRtlLayout ? 'روک دیا گیا' : 'Interrupted') :
+                            voiceState === 'muted' ? (isRtlLayout ? 'مائیک میوٹ ہے' : 'Microphone Muted') :
+                            voiceState === 'error' ? (isRtlLayout ? 'خرابی' : 'Connection Error') : 'Ready'
                         "></span>
                     </div>
 
@@ -1018,14 +1115,14 @@
                     <button @click="endVoiceMode()" type="button" 
                             class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-sm">
                         <i class="ph ph-phone-disconnect text-xs"></i>
-                        <span>End Voice</span>
+                        <span x-text="isRtlLayout ? 'کال ختم' : 'End Voice'"></span>
                     </button>
                 </div>
             </div>
 
             <!-- Live Speech Interruption Notification or Interim Transcript -->
             <div x-show="interimTranscript" x-cloak class="mt-2 text-[11px] text-slate-300 bg-slate-950/50 p-2 rounded-xl border border-slate-800 font-mono truncate">
-                <span class="text-emerald-400 font-bold">You: </span>
+                <span class="text-emerald-400 font-bold" x-text="isRtlLayout ? 'آپ: ' : 'You: '"></span>
                 <span x-text="interimTranscript"></span>
             </div>
         </div>
@@ -1035,7 +1132,7 @@
             <template x-for="(msg, idx) in messages" :key="msg.id || idx">
                 <div :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'" class="flex">
                     <div :class="msg.sender === 'user' ? 'bg-red-600 text-white rounded-tr-xs' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-xs shadow-2xs'"
-                         :dir="isRtl ? 'rtl' : 'ltr'"
+                         :dir="isRtlLayout ? 'rtl' : 'ltr'"
                          class="max-w-[88%] rounded-2xl p-3.5 space-y-2 text-left rtl:text-right">
                         
                         <!-- Header Pill inside Message (Voice tag) -->
@@ -1043,12 +1140,12 @@
                             <div class="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider mb-1"
                                  :class="msg.sender === 'user' ? 'text-red-200' : 'text-emerald-600'">
                                 <i class="ph ph-waveform"></i>
-                                <span>Voice Utterance</span>
+                                <span x-text="isRtlLayout ? 'وائس میسج' : 'Voice Utterance'"></span>
                             </div>
                         </template>
 
                         <div x-text="msg.text" 
-                             :class="isRtl ? 'text-right' : 'text-left'"
+                             :class="isRtlLayout ? 'text-right' : 'text-left'"
                              class="leading-relaxed font-bold whitespace-pre-line" style="font-weight: 700;"></div>
                         
                         <!-- Interactive Action Button (Step-by-step navigation) -->
@@ -1058,7 +1155,7 @@
                                    class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl font-bold text-xs shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5"
                                    style="font-weight: 700;">
                                     <i class="ph ph-arrow-square-out text-sm"></i>
-                                    <span x-text="msg.action.label || 'Open & Proceed ➔'"></span>
+                                    <span x-text="msg.action.label || (isRtlLayout ? 'کھولیں اور آگے بڑھیں ➔' : 'Open & Proceed ➔')"></span>
                                 </a>
                             </div>
                         </template>
@@ -1070,8 +1167,8 @@
                                     <template x-if="currentlySpeakingMsgId === msg.id && isSpeaking">
                                         <div class="flex items-center gap-1.5 text-red-600 font-bold animate-pulse">
                                             <i class="ph ph-waveform text-sm"></i>
-                                            <span>Speaking...</span>
-                                            <button @click="stopSpeech()" type="button" class="ml-1 text-[9px] uppercase px-1.5 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-700 transition">Stop</button>
+                                            <span x-text="isRtlLayout ? 'بول رہا ہوں...' : 'Speaking...'"></span>
+                                            <button @click="stopSpeech()" type="button" class="ml-1 text-[9px] uppercase px-1.5 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-700 transition" x-text="isRtlLayout ? 'روکیں' : 'Stop'"></button>
                                         </div>
                                     </template>
                                     <template x-if="currentlySpeakingMsgId !== msg.id || !isSpeaking">
@@ -1079,7 +1176,7 @@
                                                 class="flex items-center gap-1 text-slate-400 hover:text-red-600 transition font-semibold"
                                                 title="Replay voice">
                                             <i class="ph ph-speaker-high text-xs"></i>
-                                            <span>Play Voice</span>
+                                            <span x-text="isRtlLayout ? 'آواز سنیں' : 'Play Voice'"></span>
                                         </button>
                                     </template>
                                 </div>
@@ -1100,12 +1197,12 @@
                                     </template>
                                     <template x-if="ratedMessages[msg.id] === 1">
                                         <span class="text-emerald-600 font-bold text-[9px] flex items-center gap-0.5">
-                                            <i class="ph ph-check-circle"></i> Helpful
+                                            <i class="ph ph-check-circle"></i> <span x-text="isRtlLayout ? 'مفید' : 'Helpful'"></span>
                                         </span>
                                     </template>
                                     <template x-if="ratedMessages[msg.id] === -1">
                                         <span class="text-rose-500 font-bold text-[9px] flex items-center gap-0.5">
-                                            <i class="ph ph-x-circle"></i> Thanks for feedback
+                                            <i class="ph ph-x-circle"></i> <span x-text="isRtlLayout ? 'شکریہ' : 'Thanks for feedback'"></span>
                                         </span>
                                     </template>
                                 </div>
@@ -1114,7 +1211,7 @@
 
                         <!-- Suggestion Pills -->
                         <template x-if="msg.suggestions && msg.suggestions.length > 0">
-                            <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5" :dir="isRtl ? 'rtl' : 'ltr'">
+                            <div class="pt-2 border-t border-slate-100 flex flex-wrap gap-1.5" :dir="isRtlLayout ? 'rtl' : 'ltr'">
                                 <template x-for="sug in msg.suggestions" :key="sug">
                                     <button @click="sendMessage(sug)" type="button"
                                             style="font-weight: 700;"
@@ -1141,13 +1238,13 @@
                 </button>
 
                 <input type="text" x-model="inputMessage" 
-                       :dir="isRtl ? 'rtl' : 'ltr'"
-                       :placeholder="activeMode === 'voice' ? 'Listening... Or type here to switch to text...' : (currentLangObj ? currentLangObj.placeholder : 'Ask AI Agent or click mic...')"
+                       :dir="isRtlLayout ? 'rtl' : 'ltr'"
+                       :placeholder="activeMode === 'voice' ? (isRtlLayout ? 'سن رہا ہوں... یا یہاں ٹائپ کریں...' : 'Listening... Or type here to switch to text...') : (currentLangObj ? currentLangObj.placeholder : 'Ask AI Agent or click mic...')"
                        style="font-weight: 700;"
                        class="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-red-500 transition">
 
                 <button type="submit" class="w-10 h-10 rounded-2xl bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shrink-0 transition shadow-sm">
-                    <i class="ph ph-paper-plane-tilt text-base"></i>
+                    <i class="ph ph-paper-plane-tilt text-base" :class="isRtlLayout ? 'transform rotate-180' : ''"></i>
                 </button>
             </form>
         </div>

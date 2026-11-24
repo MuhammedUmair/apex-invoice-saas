@@ -115,17 +115,20 @@ class AiAgentService
      */
     public function resolveLanguage(string $q, ?string $selectedLang = null): string
     {
-        if (!empty($selectedLang) && $selectedLang !== 'auto' && in_array($selectedLang, ['en', 'ur', 'ur-roman', 'ar', 'hi', 'tr', 'es', 'fr', 'de', 'zh'])) {
-            if ($selectedLang === 'en' && $this->isNativeUrdu($q)) {
-                return 'ur';
-            }
-            if ($selectedLang === 'en' && $this->isNativeArabic($q)) {
-                return 'ar';
-            }
+        // 1. Detect actual language of user's query
+        $detected = $this->detectLanguage($q);
+
+        // If detected as non-English (e.g. Urdu, Roman Urdu, Arabic, Hindi), prioritize actual spoken language!
+        if ($detected !== 'en') {
+            return $detected;
+        }
+
+        // 2. If user explicitly picked a non-English language in UI and query is generic/neutral
+        if (!empty($selectedLang) && $selectedLang !== 'auto' && in_array($selectedLang, ['ur', 'ur-roman', 'ar', 'hi', 'tr', 'es', 'fr', 'de', 'zh'])) {
             return $selectedLang;
         }
 
-        return $this->detectLanguage($q);
+        return 'en';
     }
 
     /**
@@ -165,7 +168,7 @@ class AiAgentService
         }
 
         // 6. Roman Urdu / Hinglish
-        if (preg_match('/\b(assalam|asalam|walekum|alaikum|walaikum|salam|slam|iske|uske|is|iss|bare|baare|mein|me|batao|bataiye|bataen|bata|kya|hai|hain|kaise|kese|kare|karen|karo|kar|banaye|banayein|banao|madad|shukriya|mujhe|chahiye|kahan|theek|acha|accha|nahi|nhi|haan|bhi|aur|ye|yeh|wo|woh|apna|apni|karna|hoga|hota|chalega|bolo|bhejo|dekho|dikhao|hisaab|paisa|paise|kharcha|kamai|kitna|kitne|mera|meri|mere|saath|sath|kuch|btao|btaen|sakte|sakta|saktee|hun|hoon|karta|karte|bhai|yaar|janab|sahab)\b/i', $q)) {
+        if (preg_match('/\b(assalam|asalam|walekum|alaikum|walaikum|salam|slam|iske|uske|is|iss|bare|baare|mein|me|batao|bataiye|bataen|bata|kya|hai|hain|kaise|kese|kare|karen|karo|kar|banaye|banayein|banao|banate|madad|shukriya|mujhe|chahiye|kahan|theek|acha|accha|nahi|nhi|nahin|haan|bhi|aur|ye|yeh|wo|woh|apna|apni|karna|hoga|hota|chalega|bolo|bhejo|dekho|dikhao|hisaab|paisa|paise|kharcha|kamai|kitna|kitne|mera|meri|mere|saath|sath|kuch|btao|btaen|sakte|sakta|saktee|hun|hoon|karta|karte|bhai|yaar|janab|sahab|samjha|samjhein|bolte|bol|aati|baat|kidhar|kyun|kyu|kyoon|kab|zara|thoda|zyada|bohot|bohat)\b/i', $q)) {
             return 'ur-roman';
         }
 
@@ -450,7 +453,7 @@ class AiAgentService
 
             // STEP 4: Awaiting Confirmation
             if ($step === 'awaiting_confirmation') {
-                if (preg_match('/\b(yes|haan|sure|create|banao|bana do|karo|bana dein|جی|نعم|ok|theek hai|proceed)\b/iu', $q)) {
+                if (preg_match('/\b(yes|yeah|yep|yup|haan|sure|create|banao|bana do|karo|bana dein|جی|نعم|ok|okay|theek hai|proceed|go ahead|please|do it|confirm|done|ahead)\b/iu', $q)) {
                     session()->forget('ai_dialogue_state');
 
                     if (!$workspace) {
@@ -563,6 +566,170 @@ How can I help you today? Would you like to create a new invoice, explore indust
         // -------------------------------------------------------------
         if ($this->isPureGreeting($q)) {
             return $this->generateGreetingResponse($lang, $voiceLang, $isRtl);
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.2: Language Capabilities ("Can you speak Urdu", "Urdu aati hai", etc.)
+        // -------------------------------------------------------------
+        if (preg_match('/(can you speak (urdu|arabic|hindi|english)|speak in (urdu|arabic|hindi)|urdu bol sakte|urdu aati|urdu mein|urdu me baat|kya urdu|urdu bolo|عربی بولتے|تتكلم عربي|اردو بول سکتے|اردو میں بات|اردو آتی ہے)/iu', $q)) {
+            $reply = match ($lang) {
+                'ur' => "جی ہاں، بالکل! میں اردو، رومن اردو، انگریزی، عربی، ہندی اور دیگر 10 زبانوں میں مکمل روانی سے بات اور وائس چیٹ کر سکتا ہوں۔ آپ مجھ سے بلا جھجھک اردو میں کچھ بھی پوچھ سکتے ہیں یا مائیک سے بات کر سکتے ہیں!",
+                'ur-roman' => "Jee haan, bilkul! Main Urdu, Roman Urdu, English, Arabic, Hindi aur deegar 10 zabaano mein baat kar sakta hoon. Aap mujhse bol kar ya likh kar Urdu mein jo chahein pooch sakte hain!",
+                'ar' => "نعم بالتأكيد! يمكنني التحدث باللغة العربية والإنجليزية والأردية وأكثر من 10 لغات بطلاقة كاملة كتابياً وصوتياً.",
+                default => "Yes, absolutely! I can fluently communicate in English, Urdu, Roman Urdu, Arabic, Hindi, Turkish, French, Spanish, German, and Chinese. Feel free to speak or type in any language you prefer!"
+            };
+
+            return [
+                'reply' => $reply,
+                'lang' => in_array($lang, ['ur', 'ur-roman']) ? 'ur-PK' : $voiceLang,
+                'lang_code' => in_array($lang, ['ur', 'ur-roman']) ? $lang : 'ur-roman',
+                'is_rtl' => ($lang === 'ur'),
+                'suggestions' => match ($lang) {
+                    'ur' => ['نیا انوائس بنائیں', 'انوائس کیسے بنائیں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ٹکٹس دیکھیں'],
+                    'ur-roman' => ['Naya Invoice Banayein', 'Invoice kaise banate hain?', 'Mera Balance & Stats', 'Support Tickets Dekhein'],
+                    default => ['Create new invoice', 'How do I create invoices?', 'My Workspace Stats', 'View Support Tickets']
+                }
+            ];
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.3: Support Tickets Inspection & Management ("go and check support ticket", "check support ticket", "my tickets", "show tickets", "view tickets", "ticket status", "close ticket")
+        // -------------------------------------------------------------
+        if (preg_match('/(go and check support ticket|check support ticket|view support ticket|show support ticket|my ticket|ticket status|support tickets|support desk|go to support|open ticket list|tickets list|close the ticket|close ticket|سپورٹ ٹکٹ|ٹکٹ دیکھ|ٹکٹوں کی لسٹ|تذاكر الدعم|مكتب الدعم)/iu', $q)) {
+            $openTickets = 0;
+            if ($workspace) {
+                $openTickets = SupportTicket::where('workspace_id', $workspace->id)
+                    ->whereIn('status', ['open', 'in_progress'])
+                    ->count();
+            }
+
+            if (preg_match('/(close|band|cancel|khatam)/iu', $q)) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Support ticket close karne ke liye aap Support Desk khol kar mutaliqa ticket par click karein aur **'Close Ticket'** button daba dein ya resolving reply post kar dein.",
+                    'ur' => "سپورٹ ٹکٹ بند کرنے کے لیے سپورٹ ڈیسک کھولیں، متعلقہ ٹکٹ منتخب کریں اور **'Close Ticket'** پر کلک کریں۔",
+                    default => "To close a support ticket, open your Support Desk, select the ticket, and click the **'Close Ticket'** button or post a resolution message."
+                };
+            } else {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aap ke Workspace mein is waqt **{$openTickets} active support tickets** hain. Aap Support Desk khol kar apne tamam tickets ka status dekh sakte hain, updates check kar sakte hain ya naya ticket submit kar sakte hain:",
+                    'ur' => "آپ کے ورک اسپیس میں اس وقت **{$openTickets} فعال سپورٹ ٹکٹس** موجود ہیں۔ آپ سپورٹ ڈیسک کھول کر اپنے تمام ٹکٹس کا جائزہ لے سکتے ہیں:",
+                    'ar' => "لديك حالياً **{$openTickets} تذاكر دعم فني نشطة**. يمكنك فتح مكتب الدعم لمتابعة حالة التذاكر والردود المباشرة:",
+                    default => "You currently have **{$openTickets} active support tickets** in your workspace. You can open the Support Desk to review ticket progress, submit replies, or track SLAs:"
+                };
+            }
+
+            return [
+                'reply' => $reply,
+                'action' => [
+                    'type' => 'navigate',
+                    'url' => route('support.index'),
+                    'label' => match ($lang) {
+                        'ur' => 'سپورٹ ڈیسک کھولیں ➔',
+                        'ur-roman' => 'Support Desk Kholein ➔',
+                        'ar' => 'فتح مكتب الدعم ➔',
+                        default => 'Open Support Desk ➔'
+                    }
+                ],
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['Open Support Desk', 'Create New Invoice', 'My Workspace Stats']
+            ];
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.4: Invoices Due Today & Live Invoices Status ("is there any invoice due today", "check status of invoices", "invoice due today", "status of invoices")
+        // -------------------------------------------------------------
+        if ($workspace && preg_match('/(invoice due today|due today|status of invoice|invoice status|check invoices|check invoice|invoices today|aaj ki invoice|koi invoice due|due invoice|pending invoice|current invoices|status of invoices)/iu', $q)) {
+            $today = now()->toDateString();
+            $dueTodayInvoices = Invoice::where('workspace_id', $workspace->id)
+                ->where('due_date', $today)
+                ->whereIn('status', ['sent', 'unpaid', 'overdue', 'partially_paid'])
+                ->get();
+            $dueTodayCount = $dueTodayInvoices->count();
+
+            $overdueInvoices = Invoice::where('workspace_id', $workspace->id)
+                ->where('due_date', '<', $today)
+                ->whereIn('status', ['sent', 'unpaid', 'overdue', 'partially_paid'])
+                ->get();
+            $overdueCount = $overdueInvoices->count();
+
+            $draftCount = Invoice::where('workspace_id', $workspace->id)->where('status', 'draft')->count();
+            $curr = $workspace->currency ?? 'AED';
+
+            $totalDueTodayCents = $dueTodayInvoices->sum(fn($i) => ($i->total_cents ?? 0) - ($i->paid_cents ?? 0));
+            $totalDueToday = number_format($totalDueTodayCents / 100, 2);
+
+            if ($dueTodayCount === 0 && $overdueCount === 0) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Mubarak ho! Aaj ke din koi bhi invoice due nahi hai, aur aap ke paas koi overdue bills bhi nahi hain. Aap ke pas **{$draftCount} drafts** hain jo abhi publish hone ke muntazir hain.",
+                    'ur' => "مبارک ہو! آج کے دن کوئی انوائس واجب الادا نہیں ہے، اور نہ ہی کوئی اوور ڈیو بل ہے۔ آپ کے پاس **{$draftCount} ڈرافٹس** موجود ہیں۔",
+                    default => "Great news! There are zero invoices due today, and you have zero overdue accounts. You currently have **{$draftCount} draft invoices** awaiting publication."
+                };
+            } elseif ($dueTodayCount > 0) {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aaj **{$dueTodayCount} invoices** due hain jinki kul rakam **{$curr} {$totalDueToday}** hai. Mazeed **{$overdueCount} overdue invoices** aur **{$draftCount} drafts** bhi mojood hain.",
+                    'ur' => "آج کے دن **{$dueTodayCount} انوائسز** واجب الادا ہیں جن کی کل رقم **{$curr} {$totalDueToday}** ہے۔ اس کے علاوہ **{$overdueCount} اوور ڈیو بلز** ہیں۔",
+                    default => "You have **{$dueTodayCount} invoice(s) due today** totaling **{$curr} {$totalDueToday}**. You also have **{$overdueCount} overdue invoice(s)** and **{$draftCount} draft(s)**."
+                };
+            } else {
+                $reply = match ($lang) {
+                    'ur-roman' => "Aaj koi invoice due nahi hai, lekin aap ke paas **{$overdueCount} overdue invoices** aur **{$draftCount} drafts** hain jin par tawajjah ki zaroorat hai.",
+                    'ur' => "آج کوئی نیا انوائس ڈیو نہیں ہے، تاہم آپ کے پاس **{$overdueCount} واجب الادا (Overdue) انوائسز** موجود ہیں۔",
+                    default => "No invoices are specifically due today, but you have **{$overdueCount} overdue invoice(s)** and **{$draftCount} draft(s)** requiring review."
+                };
+            }
+
+            return [
+                'reply' => $reply,
+                'action' => [
+                    'type' => 'navigate',
+                    'url' => route('invoices.index'),
+                    'label' => match ($lang) {
+                        'ur' => 'انوائسز ڈیش بورڈ دیکھیں ➔',
+                        'ur-roman' => 'Invoices Dashboard Dekhein ➔',
+                        default => 'View Invoices Dashboard ➔'
+                    }
+                ],
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['View Invoices', 'Create New Invoice', 'My Workspace Stats']
+            ];
+        }
+
+        // -------------------------------------------------------------
+        // INTENT 0.45: Direct Screen Navigation Commands
+        // -------------------------------------------------------------
+        if (preg_match('/\b(go to|open|take me to|navigate to|chalo|kholo|jao)\s+(invoices|clients|customers|settings|help|guide|dashboard|reports|analytics)\b/iu', $q, $navMatches)) {
+            $dest = strtolower($navMatches[2]);
+            $targetUrl = match ($dest) {
+                'invoices' => route('invoices.index'),
+                'clients', 'customers' => route('clients.index'),
+                'settings' => route('settings.index'),
+                'help', 'guide' => route('help.index'),
+                'reports', 'analytics' => route('reports.index'),
+                default => route('dashboard')
+            };
+
+            $reply = match ($lang) {
+                'ur-roman' => "Sure! Main aap ko **" . ucfirst($dest) . "** screen par le chalta hoon. Neeche diye gaye button par click karein:",
+                'ur' => "ضرور! میں آپ کو **" . ucfirst($dest) . "** اسکرین پر لے چلتا ہوں۔ نیچے بٹن پر کلک کریں:",
+                default => "Sure! You can open the **" . ucfirst($dest) . "** screen right here:"
+            };
+
+            return [
+                'reply' => $reply,
+                'action' => [
+                    'type' => 'navigate',
+                    'url' => $targetUrl,
+                    'label' => 'Open ' . ucfirst($dest) . ' ➔'
+                ],
+                'lang' => $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
+                'suggestions' => ['Create new invoice', 'My Workspace Stats', 'Open Support Desk']
+            ];
         }
 
         // -------------------------------------------------------------
@@ -1457,7 +1624,14 @@ CONVERSATIONAL RULES:
      */
     protected function isEscalationIntent(string $q): bool
     {
-        return (bool) preg_match('/\b(human|agent|support ticket|ticket bana|representative|insan|bande se|ticket open|insan se baat|madadgar|helpdesk|live agent|talk to person|contact support|customer support|support se baat|human support|open a ticket|raise a ticket)\b/iu', $q);
+        // Commands to view, inspect, check or list existing tickets are NOT escalation!
+        if (preg_match('/\b(check|view|see|show|status|list|open|kholo|dekho|dekhna|dikhayein|close|band|cancel|khatam|status of)\b.*?\b(ticket|tickets|support)\b/iu', $q)
+            || preg_match('/\b(ticket|tickets)\b.*?\b(status|check|view|list|kholo|dekho|dekhna|close|band)\b/iu', $q)
+            || preg_match('/\b(go and check|go to|take me to|navigate to)\b/iu', $q)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\b(talk to human|speak to human|human agent|live agent|human representative|human support|talk to person|speak to person|agent se baat|insan se baat|bande se baat|support agent se baat|open a ticket|create a ticket|raise a ticket|make a ticket|new ticket|ticket banao|ticket banayein|naya ticket|escalate to human|escalate this)\b/iu', $q);
     }
 
     /**
@@ -1479,11 +1653,16 @@ CONVERSATIONAL RULES:
                     'sla_due_at' => now()->addHours(24),
                 ]);
 
+                $screen = !empty($context['page_title']) ? $context['page_title'] : (!empty($context['route_name']) ? $context['route_name'] : 'Dashboard');
+                $channel = (!empty($context['mode']) && $context['mode'] === 'voice') ? 'Two-Way Voice Support' : 'Live Chat Assistant';
+
+                $cleanMessage = "Customer inquiry escalated via {$channel}:\n\n\"{$rawQuery}\"\n\n• Screen: {$screen}\n• Turnaround Guarantee: 24-Hour SLA";
+
                 TicketMessage::create([
                     'ticket_id' => $ticket->id,
                     'user_id' => $user->id,
                     'is_admin_reply' => false,
-                    'message' => "Customer inquiry escalated via AI Support Assistant:\n\n\"{$rawQuery}\"\n\nContext: " . json_encode($context),
+                    'message' => $cleanMessage,
                 ]);
 
                 // Link to active conversation if exists

@@ -31,13 +31,29 @@ class AiAssistantController extends Controller
 
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
 
+        // Enforce Authentication: AI Assistant is only available after login to customer
+        if (!$user) {
+            return response()->json([
+                'reply' => 'The AI Support Assistant is exclusively available to logged-in customers. Please sign in to your account to continue.',
+                'lang' => 'en-US',
+                'lang_code' => 'en',
+                'is_rtl' => false,
+                'suggestions' => [],
+                'action' => [
+                    'type' => 'navigate',
+                    'url' => route('login'),
+                    'label' => 'Log In to Account ➔'
+                ]
+            ], 401);
+        }
+
         // Enforce Super Admin Tenant Visibility control
         $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', '');
         if ($tenantAiConfig === '') {
             $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
         }
         $isAiActive = ($tenantAiConfig !== '0' && $tenantAiConfig !== false && $tenantAiConfig !== 0);
-        if (!$isAiActive && (!$user || !$user->isSuperAdmin())) {
+        if (!$isAiActive && !$user->isSuperAdmin()) {
             return response()->json([
                 'reply' => 'The AI Agent is currently disabled by system administration.',
                 'lang' => 'en-US',
@@ -47,13 +63,11 @@ class AiAssistantController extends Controller
             ], 403);
         }
 
-        $workspace = null;
-        if ($user) {
-            $workspace = $user->workspace 
-                ?? ($user->current_workspace_id ? Workspace::find($user->current_workspace_id) : null)
-                ?? (method_exists($user, 'workspaces') ? $user->workspaces()->first() : null);
-        }
-        if (!$workspace) {
+        $workspace = $user->workspace 
+            ?? ($user->current_workspace_id ? Workspace::find($user->current_workspace_id) : null)
+            ?? (method_exists($user, 'workspaces') ? $user->workspaces()->first() : null);
+
+        if (!$workspace && $user->isSuperAdmin()) {
             $workspace = Workspace::first();
         }
 
@@ -74,22 +88,34 @@ class AiAssistantController extends Controller
     {
         $user = Auth::guard('web')->user() ?? Auth::guard('superadmin')->user();
 
+        // Enforce Authentication: Voice session requires logged-in customer
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please sign in to your account to start a voice support session.',
+            ], 401);
+        }
+
         // Enforce Super Admin Tenant Visibility control
         $tenantAiConfig = \App\Models\CmsContent::getVal('feature_tenant_ai_agent', '');
         if ($tenantAiConfig === '') {
             $tenantAiConfig = \App\Models\CmsContent::getVal('ai_agent_enabled', '1');
         }
         $isAiActive = ($tenantAiConfig !== '0' && $tenantAiConfig !== false && $tenantAiConfig !== 0);
-        if (!$isAiActive && (!$user || !$user->isSuperAdmin())) {
+        if (!$isAiActive && !$user->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'The AI Agent is currently disabled by system administration.',
             ], 403);
         }
 
-        $workspace = $user?->workspace 
-            ?? ($user?->current_workspace_id ? Workspace::find($user->current_workspace_id) : null)
-            ?? Workspace::first();
+        $workspace = $user->workspace 
+            ?? ($user->current_workspace_id ? Workspace::find($user->current_workspace_id) : null)
+            ?? (method_exists($user, 'workspaces') ? $user->workspaces()->first() : null);
+
+        if (!$workspace && $user->isSuperAdmin()) {
+            $workspace = Workspace::first();
+        }
 
         $token = 'vcs_' . Str::random(40);
         $sessionId = session()->getId();
