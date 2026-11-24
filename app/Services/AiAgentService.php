@@ -651,8 +651,8 @@ How can I help you today? Would you like to create a new invoice, explore indust
             if ($workspace) {
                 $draft = $workspace->invoices()->where('status', 'draft')->latest()->first();
             }
-            if (!$draft && $user) {
-                $draft = Invoice::where('user_id', $user->id)->where('status', 'draft')->latest()->first();
+            if (!$draft && $user && method_exists($user, 'currentWorkspace') && $user->currentWorkspace()) {
+                $draft = $user->currentWorkspace()->invoices()->where('status', 'draft')->latest()->first();
             }
             if (!$draft) {
                 $draft = Invoice::where('status', 'draft')->latest()->first();
