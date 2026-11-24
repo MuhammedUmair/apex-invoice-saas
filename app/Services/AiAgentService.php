@@ -464,6 +464,7 @@ class AiAgentService
                         'reply' => match ($lang) {
                             'ur-roman' => "Meherbani kar ke sahi amount number mein batayein (maslan: 1000, 2500 AED ya koi bhi figure).",
                             'ur' => "براہ کرم درست رقم درج کریں (مثلاً: 1000، 2500 AED یا اپنی مرضی کی کوئی بھی رقم)۔",
+                            'ar' => "يرجى تحديد مبلغ رقمي صحيح (مثلاً: 1000 أو 2500 درهم إماراتي أو أي مبلغ تفضله).",
                             default => "Please specify a valid numeric amount (e.g. 1,000, 2,500 AED or 5,000 USD)."
                         },
                         'lang' => $voiceLang,
