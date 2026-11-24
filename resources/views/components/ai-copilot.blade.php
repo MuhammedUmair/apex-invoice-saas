@@ -59,6 +59,8 @@
                 isSpeaking: false,
                 isMuted: false,
                 soundEnabled: true,
+                pageLocale: '{{ $activeLocale }}',
+                isPageRtl: {{ $isPortalRtl ? 'true' : 'false' }},
                 detectedLang: '{{ $activeLocale }}',
                 selectedLang: '{{ $activeLocale }}',
                 isRtl: {{ $isPortalRtl ? 'true' : 'false' }},
@@ -194,16 +196,23 @@
                 },
 
                 get isRtlLayout() {
-                    const docDir = (document.documentElement.getAttribute('dir') || document.body.getAttribute('dir') || '').toLowerCase();
+                    const docDir = (document.documentElement.getAttribute('dir') || '').toLowerCase();
                     const docLang = (document.documentElement.getAttribute('lang') || '').toLowerCase();
-                    return docDir === 'rtl' || this.isRtl || ['ur', 'ar'].includes(this.detectedLang) || ['ur', 'ar'].includes(docLang);
+                    if (docDir === 'rtl' || ['ur', 'ar'].includes(docLang)) {
+                        return true;
+                    }
+                    if (docDir === 'ltr' || ['en', 'hi', 'tr', 'es', 'fr', 'de', 'zh'].includes(docLang)) {
+                        return false;
+                    }
+                    return this.isPageRtl;
                 },
 
                 get currentLangObj() {
-                    if (this.detectedLang && this.languages[this.detectedLang]) {
-                        return this.languages[this.detectedLang];
+                    const langKey = this.pageLocale || '{{ $activeLocale }}';
+                    if (this.languages[langKey]) {
+                        return this.languages[langKey];
                     }
-                    return this.languages.auto;
+                    return this.languages.en || this.languages.auto;
                 },
 
                 get formattedVoiceDuration() {
@@ -648,9 +657,10 @@
                             },
                             body: JSON.stringify({
                                 message: cleanText,
-                                lang: this.detectedLang,
+                                lang: this.pageLocale,
                                 context: {
                                     ...this.collectScreenContext(),
+                                    page_locale: this.pageLocale,
                                     mode: 'voice',
                                     session_token: this.voiceSessionToken
                                 }
@@ -674,14 +684,16 @@
                         if (data.conversation_id) {
                             this.conversationId = data.conversation_id;
                         }
-                        if (data.lang) {
+                        if (this.pageLocale === 'en') {
+                            this.speechLang = 'en-US';
+                        } else if (data.lang) {
                             this.speechLang = data.lang;
                             if (this.recognition) this.recognition.lang = data.lang;
                         }
                         if (data.lang_code) {
-                            this.detectedLang = data.lang_code;
+                            this.detectedLang = (this.pageLocale === 'en' && data.lang_code === 'ur-roman') ? 'en' : data.lang_code;
                         }
-                        this.isRtl = !!data.is_rtl;
+                        this.isRtl = this.isPageRtl;
 
                         const aiMsgId = 'msg-ai-v-' + Date.now();
                         this.messages.push({
@@ -935,9 +947,10 @@
                             },
                             body: JSON.stringify({
                                 message: text,
-                                lang: this.detectedLang,
+                                lang: this.pageLocale,
                                 context: {
                                     ...this.collectScreenContext(),
+                                    page_locale: this.pageLocale,
                                     mode: 'text'
                                 }
                             })
@@ -960,14 +973,16 @@
                         if (data.conversation_id) {
                             this.conversationId = data.conversation_id;
                         }
-                        if (data.lang) {
+                        if (this.pageLocale === 'en') {
+                            this.speechLang = 'en-US';
+                        } else if (data.lang) {
                             this.speechLang = data.lang;
                             if (this.recognition) this.recognition.lang = data.lang;
                         }
                         if (data.lang_code) {
-                            this.detectedLang = data.lang_code;
+                            this.detectedLang = (this.pageLocale === 'en' && data.lang_code === 'ur-roman') ? 'en' : data.lang_code;
                         }
-                        this.isRtl = !!data.is_rtl;
+                        this.isRtl = this.isPageRtl;
 
                         const aiMsgId = 'msg-ai-' + Date.now();
                         this.messages.push({

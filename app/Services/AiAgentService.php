@@ -113,19 +113,57 @@ class AiAgentService
     /**
      * Resolve incoming query language.
      */
+    /**
+     * Resolve incoming query language.
+     * Respects the page selected language as the primary authority.
+     */
     public function resolveLanguage(string $q, ?string $selectedLang = null): string
     {
-        // 1. Detect actual language of user's query
-        $detected = $this->detectLanguage($q);
-
-        // If detected as non-English (e.g. Urdu, Roman Urdu, Arabic, Hindi), prioritize actual spoken language!
-        if ($detected !== 'en') {
-            return $detected;
+        $pageLang = !empty($selectedLang) && $selectedLang !== 'auto' ? $selectedLang : app()->getLocale();
+        if (empty($pageLang)) {
+            $pageLang = 'en';
         }
 
-        // 2. If user explicitly picked a non-English language in UI and query is generic/neutral
-        if (!empty($selectedLang) && $selectedLang !== 'auto' && in_array($selectedLang, ['ur', 'ur-roman', 'ar', 'hi', 'tr', 'es', 'fr', 'de', 'zh'])) {
-            return $selectedLang;
+        // 1. Native Urdu Nastaliq Script Detection
+        if ($this->isNativeUrdu($q)) {
+            return 'ur';
+        }
+
+        // 2. Native Arabic Script Detection
+        if ($this->isNativeArabic($q)) {
+            return 'ar';
+        }
+
+        // 3. Arabic/Urdu Unicode Block (\x{0600}-\x{06FF})
+        if (preg_match('/[\x{0600}-\x{06FF}]/u', $q)) {
+            return ($pageLang === 'ar') ? 'ar' : 'ur';
+        }
+
+        // 4. Hindi Devanagari script
+        if (preg_match('/[\x{0900}-\x{097F}]/u', $q)) {
+            return 'hi';
+        }
+
+        // 5. Chinese script
+        if (preg_match('/[\x{4E00}-\x{9FFF}]/u', $q)) {
+            return 'zh';
+        }
+
+        // 6. Explicit conversational language requests (e.g. "can you speak urdu", "speak in urdu", "urdu mein baat karo")
+        if (preg_match('/(can you speak (urdu|arabic|hindi)|speak in (urdu|arabic|hindi)|urdu bolo|urdu mein baat|urdu me baat|kya urdu)/iu', $q)) {
+            return 'ur';
+        }
+
+        // 7. When page selected language is ENGLISH:
+        // STRICTLY preserve English for all Latin-script inputs! Never default or slip into Urdu/Roman Urdu!
+        if ($pageLang === 'en') {
+            return 'en';
+        }
+
+        // 8. If user's portal is currently in Urdu, Arabic, Turkish, Spanish, French, German, or Hindi:
+        // Follow the page selected language!
+        if (in_array($pageLang, ['ur', 'ar', 'tr', 'es', 'fr', 'de', 'hi', 'zh'])) {
+            return $pageLang;
         }
 
         return 'en';
@@ -167,8 +205,8 @@ class AiAgentService
             return 'zh';
         }
 
-        // 6. Roman Urdu / Hinglish
-        if (preg_match('/\b(assalam|asalam|walekum|alaikum|walaikum|salam|slam|iske|uske|is|iss|bare|baare|mein|me|batao|bataiye|bataen|bata|kya|hai|hain|kaise|kese|kare|karen|karo|kar|banaye|banayein|banao|banate|madad|shukriya|mujhe|chahiye|kahan|theek|acha|accha|nahi|nhi|nahin|haan|bhi|aur|ye|yeh|wo|woh|apna|apni|karna|hoga|hota|chalega|bolo|bhejo|dekho|dikhao|hisaab|paisa|paise|kharcha|kamai|kitna|kitne|mera|meri|mere|saath|sath|kuch|btao|btaen|sakte|sakta|saktee|hun|hoon|karta|karte|bhai|yaar|janab|sahab|samjha|samjhein|bolte|bol|aati|baat|kidhar|kyun|kyu|kyoon|kab|zara|thoda|zyada|bohot|bohat)\b/i', $q)) {
+        // 6. Roman Urdu / Hinglish (multi-word phrases only, avoids English collisions with "is", "me", "kar")
+        if (preg_match('/\b(assalam\s*walekum|walaikum\s*assalam|iske\s*baare|is\s*ke\s*baare|kaise\s*kare|kaise\s*karen|kaise\s*banao|kaise\s*banate|invoice\s*kaise|shukriya|mujhe\s*chahiye|kahan\s*se|theek\s*hai|nahi\s*chahiye|aapka\s*naam|apna\s*hisaab|paisa\s*kitna|kharcha\s*kitna|mera\s*balance|mere\s*saath|bataiye\s*zara|samjh\s*aaya|samjh\s*gaye|bol\s*sakte|baat\s*karein|baat\s*karo|kidhar\s*hai|kyun\s*nahi|bohot\s*shukriya|naya\s*invoice\s*bana)\b/i', $q)) {
             return 'ur-roman';
         }
 
@@ -629,9 +667,9 @@ How can I help you today? Would you like to create a new invoice, explore indust
 
             return [
                 'reply' => $reply,
-                'lang' => in_array($lang, ['ur', 'ur-roman']) ? 'ur-PK' : $voiceLang,
-                'lang_code' => in_array($lang, ['ur', 'ur-roman']) ? $lang : 'ur-roman',
-                'is_rtl' => ($lang === 'ur'),
+                'lang' => ($lang === 'ur') ? 'ur-PK' : $voiceLang,
+                'lang_code' => $lang,
+                'is_rtl' => $isRtl,
                 'suggestions' => match ($lang) {
                     'ur' => ['نیا انوائس بنائیں', 'انوائس کیسے بنائیں؟', 'میرے فنانشل اعدادوشمار', 'سپورٹ ٹکٹس دیکھیں'],
                     'ur-roman' => ['Naya Invoice Banayein', 'Invoice kaise banate hain?', 'Mera Balance & Stats', 'Support Tickets Dekhein'],
