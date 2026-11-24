@@ -83,9 +83,15 @@
                     </div>
                 </div>
 
-                <div class="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
-                    {{ $msg->message }}
-                </div>
+                @php
+                    $displayMessage = $msg->message;
+                    if (str_contains($displayMessage, "\n\nContext: {")) {
+                        $displayMessage = explode("\n\nContext: {", $displayMessage)[0];
+                    } elseif (str_contains($displayMessage, "Context: {")) {
+                        $displayMessage = explode("Context: {", $displayMessage)[0];
+                    }
+                @endphp
+                <div class="text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{{ trim($displayMessage) }}</div>
 
                 @if(!empty($msg->attachments_json))
                     <div class="pt-3 border-t border-slate-100">

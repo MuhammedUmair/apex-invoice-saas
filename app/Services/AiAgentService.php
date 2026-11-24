@@ -401,11 +401,14 @@ class AiAgentService
             // STEP 1: Awaiting Customer Name
             if ($step === 'awaiting_customer') {
                 $customer = trim($rawQuery);
-                // Strip conversational prefixes e.g. "Can you create one for ABC Trading?" -> "ABC Trading"
-                $customer = preg_replace('/^(can you create (one )?(for )?|create (one )?(for )?|yes (for )?|make (one )?(for )?|for|naam|name|client|customer|company)\s+/iu', '', $customer);
+                // Strip conversational prefixes & suffixes e.g. "Can you create one for ABC Trading?" -> "ABC Trading", "yeh walk-in hai" -> "Walk-in"
+                $customer = preg_replace('/^(can you create (one )?(for )?|create (one )?(for )?|yes (for )?|make (one )?(for )?|for|naam|name|client|customer|company|ye|yeh|یہ)\s+/iu', '', $customer);
+                $customer = preg_replace('/\s+(hai|hain|karo|banao|ہے|ہیں|ہو)$/iu', '', $customer);
                 $customer = preg_replace('/\?+$/', '', $customer);
                 $customer = trim($customer);
-                if (empty($customer)) {
+
+                // Recognize all walk-in, cash sale, and counter sale variations across languages
+                if (empty($customer) || preg_match('/(walk[\s\-]?in|واک[\s\-]?ان|واکنگ|سوکنگ|کیش سیل|عميل نقدي|cash sale|counter sale)/iu', $customer)) {
                     $customer = 'Walk-in Customer';
                 }
                 $data['customer'] = $customer;
@@ -435,9 +438,9 @@ class AiAgentService
                     if (preg_match('/(آواز آ رہی|آواز آ رہی ہے|اواز ارہی ہے|سن رہے ہو|میری آواز|can you hear me|are you listening|hear me|awaz aa rahi|sun rahe)/iu', $rawQuery)) {
                         return [
                             'reply' => match ($lang) {
-                                'ur' => "جی ہاں! مجھے آپ کی آواز بالکل صاف آ رہی ہے۔ آپ جو بھی رقم (مثلاً 1,000 یا 2,500 یا اپنی مرضی کی کوئی بھی رقم) بولیں گے، میں وہ درج کر لوں گا۔",
-                                'ur-roman' => "Jee haan! Mujhe aap ki awaaz bilkul saaf aa rahi hai. Aap jo bhi amount (maslan 1,000 ya 2,500 ya koi bhi custom rakam) bolenge, main note kar loon ga.",
-                                default => "Yes! I can hear you loud and clear. Please speak or enter the amount you would like to set (e.g. 1,000 or 2,500 AED or any custom number)."
+                                'ur' => "میں آپ کا AI سپورٹ اسسٹنٹ ہوں۔ اب میں مکمل طور پر تیز ترین ٹیکسٹ چیٹ کے ذریعے کسٹمر سپورٹ فراہم کرتا ہوں۔ برائے مہربانی اپنا پیغام یا رقم یہاں ٹائپ کریں۔",
+                                'ur-roman' => "Main aap ka AI Support Assistant hoon. Ab main fast text chat ke zariye customer support provide karta hoon. Meherbani kar ke apna message ya amount yahan type karein.",
+                                default => "I am your AI Support Assistant. I provide customer support directly via text chat. Please enter the amount or details you would like to set."
                             },
                             'lang' => $voiceLang,
                             'lang_code' => $lang,
@@ -660,10 +663,10 @@ How can I help you today? Would you like to create a new invoice, explore indust
         // -------------------------------------------------------------
         if (preg_match('/(can you speak (urdu|arabic|hindi|english)|speak in (urdu|arabic|hindi)|urdu bol sakte|urdu aati|urdu mein|urdu me baat|urdu me|urdu mein nahin|kya urdu|urdu bolo|urdu me samjha|urdu mein samjha|samjha sakte|urdu samajh|عربی بولتے|تتكلم عربي|اردو بول سکتے|اردو میں بات|اردو آتی ہے|اردو میں سمجھا|اردو بولیں)/iu', $q)) {
             $reply = match ($lang) {
-                'ur' => "جی ہاں، بالکل! میں اردو، رومن اردو، انگریزی، عربی، ہندی اور دیگر 10 زبانوں میں مکمل روانی سے بات اور وائس چیٹ کر سکتا ہوں۔ آپ مجھ سے بلا جھجھک اردو میں کچھ بھی پوچھ سکتے ہیں یا مائیک سے بات کر سکتے ہیں!",
-                'ur-roman' => "Jee haan, bilkul! Main Urdu, Roman Urdu, English, Arabic, Hindi aur deegar 10 zabaano mein baat kar sakta hoon. Aap mujhse bol kar ya likh kar Urdu mein jo chahein pooch sakte hain!",
-                'ar' => "نعم بالتأكيد! يمكنني التحدث باللغة العربية والإنجليزية والأردية وأكثر من 10 لغات بطلاقة كاملة كتابياً وصوتياً.",
-                default => "Yes, absolutely! I can fluently communicate in English, Urdu, Roman Urdu, Arabic, Hindi, Turkish, French, Spanish, German, and Chinese. Feel free to speak or type in any language you prefer!"
+                'ur' => "جی ہاں، بالکل! میں اردو، رومن اردو، انگریزی، عربی، ہندی اور دیگر 10 زبانوں میں کسٹمر سپورٹ فراہم کر سکتا ہوں۔ آپ مجھ سے بلا جھجھک اردو میں کوئی بھی سوال پوچھ سکتے ہیں!",
+                'ur-roman' => "Jee haan, bilkul! Main Urdu, Roman Urdu, English, Arabic, Hindi aur deegar 10 zabaano mein customer support provide kar sakta hoon. Aap mujhse Urdu mein jo chahein poochein!",
+                'ar' => "نعم بالتأكيد! يمكنني تقديم الدعم الفني باللغة العربية والإنجليزية والأردية والعديد من اللغات الأخرى بكل دقة واحترافية.",
+                default => "Yes, absolutely! I can fluently assist you in English, Urdu, Roman Urdu, Arabic, Hindi, Turkish, French, Spanish, German, and Chinese. Feel free to type in whichever language you prefer!"
             };
 
             return [
@@ -1867,7 +1870,7 @@ CONVERSATIONAL RULES:
                 ]);
 
                 $screen = !empty($context['page_title']) ? $context['page_title'] : (!empty($context['route_name']) ? $context['route_name'] : 'Dashboard');
-                $channel = (!empty($context['mode']) && $context['mode'] === 'voice') ? 'Two-Way Voice Support' : 'Live Chat Assistant';
+                $channel = 'AI Support Assistant';
 
                 $cleanMessage = "Customer inquiry escalated via {$channel}:\n\n\"{$rawQuery}\"\n\n• Screen: {$screen}\n• Turnaround Guarantee: 24-Hour SLA";
 

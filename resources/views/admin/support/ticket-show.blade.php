@@ -29,7 +29,15 @@
                             </span>
                             <span class="text-[10px] text-slate-500 font-mono">{{ $msg->created_at->format('M d, H:i') }}</span>
                         </div>
-                        <div class="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{{ $msg->message }}</div>
+                        @php
+                            $displayMessage = $msg->message;
+                            if (str_contains($displayMessage, "\n\nContext: {")) {
+                                $displayMessage = explode("\n\nContext: {", $displayMessage)[0];
+                            } elseif (str_contains($displayMessage, "Context: {")) {
+                                $displayMessage = explode("Context: {", $displayMessage)[0];
+                            }
+                        @endphp
+                        <div class="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">{{ trim($displayMessage) }}</div>
                     </div>
                 @empty
                     <div class="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
